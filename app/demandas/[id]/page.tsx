@@ -3,6 +3,8 @@ import StatusDemanda from "../../../components/StatusDemanda";
 import ResponsavelDemanda from "../../../components/ResponsavelDemanda";
 import ComentariosDemanda from "../../../components/ComentariosDemanda";
 import HistoricoDemanda from "../../../components/HistoricoDemanda";
+import EixosProdutosDemanda from "../../../components/EixosProdutosDemanda";
+
 
 
 export default async function DetalheDemanda({
@@ -93,8 +95,10 @@ style={{
         <p>Nenhum anexo cadastrado.</p>
       )}
 
+        <EixosProdutosDemanda demandaId={demanda.id} />
+
         <ComentariosDemanda demandaId={demanda.id} />
-        
+
         <HistoricoDemanda demandaId={demanda.id} />
 
     </div>
