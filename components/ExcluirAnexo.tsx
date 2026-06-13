@@ -1,14 +1,19 @@
 "use client";
 
+import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "../lib/supabase";
 
 export default function ExcluirAnexo({
+  demandaId,
   anexoId,
   caminhoStorage,
 }: {
+  demandaId: number;
   anexoId: number;
   caminhoStorage?: string | null;
 }) {
+  const { usuario } = useAuth();
+
   async function excluir() {
     const confirmar = confirm("Deseja realmente excluir este anexo?");
 
@@ -32,6 +37,14 @@ export default function ExcluirAnexo({
     if (error) {
       alert("Erro ao excluir anexo: " + error.message);
       return;
+    }
+
+    if (usuario) {
+      await supabase.from("historico_demanda").insert({
+        demanda_id: demandaId,
+        usuario_id: usuario.id,
+        acao: `${usuario.nome} excluiu um anexo`,
+      });
     }
 
     location.reload();

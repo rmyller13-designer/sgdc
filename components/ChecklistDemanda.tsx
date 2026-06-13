@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { podeEditarFluxo } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
 
 type Item = {
@@ -10,6 +12,8 @@ type Item = {
 };
 
 function ChecklistDemanda({ demandaId }: { demandaId: number }) {
+  const { usuario } = useAuth();
+  const podeEditar = podeEditarFluxo(usuario);
   const [itens, setItens] = useState<Item[]>([]);
   const [novoItem, setNovoItem] = useState("");
   const [mensagem, setMensagem] = useState("");
@@ -41,6 +45,11 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       return;
     }
 
+    if (!podeEditar || !usuario) {
+      setMensagem("Seu usuário não tem permissão para alterar o checklist.");
+      return;
+    }
+
     const tituloItem = novoItem.trim();
 
     const { error } = await supabase.from("demanda_checklist").insert({
@@ -55,8 +64,8 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 
     await supabase.from("historico_demanda").insert({
       demanda_id: demandaId,
-      usuario_id: 18,
-      acao: `Roberto adicionou checklist: ${tituloItem}`,
+      usuario_id: usuario.id,
+      acao: `${usuario.nome} adicionou checklist: ${tituloItem}`,
     });
 
     setNovoItem("");
@@ -65,6 +74,11 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 
   async function alternarItem(item: Item) {
     setMensagem("");
+
+    if (!podeEditar || !usuario) {
+      setMensagem("Seu usuário não tem permissão para alterar o checklist.");
+      return;
+    }
 
     const novoStatus = !item.concluido;
 
@@ -80,8 +94,8 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 
     await supabase.from("historico_demanda").insert({
       demanda_id: demandaId,
-      usuario_id: 18,
-      acao: `Roberto ${novoStatus ? "concluiu" : "reabriu"} checklist: ${
+      usuario_id: usuario.id,
+      acao: `${usuario.nome} ${novoStatus ? "concluiu" : "reabriu"} checklist: ${
         item.titulo
       }`,
     });
@@ -91,6 +105,11 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 
   async function removerItem(id: number) {
     setMensagem("");
+
+    if (!podeEditar || !usuario) {
+      setMensagem("Seu usuário não tem permissão para alterar o checklist.");
+      return;
+    }
 
     const itemRemovido = itens.find((item) => item.id === id);
 
@@ -107,8 +126,8 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     if (itemRemovido) {
       await supabase.from("historico_demanda").insert({
         demanda_id: demandaId,
-        usuario_id: 18,
-        acao: `Roberto removeu checklist: ${itemRemovido.titulo}`,
+        usuario_id: usuario.id,
+        acao: `${usuario.nome} removeu checklist: ${itemRemovido.titulo}`,
       });
     }
 
@@ -143,10 +162,11 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
               adicionarItem();
             }
           }}
+          disabled={!podeEditar}
           style={campo}
         />
 
-        <button type="button" onClick={adicionarItem} style={botao}>
+        <button type="button" onClick={adicionarItem} style={botao} disabled={!podeEditar}>
           Adicionar
         </button>
       </div>
@@ -162,6 +182,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
                   type="checkbox"
                   checked={item.concluido}
                   onChange={() => alternarItem(item)}
+                  disabled={!podeEditar}
                 />
 
                 <span
@@ -178,6 +199,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
                 type="button"
                 onClick={() => removerItem(item.id)}
                 style={botaoRemover}
+                disabled={!podeEditar}
               >
                 Remover
               </button>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { podeEditarFluxo } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
 
 export default function StatusDemanda({
@@ -10,11 +12,18 @@ export default function StatusDemanda({
   demandaId: number;
   statusAtual: string;
 }) {
+  const { usuario } = useAuth();
+  const podeEditar = podeEditarFluxo(usuario);
   const [status, setStatus] = useState(statusAtual);
   const [mensagem, setMensagem] = useState("");
 
   async function atualizarStatus() {
   setMensagem("");
+
+  if (!podeEditar || !usuario) {
+    setMensagem("Seu usuário não tem permissão para alterar status.");
+    return;
+  }
 
   const { data: statusSelecionado } = await supabase
     .from("status_demanda")
@@ -34,8 +43,8 @@ export default function StatusDemanda({
 
   await supabase.from("historico_demanda").insert({
     demanda_id: demandaId,
-    usuario_id: 18,
-    acao: `Roberto alterou o status para ${status}`,
+    usuario_id: usuario.id,
+    acao: `${usuario.nome} alterou o status para ${status}`,
   });
 
   setMensagem("Status atualizado com sucesso!");
@@ -50,6 +59,7 @@ export default function StatusDemanda({
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           style={campo}
+          disabled={!podeEditar}
         >
           <option value="RECEBIDO">RECEBIDO</option>
           <option value="EM_PRODUCAO">EM_PRODUCAO</option>
@@ -58,7 +68,7 @@ export default function StatusDemanda({
           <option value="CANCELADO">CANCELADO</option>
         </select>
 
-        <button onClick={atualizarStatus} style={botao}>
+        <button onClick={atualizarStatus} style={botao} disabled={!podeEditar}>
           Atualizar
         </button>
       </div>

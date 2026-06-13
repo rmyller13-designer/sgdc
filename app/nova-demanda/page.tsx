@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "../../lib/supabase";
 
+type Opcao = {
+  id: number;
+  nome: string;
+  ordem?: number | null;
+  funcao?: string | null;
+  ativo?: boolean | null;
+};
+
 export default function NovaDemanda() {
-  const [setores, setSetores] = useState<any[]>([]);
-  const [prioridades, setPrioridades] = useState<any[]>([]);
-  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const { usuario } = useAuth();
+  const [setores, setSetores] = useState<Opcao[]>([]);
+  const [prioridades, setPrioridades] = useState<Opcao[]>([]);
+  const [usuarios, setUsuarios] = useState<Opcao[]>([]);
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -17,11 +27,7 @@ export default function NovaDemanda() {
   const [arquivos, setArquivos] = useState<FileList | null>(null);
   const [mensagem, setMensagem] = useState("");
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     const { data: setoresData } = await supabase
       .from("setores")
       .select("*")
@@ -37,16 +43,33 @@ export default function NovaDemanda() {
       .select("*")
       .order("nome");
 
-    setSetores(setoresData || []);
-    setPrioridades(prioridadesData || []);
-    setUsuarios(usuariosData || []);
-  }
+    const listaUsuarios = (usuariosData as Opcao[] | null) || [];
+
+    setSetores((setoresData as Opcao[] | null) || []);
+    setPrioridades((prioridadesData as Opcao[] | null) || []);
+    setUsuarios(listaUsuarios);
+
+    if (usuario && listaUsuarios.some((item) => item.id === usuario.id)) {
+      setUsuarioId((atual) => atual || String(usuario.id));
+    }
+  }, [usuario]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void carregarDados();
+    });
+  }, [carregarDados]);
 
   async function salvarDemanda() {
     setMensagem("");
 
     if (!titulo || !setorId || !prioridadeId || !usuarioId) {
       setMensagem("Preencha os campos obrigatórios.");
+      return;
+    }
+
+    if (!usuario) {
+      setMensagem("Faça login para salvar uma demanda.");
       return;
     }
 
@@ -79,6 +102,12 @@ export default function NovaDemanda() {
       setMensagem("Erro ao salvar demanda: " + erroDemanda.message);
       return;
     }
+
+    await supabase.from("historico_demanda").insert({
+      demanda_id: demandaCriada.id,
+      usuario_id: usuario.id,
+      acao: `${usuario.nome} criou a demanda`,
+    });
 
     if (arquivos && arquivos.length > 0) {
       for (const arquivo of Array.from(arquivos)) {

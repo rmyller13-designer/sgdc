@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { podeAtribuirResponsavel } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
+
+type UsuarioResponsavel = {
+  id: number;
+  nome: string;
+  funcao: string | null;
+};
 
 export default function ResponsavelDemanda({
   demandaId,
@@ -10,25 +18,34 @@ export default function ResponsavelDemanda({
   demandaId: number;
   responsavelAtual?: string | null;
 }) {
-  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const { usuario } = useAuth();
+  const podeAtribuir = podeAtribuirResponsavel(usuario);
+  const [usuarios, setUsuarios] = useState<UsuarioResponsavel[]>([]);
   const [responsavelId, setResponsavelId] = useState("");
   const [mensagem, setMensagem] = useState("");
 
-  useEffect(() => {
-    carregarUsuarios();
-  }, []);
-
-  async function carregarUsuarios() {
+  const carregarUsuarios = useCallback(async () => {
     const { data } = await supabase
       .from("usuarios_comunicacao")
       .select("id, nome, funcao")
       .order("nome");
 
-    setUsuarios(data || []);
-  }
+    setUsuarios((data as UsuarioResponsavel[] | null) || []);
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void carregarUsuarios();
+    });
+  }, [carregarUsuarios]);
 
  async function atualizarResponsavel() {
   setMensagem("");
+
+  if (!podeAtribuir || !usuario) {
+    setMensagem("Seu usuário não tem permissão para atribuir responsável.");
+    return;
+  }
 
   if (!responsavelId) {
     setMensagem("Selecione um responsável.");
@@ -51,8 +68,8 @@ export default function ResponsavelDemanda({
 
   await supabase.from("historico_demanda").insert({
     demanda_id: demandaId,
-    usuario_id: 18,
-    acao: `Roberto atribuiu a demanda para ${usuarioSelecionado?.nome}`,
+    usuario_id: usuario.id,
+    acao: `${usuario.nome} atribuiu a demanda para ${usuarioSelecionado?.nome}`,
   });
 
   setMensagem("Responsável atualizado com sucesso!");
@@ -70,6 +87,7 @@ export default function ResponsavelDemanda({
           value={responsavelId}
           onChange={(e) => setResponsavelId(e.target.value)}
           style={campo}
+          disabled={!podeAtribuir}
         >
           <option value="">Selecione o responsável</option>
 
@@ -80,7 +98,7 @@ export default function ResponsavelDemanda({
           ))}
         </select>
 
-        <button onClick={atualizarResponsavel} style={botao}>
+        <button onClick={atualizarResponsavel} style={botao} disabled={!podeAtribuir}>
           Atualizar Responsável
         </button>
       </div>

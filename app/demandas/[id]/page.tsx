@@ -1,13 +1,22 @@
-import { supabase } from "../../../lib/supabase";
-import StatusDemanda from "../../../components/StatusDemanda";
-import ResponsavelDemanda from "../../../components/ResponsavelDemanda";
-import ComentariosDemanda from "../../../components/ComentariosDemanda";
-import HistoricoDemanda from "../../../components/HistoricoDemanda";
-import EixosProdutosDemanda from "../../../components/EixosProdutosDemanda";
-import ChecklistDemanda from "../../../components/ChecklistDemanda";
-import UploadAnexo from "../../../components/UploadAnexo";
-import ExcluirAnexo from "../../../components/ExcluirAnexo";
-import EditarDemandaInfo from "../../../components/EditarDemandaInfo";
+import type { CSSProperties } from "react";
+import { supabase } from "@/lib/supabase";
+import StatusDemanda from "@/components/StatusDemanda";
+import ResponsavelDemanda from "@/components/ResponsavelDemanda";
+import ComentariosDemanda from "@/components/ComentariosDemanda";
+import HistoricoDemanda from "@/components/HistoricoDemanda";
+import EixosProdutosDemanda from "@/components/EixosProdutosDemanda";
+import ChecklistDemanda from "@/components/ChecklistDemanda";
+import UploadAnexo from "@/components/UploadAnexo";
+import ExcluirAnexo from "@/components/ExcluirAnexo";
+import EditarDemandaInfo from "@/components/EditarDemandaInfo";
+
+type Anexo = {
+  id: number;
+  nome_arquivo: string;
+  url_arquivo: string;
+  tipo_arquivo: string | null;
+  caminho_storage: string;
+};
 
 export default async function DetalheDemanda({
   params,
@@ -17,7 +26,7 @@ export default async function DetalheDemanda({
   const { id } = await params;
   const demandaId = Number(id);
 
-  if (isNaN(demandaId)) {
+  if (Number.isNaN(demandaId)) {
     return <p style={{ color: "red" }}>ID da demanda inválido.</p>;
   }
 
@@ -36,12 +45,29 @@ export default async function DetalheDemanda({
     return <p style={{ color: "red" }}>Erro: {error.message}</p>;
   }
 
+  if (!demanda) {
+    return <p style={{ color: "red" }}>Demanda não encontrada.</p>;
+  }
+
+  const anexosLista = (anexos || []) as Anexo[];
+
   return (
     <div style={page}>
+      <div style={workspaceHeader}>
+        <a href="/demandas" style={backLink}>
+          Demandas
+        </a>
+        <span style={separator}>/</span>
+        <span style={headerCurrent}>#{demanda.id}</span>
+      </div>
+
       <div style={conteudo}>
         <section style={mainColumn}>
           <div style={topo}>
-            <span style={idBadge}>Demanda #{demanda.id}</span>
+            <div style={tituloLinha}>
+              <span style={idBadge}>Demanda #{demanda.id}</span>
+              <span style={statusPill}>{formatarStatus(demanda.status)}</span>
+            </div>
 
             <h1 style={tituloPrincipal}>{demanda.titulo}</h1>
 
@@ -119,16 +145,17 @@ export default async function DetalheDemanda({
 
             <UploadAnexo demandaId={demanda.id} />
 
-            {anexos && anexos.length > 0 ? (
+            {anexosLista.length > 0 ? (
               <div style={anexosGrid}>
-                {anexos.map((anexo) => (
+                {anexosLista.map((anexo) => (
                   <div key={anexo.id} style={anexoStyle}>
                     <a
                       href={anexo.url_arquivo}
                       target="_blank"
+                      rel="noreferrer"
                       style={anexoLink}
                     >
-                      📎 {anexo.nome_arquivo}
+                      Anexo: {anexo.nome_arquivo}
                     </a>
 
                     {anexo.tipo_arquivo?.startsWith("image/") && (
@@ -140,6 +167,7 @@ export default async function DetalheDemanda({
                     )}
 
                     <ExcluirAnexo
+                      demandaId={demanda.id}
                       anexoId={anexo.id}
                       caminhoStorage={anexo.caminho_storage}
                     />
@@ -184,165 +212,216 @@ function formatarStatus(status: string) {
 }
 
 function formatarData(data: string) {
-  const [ano, mes, dia] = data.split("-");
+  const [ano, mes, dia] = data.slice(0, 10).split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
-const page = {
+const page: CSSProperties = {
   color: "white",
 };
 
-const conteudo = {
+const workspaceHeader: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  color: "#fecaca",
+  fontSize: "13px",
+  marginBottom: "18px",
+};
+
+const backLink: CSSProperties = {
+  color: "#fee2e2",
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+const separator: CSSProperties = {
+  color: "rgba(254, 202, 202, 0.55)",
+};
+
+const headerCurrent: CSSProperties = {
+  color: "#fecaca",
+};
+
+const conteudo: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 380px",
-  gap: "24px",
+  gridTemplateColumns: "minmax(0, 1fr) 360px",
+  gap: "20px",
   alignItems: "start",
 };
 
-const mainColumn = {
+const mainColumn: CSSProperties = {
   minWidth: 0,
 };
 
-const sideColumn = {
+const sideColumn: CSSProperties = {
   minWidth: 0,
 };
 
-const sideSticky = {
-  position: "sticky" as const,
+const sideSticky: CSSProperties = {
+  position: "sticky",
   top: "100px",
 };
 
-const topo = {
-  marginBottom: "22px",
+const topo: CSSProperties = {
+  background: "rgba(15, 23, 42, 0.68)",
+  border: "1px solid rgba(252, 165, 165, 0.2)",
+  borderRadius: "8px",
+  padding: "22px",
+  marginBottom: "14px",
+  boxShadow: "0 14px 34px rgba(0,0,0,0.24)",
 };
 
-const idBadge = {
+const tituloLinha: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const idBadge: CSSProperties = {
   color: "#fecaca",
   fontSize: "13px",
-  fontWeight: "bold",
+  fontWeight: 700,
 };
 
-const tituloPrincipal = {
+const statusPill: CSSProperties = {
+  background: "rgba(220, 38, 38, 0.28)",
+  border: "1px solid rgba(252, 165, 165, 0.28)",
+  borderRadius: "999px",
+  color: "#fee2e2",
+  fontSize: "12px",
+  fontWeight: 700,
+  padding: "6px 10px",
+};
+
+const tituloPrincipal: CSSProperties = {
   fontSize: "34px",
   margin: "8px 0 10px",
   lineHeight: "40px",
+  overflowWrap: "anywhere",
 };
 
-const descricaoTopo = {
+const descricaoTopo: CSSProperties = {
   color: "#fecaca",
   maxWidth: "900px",
   lineHeight: "24px",
+  margin: 0,
+  whiteSpace: "pre-wrap",
 };
 
-const painelResumo = {
+const painelResumo: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(160px, 1fr))",
-  gap: "12px",
-  marginBottom: "24px",
+  gap: "10px",
+  marginBottom: "16px",
 };
 
-const campoResumo = {
+const campoResumo: CSSProperties = {
   background: "rgba(15, 23, 42, 0.72)",
   border: "1px solid rgba(252, 165, 165, 0.18)",
-  borderRadius: "14px",
+  borderRadius: "8px",
   padding: "14px",
   display: "flex",
-  flexDirection: "column" as const,
+  flexDirection: "column",
   gap: "6px",
   color: "#fecaca",
+  minWidth: 0,
 };
 
-const tabs = {
+const tabs: CSSProperties = {
   display: "flex",
-  gap: "20px",
+  gap: "18px",
   borderBottom: "1px solid rgba(252, 165, 165, 0.2)",
-  marginBottom: "18px",
+  marginBottom: "14px",
 };
 
-const tab = {
+const tab: CSSProperties = {
   color: "#fecaca",
   padding: "12px 0",
   fontSize: "14px",
 };
 
-const tabAtiva = {
+const tabAtiva: CSSProperties = {
   color: "white",
   padding: "12px 0",
   fontSize: "14px",
-  fontWeight: "bold",
+  fontWeight: 700,
   borderBottom: "2px solid #fca5a5",
 };
 
-const card = {
+const card: CSSProperties = {
   background: "rgba(15, 23, 42, 0.72)",
   border: "1px solid rgba(252, 165, 165, 0.18)",
-  borderRadius: "18px",
+  borderRadius: "8px",
   padding: "20px",
-  marginBottom: "18px",
+  marginBottom: "14px",
   boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
 };
 
-const sectionTitle = {
+const sectionTitle: CSSProperties = {
   marginTop: 0,
   marginBottom: "16px",
   fontSize: "18px",
 };
 
-const acoesLinha = {
+const acoesLinha: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(240px, 1fr))",
   gap: "16px",
 };
 
-const acaoBox = {
+const acaoBox: CSSProperties = {
   background: "rgba(2, 6, 23, 0.35)",
   border: "1px solid rgba(148, 163, 184, 0.18)",
-  borderRadius: "12px",
+  borderRadius: "8px",
   padding: "14px",
 };
 
-const anexosGrid = {
+const anexosGrid: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "12px",
 };
 
-const anexoStyle = {
+const anexoStyle: CSSProperties = {
   background: "rgba(2, 6, 23, 0.35)",
   border: "1px solid rgba(148, 163, 184, 0.18)",
-  borderRadius: "12px",
+  borderRadius: "8px",
   padding: "12px",
 };
 
-const anexoLink = {
+const anexoLink: CSSProperties = {
   color: "#93c5fd",
   textDecoration: "none",
   fontSize: "14px",
+  overflowWrap: "anywhere",
 };
 
-const imagemAnexo = {
+const imagemAnexo: CSSProperties = {
   marginTop: "12px",
   width: "100%",
   height: "160px",
-  objectFit: "contain" as const,
+  objectFit: "contain",
   background: "rgba(2, 6, 23, 0.55)",
-  borderRadius: "10px",
+  borderRadius: "8px",
   border: "1px solid #334155",
 };
 
-const textoFraco = {
+const textoFraco: CSSProperties = {
   color: "#fecaca",
 };
 
-const atividadeTitulo = {
+const atividadeTitulo: CSSProperties = {
   marginTop: 0,
   marginBottom: "14px",
 };
 
-const sideCard = {
+const sideCard: CSSProperties = {
   background: "rgba(15, 23, 42, 0.72)",
   border: "1px solid rgba(252, 165, 165, 0.18)",
-  borderRadius: "18px",
+  borderRadius: "8px",
   padding: "16px",
-  marginBottom: "16px",
+  marginBottom: "14px",
 };

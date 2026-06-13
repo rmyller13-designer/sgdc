@@ -29,6 +29,13 @@ type ProdutoSelecionado = {
   } | null;
 };
 
+type ProdutoSelecionadoSupabase = {
+  id: number;
+  produto_id: number;
+  quantidade: number;
+  produtos: { nome: string } | { nome: string }[] | null;
+};
+
 export default function EixosProdutosDemanda({
   demandaId,
 }: {
@@ -95,7 +102,15 @@ export default function EixosProdutosDemanda({
     setEixosSelecionados(eixosMarcados?.map((item) => item.eixo_id) || []);
     setCanaisSelecionados(canaisMarcados?.map((item) => item.canal_id) || []);
 
-    const lista = (produtosMarcados as ProdutoSelecionado[]) || [];
+    const lista =
+      ((produtosMarcados as ProdutoSelecionadoSupabase[] | null) || []).map(
+        (item) => ({
+          ...item,
+          produtos: Array.isArray(item.produtos)
+            ? item.produtos[0] || null
+            : item.produtos,
+        })
+      );
     setProdutosSelecionados(lista);
 
     const mapa: Record<number, number> = {};

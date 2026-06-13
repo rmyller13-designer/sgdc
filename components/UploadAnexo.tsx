@@ -1,9 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import {
+  criarCaminhoAnexoDemanda,
+  LIMITE_UPLOAD_MB,
+  TIPOS_UPLOAD_PERMITIDOS,
+  validarArquivoUpload,
+} from "@/lib/storage-policy";
 import { supabase } from "../lib/supabase";
 
 export default function UploadAnexo({ demandaId }: { demandaId: number }) {
+  const { usuario } = useAuth();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [mensagem, setMensagem] = useState("");
@@ -16,7 +24,14 @@ export default function UploadAnexo({ demandaId }: { demandaId: number }) {
       return;
     }
 
-    const caminhoArquivo = `demanda-${demandaId}/${Date.now()}-${arquivo.name}`;
+    const erroArquivo = validarArquivoUpload(arquivo);
+
+    if (erroArquivo) {
+      setMensagem(erroArquivo);
+      return;
+    }
+
+    const caminhoArquivo = criarCaminhoAnexoDemanda(demandaId, arquivo);
 
     const { error: erroUpload } = await supabase.storage
       .from("demandas")
@@ -45,6 +60,14 @@ export default function UploadAnexo({ demandaId }: { demandaId: number }) {
       return;
     }
 
+    if (usuario) {
+      await supabase.from("historico_demanda").insert({
+        demanda_id: demandaId,
+        usuario_id: usuario.id,
+        acao: `${usuario.nome} anexou o arquivo ${arquivo.name}`,
+      });
+    }
+
     location.reload();
   }
 
@@ -53,6 +76,7 @@ export default function UploadAnexo({ demandaId }: { demandaId: number }) {
       <input
         ref={inputRef}
         type="file"
+        accept={TIPOS_UPLOAD_PERMITIDOS.join(",")}
         onChange={(e) => setArquivo(e.target.files?.[0] || null)}
         style={{ display: "none" }}
       />
@@ -70,6 +94,10 @@ export default function UploadAnexo({ demandaId }: { demandaId: number }) {
       </button>
 
       {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
+      <p style={regraUpload}>
+        Limite por arquivo: {LIMITE_UPLOAD_MB} MB. Os anexos ficam em pasta da
+        demanda.
+      </p>
     </div>
   );
 }
@@ -106,5 +134,12 @@ const botao = {
 const mensagemStyle = {
   width: "100%",
   color: "#fecaca",
+  margin: 0,
+};
+
+const regraUpload = {
+  width: "100%",
+  color: "#94a3b8",
+  fontSize: "12px",
   margin: 0,
 };

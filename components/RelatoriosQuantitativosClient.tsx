@@ -20,11 +20,17 @@ type Item = {
   valor: number;
 };
 
+type EvolucaoItem = {
+  mes: string;
+  demandas: number;
+};
+
 const cores = ["#ef4444", "#f97316", "#22c55e", "#3b82f6", "#a855f7", "#eab308"];
 
 export default function RelatoriosQuantitativosClient({
   inicio,
   fim,
+  mes,
   totalDemandas,
   produtos,
   canais,
@@ -32,9 +38,11 @@ export default function RelatoriosQuantitativosClient({
   status,
   setores,
   responsaveis,
+  evolucaoMensal,
 }: {
   inicio: string;
   fim: string;
+  mes: string;
   totalDemandas: number;
   produtos: Item[];
   canais: Item[];
@@ -42,17 +50,16 @@ export default function RelatoriosQuantitativosClient({
   status: Item[];
   setores: Item[];
   responsaveis: Item[];
+  evolucaoMensal: EvolucaoItem[];
 }) {
   const totalProdutos = produtos.reduce((soma, item) => soma + item.valor, 0);
   const totalCanais = canais.reduce((soma, item) => soma + item.valor, 0);
   const totalEixos = eixos.reduce((soma, item) => soma + item.valor, 0);
 
-  const evolucaoMensal = gerarEvolucaoFake(totalDemandas, totalProdutos);
-
   function exportarCSV() {
     const linhas = [
-      ["RELATÓRIO QUANTITATIVO SGDC"],
-      [`Período: ${inicio || "início"} até ${fim || "hoje"}`],
+      ["RELATORIO FINAL SGDC"],
+      [`Periodo: ${formatarPeriodo(inicio, fim)}`],
       [],
       ["Resumo"],
       ["Total de demandas", totalDemandas],
@@ -60,43 +67,41 @@ export default function RelatoriosQuantitativosClient({
       ["Canais utilizados", totalCanais],
       ["Eixos acionados", totalEixos],
       [],
-      ["Produtos"],
-      ["Item", "Quantidade"],
-      ...produtos.map((i) => [i.titulo, i.valor]),
+      ...secaoCSV("Produtos", produtos),
       [],
-      ["Canais"],
-      ["Item", "Quantidade"],
-      ...canais.map((i) => [i.titulo, i.valor]),
+      ...secaoCSV("Eixos", eixos),
       [],
-      ["Eixos"],
-      ["Item", "Quantidade"],
-      ...eixos.map((i) => [i.titulo, i.valor]),
+      ...secaoCSV("Canais", canais),
       [],
-      ["Status"],
-      ["Item", "Quantidade"],
-      ...status.map((i) => [i.titulo, i.valor]),
+      ...secaoCSV("Setores", setores),
       [],
-      ["Setores"],
-      ["Item", "Quantidade"],
-      ...setores.map((i) => [i.titulo, i.valor]),
+      ...secaoCSV("Status", status),
+      [],
+      ...secaoCSV("Responsaveis", responsaveis),
+      [],
+      ["Evolucao mensal"],
+      ["Mes", "Demandas"],
+      ...evolucaoMensal.map((item) => [item.mes, item.demandas]),
     ];
 
-    const csv = linhas.map((linha) => linha.join(";")).join("\n");
+    const csv = linhas
+      .map((linha) => linha.map(formatarCelulaCSV).join(";"))
+      .join("\n");
     const blob = new Blob(["\uFEFF" + csv], {
       type: "text/csv;charset=utf-8;",
     });
-
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "relatorio-quantitativo-sgdc.csv";
+    link.download = `relatorio-final-sgdc-${inicio || "inicio"}-${fim || "hoje"}.csv`;
     link.click();
 
     URL.revokeObjectURL(url);
   }
 
-  function imprimirPDF() {
+  function exportarPDF() {
+    document.title = `Relatorio SGDC - ${formatarPeriodo(inicio, fim)}`;
     window.print();
   }
 
@@ -104,33 +109,38 @@ export default function RelatoriosQuantitativosClient({
     <div>
       <div style={hero}>
         <div>
-          <p style={eyebrow}>Relatórios Executivos</p>
-          <h1 style={titulo}>Indicadores Quantitativos</h1>
+          <p style={eyebrow}>Relatorios finais</p>
+          <h1 style={titulo}>Indicadores por periodo</h1>
           <p style={subtitulo}>
-            Produção, canais, eixos, setores e status com visual gerencial.
+            Numeros fechados por produto, eixo, canal, setor e status.
           </p>
         </div>
 
         <div style={botoes}>
           <button onClick={exportarCSV} style={botao}>
-            Exportar Excel/CSV
+            Exportar CSV
           </button>
 
-          <button onClick={imprimirPDF} style={botaoSecundario}>
-            Imprimir / PDF
+          <button onClick={exportarPDF} style={botaoSecundario}>
+            Exportar PDF
           </button>
         </div>
       </div>
 
       <form style={filtros}>
         <div>
+          <label style={label}>Filtro mensal</label>
+          <input type="month" name="mes" defaultValue={mes} style={campo} />
+        </div>
+
+        <div>
           <label style={label}>Data inicial</label>
-          <input type="date" name="inicio" defaultValue={inicio} style={campo} />
+          <input type="date" name="inicio" defaultValue={mes ? "" : inicio} style={campo} />
         </div>
 
         <div>
           <label style={label}>Data final</label>
-          <input type="date" name="fim" defaultValue={fim} style={campo} />
+          <input type="date" name="fim" defaultValue={mes ? "" : fim} style={campo} />
         </div>
 
         <button type="submit" style={botao}>
@@ -142,30 +152,31 @@ export default function RelatoriosQuantitativosClient({
         </a>
       </form>
 
+      <p style={periodoTexto}>Periodo analisado: {formatarPeriodo(inicio, fim)}</p>
+
       <div style={cardsResumo}>
-        <Card titulo="Demandas no período" valor={totalDemandas} />
+        <Card titulo="Demandas no periodo" valor={totalDemandas} />
         <Card titulo="Produtos produzidos" valor={totalProdutos} />
         <Card titulo="Canais utilizados" valor={totalCanais} />
         <Card titulo="Eixos acionados" valor={totalEixos} />
       </div>
 
       <div style={layoutDois}>
-        <Painel titulo="📈 Evolução do período">
+        <Painel titulo="Evolucao mensal">
           <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={evolucaoMensal}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.12)" />
                 <XAxis dataKey="mes" stroke="#fecaca" />
-                <YAxis stroke="#fecaca" />
+                <YAxis stroke="#fecaca" allowDecimals={false} />
                 <Tooltip />
                 <Line type="monotone" dataKey="demandas" stroke="#ef4444" strokeWidth={3} />
-                <Line type="monotone" dataKey="produtos" stroke="#f97316" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </Painel>
 
-        <Painel titulo="📊 Demandas por Status">
+        <Painel titulo="Demandas por status">
           <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -191,26 +202,27 @@ export default function RelatoriosQuantitativosClient({
       </div>
 
       <div style={layoutPrincipal}>
-        <Painel titulo="📦 Produtos Produzidos">
+        <Painel titulo="Produtos produzidos">
           <GraficoBarras dados={produtos} />
         </Painel>
 
-        <Painel titulo="📍 Canais Mais Utilizados">
-          <GraficoBarras dados={canais} />
+        <Painel titulo="Eixos de comunicacao">
+          <GraficoBarras dados={eixos} />
         </Painel>
 
-        <Painel titulo="📢 Eixos de Comunicação">
-          <GraficoBarras dados={eixos} />
+        <Painel titulo="Canais utilizados">
+          <GraficoBarras dados={canais} />
         </Painel>
       </div>
 
       <div style={layoutDois}>
-        <Painel titulo="🏢 Setores Solicitantes">
+        <Painel titulo="Setores solicitantes">
           <GraficoBarras dados={setores} />
         </Painel>
 
-        <Painel titulo="🏆 Top Produção">
-          <Ranking dados={produtos.slice(0, 10)} />
+        <Painel titulo="Ranking final">
+          <Ranking titulo="Produtos" dados={produtos.slice(0, 10)} />
+          <Ranking titulo="Status" dados={status} />
         </Painel>
       </div>
     </div>
@@ -252,12 +264,12 @@ function GraficoBarras({ dados }: { dados: Item[] }) {
     <div style={graficoAltura}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={dadosLimitados} layout="vertical">
-          <XAxis type="number" stroke="#fecaca" />
+          <XAxis type="number" stroke="#fecaca" allowDecimals={false} />
           <YAxis
             type="category"
             dataKey="titulo"
             stroke="#fecaca"
-            width={110}
+            width={120}
           />
           <Tooltip />
           <Bar dataKey="valor" fill="#ef4444" radius={[0, 8, 8, 0]} />
@@ -267,13 +279,14 @@ function GraficoBarras({ dados }: { dados: Item[] }) {
   );
 }
 
-function Ranking({ dados }: { dados: Item[] }) {
+function Ranking({ titulo, dados }: { titulo: string; dados: Item[] }) {
   if (dados.length === 0) {
     return <p style={textoFraco}>Nenhum dado encontrado.</p>;
   }
 
   return (
-    <div>
+    <div style={rankingBloco}>
+      <h3 style={rankingTitulo}>{titulo}</h3>
       {dados.map((item, index) => (
         <div key={item.titulo} style={rankingLinha}>
           <span style={rankingPosicao}>{index + 1}</span>
@@ -304,14 +317,22 @@ function Legenda({ dados }: { dados: Item[] }) {
   );
 }
 
-function gerarEvolucaoFake(totalDemandas: number, totalProdutos: number) {
-  const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
+function secaoCSV(titulo: string, dados: Item[]) {
+  return [[titulo], ["Item", "Quantidade"], ...dados.map((i) => [i.titulo, i.valor])];
+}
 
-  return meses.map((mes, index) => ({
-    mes,
-    demandas: Math.max(0, Math.round((totalDemandas / 6) * (index + 1) * 0.5)),
-    produtos: Math.max(0, Math.round((totalProdutos / 6) * (index + 1) * 0.6)),
-  }));
+function formatarCelulaCSV(valor: string | number) {
+  const texto = String(valor);
+  if (/[;"\n]/.test(texto)) {
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+
+  return texto;
+}
+
+function formatarPeriodo(inicio: string, fim: string) {
+  if (!inicio && !fim) return "todos os registros";
+  return `${inicio || "inicio"} ate ${fim || "hoje"}`;
 }
 
 const hero = {
@@ -343,6 +364,7 @@ const subtitulo = {
 const botoes = {
   display: "flex",
   gap: "10px",
+  flexWrap: "wrap" as const,
 };
 
 const filtros = {
@@ -350,7 +372,7 @@ const filtros = {
   gap: "12px",
   alignItems: "end",
   flexWrap: "wrap" as const,
-  marginBottom: "22px",
+  marginBottom: "12px",
 };
 
 const label = {
@@ -389,6 +411,12 @@ const botaoSecundario = {
   textDecoration: "none",
 };
 
+const periodoTexto = {
+  color: "#fecaca",
+  marginTop: 0,
+  marginBottom: "22px",
+};
+
 const cardsResumo = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -399,7 +427,7 @@ const cardsResumo = {
 const card = {
   background: "rgba(15,23,42,.75)",
   border: "1px solid rgba(252,165,165,.18)",
-  borderRadius: "18px",
+  borderRadius: "8px",
   padding: "20px",
   boxShadow: "0 12px 30px rgba(0,0,0,.22)",
 };
@@ -432,7 +460,7 @@ const layoutDois = {
 const painel = {
   background: "rgba(15,23,42,.75)",
   border: "1px solid rgba(252,165,165,.18)",
-  borderRadius: "18px",
+  borderRadius: "8px",
   padding: "20px",
   boxShadow: "0 12px 30px rgba(0,0,0,.22)",
 };
@@ -446,6 +474,16 @@ const sectionTitle = {
 const graficoAltura = {
   width: "100%",
   height: "320px",
+};
+
+const rankingBloco = {
+  marginBottom: "18px",
+};
+
+const rankingTitulo = {
+  color: "#fecaca",
+  fontSize: "14px",
+  marginTop: 0,
 };
 
 const rankingLinha = {

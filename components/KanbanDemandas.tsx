@@ -7,6 +7,8 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
+import { useAuth } from "@/components/AuthProvider";
+import { podeEditarFluxo } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
 
 const STATUS = [
@@ -18,7 +20,28 @@ const STATUS = [
   { id: 6, nome: "CANCELADO", titulo: "Cancelado" },
 ];
 
-export default function KanbanDemandas({ demandas }: { demandas: any[] }) {
+type DemandaKanban = {
+  id: number;
+  titulo?: string | null;
+  descricao?: string | null;
+  setor?: string | null;
+  cadastrado_por?: string | null;
+  responsavel?: string | null;
+  prioridade?: string | null;
+  status?: string | null;
+  data_entrega?: string | null;
+  eixos?: string | null;
+  canais?: string | null;
+  producao?: string | null;
+};
+
+export default function KanbanDemandas({
+  demandas,
+}: {
+  demandas: DemandaKanban[];
+}) {
+  const { usuario } = useAuth();
+  const podeMover = podeEditarFluxo(usuario);
   const [lista, setLista] = useState(demandas || []);
 
   const [filtroTexto, setFiltroTexto] = useState("");
@@ -76,6 +99,11 @@ export default function KanbanDemandas({ demandas }: { demandas: any[] }) {
 
     if (!novoStatus) return;
 
+    if (!podeMover || !usuario) {
+      alert("Seu usuário não tem permissão para mover demandas.");
+      return;
+    }
+
     setLista((atual) =>
       atual.map((demanda) =>
         demanda.id === demandaId
@@ -96,8 +124,8 @@ export default function KanbanDemandas({ demandas }: { demandas: any[] }) {
 
     await supabase.from("historico_demanda").insert({
       demanda_id: demandaId,
-      usuario_id: 18,
-      acao: `Roberto moveu a demanda para ${novoStatus.titulo}`,
+      usuario_id: usuario.id,
+      acao: `${usuario.nome} moveu a demanda para ${novoStatus.titulo}`,
     });
   }
 
@@ -193,6 +221,7 @@ export default function KanbanDemandas({ demandas }: { demandas: any[] }) {
                             key={demanda.id}
                             draggableId={String(demanda.id)}
                             index={index}
+                            isDragDisabled={!podeMover}
                           >
                             {(provided, snapshot) => (
                               <a
@@ -331,8 +360,8 @@ export default function KanbanDemandas({ demandas }: { demandas: any[] }) {
   );
 }
 
-function pegarUnicos(lista: string[]) {
-  return Array.from(new Set(lista)).sort();
+function pegarUnicos(lista: Array<string | null | undefined>) {
+  return Array.from(new Set(lista.filter((item): item is string => Boolean(item)))).sort();
 }
 
 function quebrarLista(valor: string) {
@@ -354,7 +383,7 @@ function formatarData(data: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-function calcularPrazo(dataEntrega?: string) {
+function calcularPrazo(dataEntrega?: string | null) {
   if (!dataEntrega) {
     return {
       texto: "⚪ Sem prazo",
