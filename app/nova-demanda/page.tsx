@@ -4,14 +4,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function NovaDemanda() {
-  const [produtos, setProdutos] = useState<any[]>([]);
   const [setores, setSetores] = useState<any[]>([]);
   const [prioridades, setPrioridades] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [produtoId, setProdutoId] = useState("");
   const [setorId, setSetorId] = useState("");
   const [prioridadeId, setPrioridadeId] = useState("");
   const [usuarioId, setUsuarioId] = useState("");
@@ -24,12 +22,21 @@ export default function NovaDemanda() {
   }, []);
 
   async function carregarDados() {
-    const { data: produtosData } = await supabase.from("produtos").select("*").order("nome");
-    const { data: setoresData } = await supabase.from("setores").select("*").order("nome");
-    const { data: prioridadesData } = await supabase.from("prioridades").select("*").order("ordem");
-    const { data: usuariosData } = await supabase.from("usuarios_comunicacao").select("*").order("nome");
+    const { data: setoresData } = await supabase
+      .from("setores")
+      .select("*")
+      .order("nome");
 
-    setProdutos(produtosData || []);
+    const { data: prioridadesData } = await supabase
+      .from("prioridades")
+      .select("*")
+      .order("ordem");
+
+    const { data: usuariosData } = await supabase
+      .from("usuarios_comunicacao")
+      .select("*")
+      .order("nome");
+
     setSetores(setoresData || []);
     setPrioridades(prioridadesData || []);
     setUsuarios(usuariosData || []);
@@ -38,27 +45,31 @@ export default function NovaDemanda() {
   async function salvarDemanda() {
     setMensagem("");
 
-    if (!titulo || !produtoId || !setorId || !prioridadeId || !usuarioId) {
+    if (!titulo || !setorId || !prioridadeId || !usuarioId) {
       setMensagem("Preencha os campos obrigatórios.");
       return;
     }
 
-    const { data: statusRecebido } = await supabase
+    const { data: statusRecebido, error: erroStatus } = await supabase
       .from("status_demanda")
       .select("id")
       .eq("nome", "RECEBIDO")
       .single();
+
+    if (erroStatus || !statusRecebido) {
+      setMensagem("Erro ao localizar o status RECEBIDO.");
+      return;
+    }
 
     const { data: demandaCriada, error: erroDemanda } = await supabase
       .from("demandas")
       .insert({
         titulo,
         descricao,
-        produto_id: Number(produtoId),
         setor_id: Number(setorId),
         prioridade_id: Number(prioridadeId),
         usuario_comunicacao_id: Number(usuarioId),
-        status_id: statusRecebido?.id,
+        status_id: statusRecebido.id,
         data_entrega: dataEntrega || null,
       })
       .select()
@@ -78,7 +89,9 @@ export default function NovaDemanda() {
           .upload(caminhoArquivo, arquivo);
 
         if (erroUpload) {
-          setMensagem("Demanda salva, mas erro ao enviar anexo: " + erroUpload.message);
+          setMensagem(
+            "Demanda salva, mas erro ao enviar anexo: " + erroUpload.message
+          );
           return;
         }
 
@@ -98,30 +111,41 @@ export default function NovaDemanda() {
           });
 
         if (erroAnexo) {
-          setMensagem("Arquivo enviado, mas erro ao salvar anexo: " + erroAnexo.message);
+          setMensagem(
+            "Arquivo enviado, mas erro ao salvar anexo: " + erroAnexo.message
+          );
           return;
         }
       }
     }
 
-    setMensagem("Demanda salva com sucesso!");
+    setMensagem(
+      "Demanda salva com sucesso! Agora abra a demanda para definir eixos, destinos e produtos produzidos."
+    );
 
     setTitulo("");
     setDescricao("");
-    setProdutoId("");
     setSetorId("");
     setPrioridadeId("");
     setUsuarioId("");
     setDataEntrega("");
     setArquivos(null);
 
-    const inputArquivo = document.getElementById("arquivos") as HTMLInputElement;
+    const inputArquivo = document.getElementById(
+      "arquivos"
+    ) as HTMLInputElement;
+
     if (inputArquivo) inputArquivo.value = "";
   }
 
   return (
     <div>
       <h1>Nova Demanda</h1>
+
+      <p style={textoAjuda}>
+        Cadastre primeiro as informações principais. Depois, ao abrir a demanda,
+        você poderá informar os eixos, destinos e produtos produzidos.
+      </p>
 
       <form style={formStyle}>
         <input
@@ -140,17 +164,13 @@ export default function NovaDemanda() {
           style={campo}
         />
 
-        <select value={produtoId} onChange={(e) => setProdutoId(e.target.value)} style={campo}>
-          <option value="">Selecione o Produto</option>
-          {produtos.map((produto) => (
-            <option key={produto.id} value={produto.id}>
-              {produto.nome}
-            </option>
-          ))}
-        </select>
-
-        <select value={setorId} onChange={(e) => setSetorId(e.target.value)} style={campo}>
+        <select
+          value={setorId}
+          onChange={(e) => setSetorId(e.target.value)}
+          style={campo}
+        >
           <option value="">Setor Solicitante</option>
+
           {setores.map((setor) => (
             <option key={setor.id} value={setor.id}>
               {setor.nome}
@@ -158,8 +178,13 @@ export default function NovaDemanda() {
           ))}
         </select>
 
-        <select value={prioridadeId} onChange={(e) => setPrioridadeId(e.target.value)} style={campo}>
+        <select
+          value={prioridadeId}
+          onChange={(e) => setPrioridadeId(e.target.value)}
+          style={campo}
+        >
           <option value="">Prioridade</option>
+
           {prioridades.map((prioridade) => (
             <option key={prioridade.id} value={prioridade.id}>
               {prioridade.nome}
@@ -167,8 +192,13 @@ export default function NovaDemanda() {
           ))}
         </select>
 
-        <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)} style={campo}>
-          <option value="">Cadastrado por</option>
+        <select
+          value={usuarioId}
+          onChange={(e) => setUsuarioId(e.target.value)}
+          style={campo}
+        >
+          <option value="">Solicitante</option>
+
           {usuarios.map((usuario) => (
             <option key={usuario.id} value={usuario.id}>
               {usuario.nome} - {usuario.funcao}
@@ -194,15 +224,19 @@ export default function NovaDemanda() {
         {arquivos && arquivos.length > 0 && (
           <div style={{ fontSize: "14px", color: "#cbd5e1" }}>
             <strong>Arquivos selecionados:</strong>
+
             <ul>
               {Array.from(arquivos).map((arquivo) => (
-                <li key={arquivo.name}>
-                  {arquivo.name}
-                </li>
+                <li key={arquivo.name}>{arquivo.name}</li>
               ))}
             </ul>
           </div>
         )}
+
+        <div style={aviso}>
+          Eixos, destinos e produtos produzidos serão definidos após a criação da
+          demanda.
+        </div>
 
         <button type="button" onClick={salvarDemanda} style={botao}>
           Salvar Demanda
@@ -216,7 +250,7 @@ export default function NovaDemanda() {
 
 const formStyle = {
   display: "flex",
-  flexDirection: "column",
+  flexDirection: "column" as const,
   gap: "15px",
   maxWidth: "600px",
   marginTop: "20px",
@@ -238,4 +272,19 @@ const botao = {
   borderRadius: "8px",
   cursor: "pointer",
   fontWeight: "bold",
+};
+
+const textoAjuda = {
+  color: "#94a3b8",
+  maxWidth: "600px",
+  marginTop: "8px",
+};
+
+const aviso = {
+  background: "#0f172a",
+  border: "1px solid #334155",
+  color: "#cbd5e1",
+  padding: "12px",
+  borderRadius: "8px",
+  fontSize: "14px",
 };
