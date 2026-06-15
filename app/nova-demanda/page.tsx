@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
+import {
+  criarGoogleTaskTexto,
+  criarGoogleTasksUrl,
+} from "@/lib/google-calendar";
 import { supabase } from "../../lib/supabase";
 
 type Opcao = {
@@ -78,7 +81,7 @@ export default function NovaDemanda() {
     }
 
     if (incluirGoogleAgenda && !dataEntrega) {
-      setMensagem("Informe a data de entrega para incluir no Google Agenda.");
+      setMensagem("Informe a data de entrega para incluir como tarefa no Google Agenda.");
       return;
     }
 
@@ -164,7 +167,7 @@ export default function NovaDemanda() {
     }
 
     if (incluirGoogleAgenda) {
-      const googleCalendarUrl = criarGoogleCalendarUrl({
+      const demandaGoogle = {
         id: demandaCriada.id,
         titulo,
         descricao,
@@ -177,23 +180,28 @@ export default function NovaDemanda() {
         )?.nome,
         status: "RECEBIDO",
         data_entrega: dataEntrega,
-      });
+      };
+      const textoTarefa = criarGoogleTaskTexto(demandaGoogle);
 
-      if (googleCalendarUrl) {
-        if (abaGoogleAgenda) {
-          abaGoogleAgenda.location.href = googleCalendarUrl;
-        } else {
-          window.open(googleCalendarUrl, "_blank", "noopener,noreferrer");
-        }
+      try {
+        await navigator.clipboard.writeText(textoTarefa);
+      } catch {
+        // Se o navegador bloquear o clipboard, ainda abrimos a tela de tarefas.
+      }
+
+      if (abaGoogleAgenda) {
+        abaGoogleAgenda.location.href = criarGoogleTasksUrl();
       } else {
-        abaGoogleAgenda?.close();
+        window.open(criarGoogleTasksUrl(), "_blank", "noopener,noreferrer");
       }
     } else if (abaGoogleAgenda) {
       abaGoogleAgenda.close();
     }
 
     setMensagem(
-      "Demanda salva com sucesso! Agora abra a demanda para definir eixos, destinos e produtos produzidos."
+      incluirGoogleAgenda
+        ? "Demanda salva com sucesso! A tela de tarefas do Google Agenda foi aberta e os dados foram copiados."
+        : "Demanda salva com sucesso! Agora abra a demanda para definir eixos, destinos e produtos produzidos."
     );
 
     setTitulo("");
@@ -296,7 +304,7 @@ export default function NovaDemanda() {
             onChange={(e) => setIncluirGoogleAgenda(e.target.checked)}
             style={checkbox}
           />
-          <span>Deseja incluir demanda no Google Agenda?</span>
+          <span>Deseja incluir demanda como tarefa no Google Agenda?</span>
         </label>
 
         <input

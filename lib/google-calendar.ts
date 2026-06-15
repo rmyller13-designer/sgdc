@@ -37,6 +37,25 @@ export function criarGoogleCalendarUrl(demanda: GoogleCalendarDemanda) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
+export function criarGoogleTasksUrl() {
+  return "https://calendar.google.com/calendar/u/0/r/tasks";
+}
+
+export function criarGoogleTaskTexto(demanda: GoogleCalendarDemanda) {
+  const detalhes = [
+    `SGDC #${demanda.id} - ${demanda.titulo || "Demanda"}`,
+    demanda.data_entrega ? `Entrega: ${formatarDataPtBr(demanda.data_entrega)}` : null,
+    demanda.descricao,
+    demanda.produto ? `Produto: ${demanda.produto}` : null,
+    demanda.setor ? `Setor: ${demanda.setor}` : null,
+    demanda.status ? `Status: ${demanda.status}` : null,
+    demanda.prioridade ? `Prioridade: ${demanda.prioridade}` : null,
+    demanda.responsavel ? `Responsável: ${demanda.responsavel}` : null,
+  ];
+
+  return detalhes.filter(Boolean).join("\n");
+}
+
 function formatarDataGoogle(data: string) {
   return data.slice(0, 10).replace(/-/g, "");
 }
@@ -49,4 +68,9 @@ function adicionarDiasGoogle(data: string, dias: number) {
   return `${dataLocal.getFullYear()}${String(
     dataLocal.getMonth() + 1
   ).padStart(2, "0")}${String(dataLocal.getDate()).padStart(2, "0")}`;
+}
+
+function formatarDataPtBr(data: string) {
+  const [ano, mes, dia] = data.slice(0, 10).split("-");
+  return `${dia}/${mes}/${ano}`;
 }
