@@ -1,4 +1,4 @@
--- Comments, attachment storage rules and cleanup support for SGDC.
+-- Comments, attachment storage rules and cleanup support for ASCOM STACASA.
 --
 -- Apply this after 20260613000000_harden_rls.sql so sgdc_usuario_id() exists.
 -- The Storage bucket size limit may need to be configured in the Supabase

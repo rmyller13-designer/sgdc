@@ -72,7 +72,7 @@ export default function LoginPage() {
   return (
     <div style={page}>
       <section style={painel}>
-        <p style={eyebrow}>Acesso SGDC</p>
+        <p style={eyebrow}>Acesso ASCOM STACASA</p>
         <h1 style={titulo}>Entrar</h1>
         <p style={descricao}>
           Selecione seu usuário e informe a senha de acesso.

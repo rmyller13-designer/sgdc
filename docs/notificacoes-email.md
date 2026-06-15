@@ -16,7 +16,7 @@
 
 ```bash
 supabase secrets set RESEND_API_KEY="sua-chave"
-supabase secrets set EMAIL_FROM="SGDC <notificacoes@seudominio.com>"
+supabase secrets set EMAIL_FROM="ASCOM STACASA <notificacoes@seudominio.com>"
 ```
 
 4. Publique a funcao:

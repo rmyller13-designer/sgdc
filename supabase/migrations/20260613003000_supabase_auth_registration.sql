@@ -1,4 +1,4 @@
--- Supabase Auth registration and secure user lookup for SGDC.
+-- Supabase Auth registration and secure user lookup for ASCOM STACASA.
 --
 -- Apply after 20260613000000_harden_rls.sql and
 -- 20260613002000_email_notifications.sql.
@@ -97,7 +97,7 @@ begin
   end if;
 
   if not public.sgdc_usuario_autorizado(usuario.nome) then
-    raise exception 'Usuário sem autorização para acessar o SGDC.';
+    raise exception 'Usuário sem autorização para acessar o ASCOM STACASA.';
   end if;
 
   if nullif(btrim(coalesce(usuario.email, '')), '') is not null

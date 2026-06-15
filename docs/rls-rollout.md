@@ -1,6 +1,6 @@
-# RLS rollout do SGDC
+# RLS rollout do ASCOM STACASA
 
-O SGDC agora usa Supabase Auth para login real. A sessao local em
+O ASCOM STACASA agora usa Supabase Auth para login real. A sessao local em
 `localStorage` foi removida: o banco passa a receber o token do usuario
 autenticado e as politicas RLS conseguem usar `auth.uid()`.
 

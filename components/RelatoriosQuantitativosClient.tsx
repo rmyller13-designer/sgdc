@@ -58,7 +58,7 @@ export default function RelatoriosQuantitativosClient({
 
   function exportarCSV() {
     const linhas = [
-      ["RELATORIO FINAL SGDC"],
+      ["RELATORIO FINAL ASCOM STACASA"],
       [`Periodo: ${formatarPeriodo(inicio, fim)}`],
       [],
       ["Resumo"],
@@ -94,14 +94,14 @@ export default function RelatoriosQuantitativosClient({
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `relatorio-final-sgdc-${inicio || "inicio"}-${fim || "hoje"}.csv`;
+    link.download = `relatorio-final-ascom-stacasa-${inicio || "inicio"}-${fim || "hoje"}.csv`;
     link.click();
 
     URL.revokeObjectURL(url);
   }
 
   function exportarPDF() {
-    document.title = `Relatorio SGDC - ${formatarPeriodo(inicio, fim)}`;
+    document.title = `Relatorio ASCOM STACASA - ${formatarPeriodo(inicio, fim)}`;
     window.print();
   }
 

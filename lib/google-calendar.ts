@@ -46,7 +46,7 @@ declare global {
 
 export function criarGoogleTaskTexto(demanda: GoogleCalendarDemanda) {
   const detalhes = [
-    `SGDC #${demanda.id} - ${demanda.titulo || "Demanda"}`,
+    `ASCOM STACASA #${demanda.id} - ${demanda.titulo || "Demanda"}`,
     demanda.data_entrega ? `Entrega: ${formatarDataPtBr(demanda.data_entrega)}` : null,
     demanda.descricao,
     demanda.produto ? `Produto: ${demanda.produto}` : null,
@@ -101,7 +101,7 @@ export async function autorizarGoogleTasks() {
 }
 
 function criarGoogleTaskPayload(demanda: GoogleCalendarDemanda): GoogleTaskPayload {
-  const titulo = `SGDC #${demanda.id} - ${demanda.titulo || "Demanda"}`;
+  const titulo = `ASCOM STACASA #${demanda.id} - ${demanda.titulo || "Demanda"}`;
   const detalhes = [
     demanda.descricao,
     demanda.produto ? `Produto: ${demanda.produto}` : null,

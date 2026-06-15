@@ -1,4 +1,4 @@
--- Email notifications for SGDC movements.
+-- Email notifications for ASCOM STACASA movements.
 --
 -- This migration stores user e-mails, creates an email queue and adds a
 -- trigger so every new historico_demanda record creates pending notifications.
@@ -104,7 +104,7 @@ begin
     new.id,
     usuario.id,
     btrim(usuario.email),
-    'SGDC - movimentacao na demanda #' || new.demanda_id,
+        'ASCOM STACASA - movimentacao na demanda #' || new.demanda_id,
     'Ola, ' || usuario.nome || E'\n\n' ||
     'Houve uma movimentacao na demanda #' || new.demanda_id ||
     case
@@ -113,7 +113,7 @@ begin
     end ||
     E'.\n\nMovimentacao: ' || new.acao ||
     E'\n\nData: ' || to_char(new.criado_em, 'DD/MM/YYYY HH24:MI') ||
-    E'\n\nAcesse o SGDC para ver os detalhes.'
+        E'\n\nAcesse o ASCOM STACASA para ver os detalhes.'
   from public.usuarios_comunicacao usuario
   where coalesce(usuario.ativo, true) = true
     and nullif(btrim(coalesce(usuario.email, '')), '') is not null

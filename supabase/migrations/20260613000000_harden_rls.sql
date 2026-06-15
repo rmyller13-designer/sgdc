@@ -1,4 +1,4 @@
--- SGDC RLS hardening
+-- ASCOM STACASA RLS hardening
 --
 -- Apply this only after migrating the login to Supabase Auth.
 -- The current browser/localStorage login is not visible to Supabase, so every

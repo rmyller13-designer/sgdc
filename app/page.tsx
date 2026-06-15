@@ -1,4 +1,12 @@
+import Link from "next/link";
 import { supabase } from "../lib/supabase";
+
+type DemandaDashboard = {
+  status: string | null;
+  responsavel: string | null;
+  setor: string | null;
+  data_entrega: string | null;
+};
 
 export default async function Dashboard() {
   const { data: demandas } = await supabase
@@ -38,14 +46,14 @@ export default async function Dashboard() {
   const prazos = calcularResumoPrazos(demandas || []);
 
   const porResponsavel =
-    demandas?.reduce((acc: any, demanda) => {
+    (demandas as DemandaDashboard[] | null)?.reduce<Record<string, number>>((acc, demanda) => {
       const nome = demanda.responsavel || "Não atribuído";
       acc[nome] = (acc[nome] || 0) + 1;
       return acc;
     }, {}) || {};
 
   const porSetor =
-    demandas?.reduce((acc: any, demanda) => {
+    (demandas as DemandaDashboard[] | null)?.reduce<Record<string, number>>((acc, demanda) => {
       const setor = demanda.setor || "Sem setor";
       acc[setor] = (acc[setor] || 0) + 1;
       return acc;
@@ -56,15 +64,15 @@ export default async function Dashboard() {
       <div style={hero}>
         <div>
           <p style={eyebrow}>Painel Executivo</p>
-          <h1 style={title}>Dashboard SGDC</h1>
+          <h1 style={title}>Dashboard ASCOM STACASA</h1>
           <p style={subtitle}>
             Visão geral das demandas, produção, prazos, canais e eixos da Comunicação.
           </p>
         </div>
 
-        <a href="/demandas" style={botaoKanban}>
+        <Link href="/demandas" style={botaoKanban}>
           Abrir Kanban →
-        </a>
+        </Link>
       </div>
 
       <div style={gridResumo}>
@@ -166,7 +174,7 @@ export default async function Dashboard() {
   );
 }
 
-function calcularResumoPrazos(demandas: any[]) {
+function calcularResumoPrazos(demandas: DemandaDashboard[]) {
   const resumo = {
     atrasadas: 0,
     hoje: 0,

@@ -6,7 +6,7 @@ import UserMenu from "@/components/UserMenu";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SGDC",
+  title: "ASCOM STACASA",
   description: "Sistema de Gestao de Demandas da Comunicacao",
 };
 
@@ -25,7 +25,7 @@ export default function RootLayout({
                 <div style={brandIcon}>S</div>
 
                 <div>
-                  <strong style={brandTitle}>SGDC</strong>
+                  <strong style={brandTitle}>ASCOM STACASA</strong>
                   <p style={brandSubtitle}>Gestao da Comunicacao</p>
                 </div>
               </Link>
