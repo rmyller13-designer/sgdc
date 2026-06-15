@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
 import { supabase } from "../../lib/supabase";
@@ -14,6 +15,7 @@ type Opcao = {
 };
 
 export default function NovaDemanda() {
+  const router = useRouter();
   const { usuario } = useAuth();
   const [setores, setSetores] = useState<Opcao[]>([]);
   const [prioridades, setPrioridades] = useState<Opcao[]>([]);
@@ -208,6 +210,8 @@ export default function NovaDemanda() {
     ) as HTMLInputElement;
 
     if (inputArquivo) inputArquivo.value = "";
+
+    router.push("/demandas");
   }
 
   return (
