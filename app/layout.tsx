@@ -34,7 +34,7 @@ export default function RootLayout({
                 <Link href="/" style={linkStyle}>Dashboard</Link>
                 <Link href="/nova-demanda" style={linkStyle}>Nova Demanda</Link>
                 <Link href="/demandas" style={linkStyle}>Demandas</Link>
-                <Link href="/calendario-editorial" style={destaqueLink}>Calendario</Link>
+                <Link href="/calendario-editorial" style={linkStyle}>Calendario</Link>
                 <Link href="/relatorios" style={linkStyle}>Relatorios</Link>
                 <Link href="/relatorios-quantitativos" style={linkStyle}>Indicadores</Link>
               </nav>
@@ -130,13 +130,6 @@ const linkStyle = {
   background: "rgba(127, 29, 29, 0.45)",
   border: "1px solid rgba(252, 165, 165, 0.18)",
   whiteSpace: "nowrap" as const,
-};
-
-const destaqueLink = {
-  ...linkStyle,
-  background: "linear-gradient(135deg, #dc2626, #991b1b)",
-  border: "1px solid rgba(254, 202, 202, 0.35)",
-  fontWeight: "bold",
 };
 
 const main = {

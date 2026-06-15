@@ -10,8 +10,8 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 import { useAuth } from "@/components/AuthProvider";
+import GoogleTaskButton from "@/components/GoogleTaskButton";
 import { podeEditarFluxo } from "@/lib/auth";
-import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
 import { supabase } from "@/lib/supabase";
 
 type DemandaCalendario = {
@@ -431,7 +431,7 @@ function DemandaCard({
   isDragging?: boolean;
 }) {
   const status = demanda.status || "SEM_STATUS";
-  const googleCalendarUrl = criarGoogleCalendarUrl({
+  const googleTaskDemanda = {
     id: demanda.id,
     titulo: demanda.titulo,
     descricao: demanda.descricao,
@@ -441,7 +441,7 @@ function DemandaCard({
     prioridade: demanda.prioridade,
     responsavel: demanda.responsavel,
     data_entrega: demanda.data_entrega,
-  });
+  };
 
   return (
     <div
@@ -470,16 +470,9 @@ function DemandaCard({
           {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
         </span>
       </Link>
-      {googleCalendarUrl && (
-        <a
-          href={googleCalendarUrl}
-          target="_blank"
-          rel="noreferrer"
-          style={googleAgendaCardLink}
-        >
-          Google Agenda
-        </a>
-      )}
+      <GoogleTaskButton demanda={googleTaskDemanda} style={googleAgendaCardLink}>
+        Google Agenda
+      </GoogleTaskButton>
     </div>
   );
 }
@@ -495,7 +488,7 @@ function ListaDemandas({ demandas }: { demandas: DemandaCalendario[] }) {
         <p style={vazio}>Nenhuma demanda encontrada.</p>
       ) : (
         ordenadas.map((demanda) => {
-          const googleCalendarUrl = criarGoogleCalendarUrl({
+          const googleTaskDemanda = {
             id: demanda.id,
             titulo: demanda.titulo,
             descricao: demanda.descricao,
@@ -505,7 +498,7 @@ function ListaDemandas({ demandas }: { demandas: DemandaCalendario[] }) {
             prioridade: demanda.prioridade,
             responsavel: demanda.responsavel,
             data_entrega: demanda.data_entrega,
-          });
+          };
 
           return (
             <div key={demanda.id} style={linhaLista}>
@@ -519,15 +512,10 @@ function ListaDemandas({ demandas }: { demandas: DemandaCalendario[] }) {
                 </span>
               </Link>
 
-              {googleCalendarUrl ? (
-                <a
-                  href={googleCalendarUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={googleAgendaLink}
-                >
+              {demanda.data_entrega ? (
+                <GoogleTaskButton demanda={googleTaskDemanda} style={googleAgendaLink}>
                   Google Agenda
-                </a>
+                </GoogleTaskButton>
               ) : (
                 <span style={textoFraco}>Sem data</span>
               )}

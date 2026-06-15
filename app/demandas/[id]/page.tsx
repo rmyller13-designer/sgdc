@@ -10,7 +10,7 @@ import ChecklistDemanda from "@/components/ChecklistDemanda";
 import UploadAnexo from "@/components/UploadAnexo";
 import ExcluirAnexo from "@/components/ExcluirAnexo";
 import EditarDemandaInfo from "@/components/EditarDemandaInfo";
-import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
+import GoogleTaskButton from "@/components/GoogleTaskButton";
 
 type Anexo = {
   id: number;
@@ -52,7 +52,7 @@ export default async function DetalheDemanda({
   }
 
   const anexosLista = (anexos || []) as Anexo[];
-  const googleCalendarUrl = criarGoogleCalendarUrl({
+  const googleTaskDemanda = {
     id: demanda.id,
     titulo: demanda.titulo,
     descricao: demanda.descricao,
@@ -62,7 +62,7 @@ export default async function DetalheDemanda({
     prioridade: demanda.prioridade,
     responsavel: demanda.responsavel,
     data_entrega: demanda.data_entrega,
-  });
+  };
 
   return (
     <div style={page}>
@@ -112,16 +112,12 @@ export default async function DetalheDemanda({
                   ? formatarData(demanda.data_entrega)
                   : "Não informada"}
               </strong>
-              {googleCalendarUrl && (
-                <a
-                  href={googleCalendarUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={googleAgendaLink}
-                >
-                  Adicionar ao Google Agenda
-                </a>
-              )}
+              <GoogleTaskButton
+                demanda={googleTaskDemanda}
+                style={googleAgendaLink}
+              >
+                Adicionar como tarefa no Google Agenda
+              </GoogleTaskButton>
             </div>
           </div>
 
