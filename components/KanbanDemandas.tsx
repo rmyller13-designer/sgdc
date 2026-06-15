@@ -129,6 +129,32 @@ export default function KanbanDemandas({
     });
   }
 
+  async function excluirDemanda(demanda: DemandaKanban) {
+    if (!podeMover || !usuario) {
+      alert("Seu usuário não tem permissão para excluir demandas.");
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `Excluir a demanda #${demanda.id} - ${demanda.titulo || "Sem título"}?`
+    );
+
+    if (!confirmar) return;
+
+    const listaAnterior = lista;
+    setLista((atual) => atual.filter((item) => item.id !== demanda.id));
+
+    const { error } = await supabase
+      .from("demandas")
+      .delete()
+      .eq("id", demanda.id);
+
+    if (error) {
+      setLista(listaAnterior);
+      alert("Erro ao excluir demanda: " + error.message);
+    }
+  }
+
   return (
     <div>
       <div style={filtrosBox}>
@@ -224,11 +250,10 @@ export default function KanbanDemandas({
                             isDragDisabled={!podeMover}
                           >
                             {(provided, snapshot) => (
-                              <a
+                              <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                href={`/demandas/${demanda.id}`}
                                 style={{
                                   ...card,
                                   ...estiloCardPrazo(prazo.tipo),
@@ -239,6 +264,26 @@ export default function KanbanDemandas({
                                   ...provided.draggableProps.style,
                                 }}
                               >
+                                <button
+                                  type="button"
+                                  aria-label={`Excluir demanda #${demanda.id}`}
+                                  title="Excluir demanda"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void excluirDemanda(demanda);
+                                  }}
+                                  style={botaoExcluirCard}
+                                  disabled={!podeMover}
+                                >
+                                  ×
+                                </button>
+
+                                <a
+                                  href={`/demandas/${demanda.id}`}
+                                  style={cardLink}
+                                  onClick={(event) => event.stopPropagation()}
+                                >
                                 <div style={cardTopo}>
                                   <span style={idBadge}>#{demanda.id}</span>
                                   <span style={prioridade}>
@@ -341,7 +386,8 @@ export default function KanbanDemandas({
                                     </div>
                                   </div>
                                 )}
-                              </a>
+                                </a>
+                              </div>
                             )}
                           </Draggable>
                         );
@@ -554,6 +600,7 @@ const cards = {
 };
 
 const card = {
+  position: "relative" as const,
   background: "linear-gradient(180deg, #111827, #0f172a)",
   border: "1px solid rgba(148, 163, 184, 0.25)",
   borderRadius: "14px",
@@ -562,6 +609,32 @@ const card = {
   textDecoration: "none",
   boxShadow: "0 10px 20px rgba(0,0,0,0.22)",
   cursor: "grab",
+};
+
+const cardLink = {
+  display: "block",
+  color: "white",
+  textDecoration: "none",
+  paddingRight: "22px",
+};
+
+const botaoExcluirCard = {
+  position: "absolute" as const,
+  top: "9px",
+  right: "9px",
+  width: "24px",
+  height: "24px",
+  borderRadius: "999px",
+  border: "1px solid rgba(252, 165, 165, 0.32)",
+  background: "rgba(127, 29, 29, 0.84)",
+  color: "#fee2e2",
+  cursor: "pointer",
+  fontSize: "18px",
+  lineHeight: "20px",
+  fontWeight: 800,
+  display: "grid",
+  placeItems: "center",
+  zIndex: 2,
 };
 
 const cardTopo = {
