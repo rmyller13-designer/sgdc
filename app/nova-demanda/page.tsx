@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
 import { supabase } from "../../lib/supabase";
 
 type Opcao = {
@@ -24,6 +25,7 @@ export default function NovaDemanda() {
   const [prioridadeId, setPrioridadeId] = useState("");
   const [usuarioId, setUsuarioId] = useState("");
   const [dataEntrega, setDataEntrega] = useState("");
+  const [incluirGoogleAgenda, setIncluirGoogleAgenda] = useState(false);
   const [arquivos, setArquivos] = useState<FileList | null>(null);
   const [mensagem, setMensagem] = useState("");
 
@@ -73,6 +75,13 @@ export default function NovaDemanda() {
       return;
     }
 
+    if (incluirGoogleAgenda && !dataEntrega) {
+      setMensagem("Informe a data de entrega para incluir no Google Agenda.");
+      return;
+    }
+
+    const abaGoogleAgenda = incluirGoogleAgenda ? window.open("", "_blank") : null;
+
     const { data: statusRecebido, error: erroStatus } = await supabase
       .from("status_demanda")
       .select("id")
@@ -80,6 +89,7 @@ export default function NovaDemanda() {
       .single();
 
     if (erroStatus || !statusRecebido) {
+      abaGoogleAgenda?.close();
       setMensagem("Erro ao localizar o status RECEBIDO.");
       return;
     }
@@ -99,6 +109,7 @@ export default function NovaDemanda() {
       .single();
 
     if (erroDemanda) {
+      abaGoogleAgenda?.close();
       setMensagem("Erro ao salvar demanda: " + erroDemanda.message);
       return;
     }
@@ -118,6 +129,7 @@ export default function NovaDemanda() {
           .upload(caminhoArquivo, arquivo);
 
         if (erroUpload) {
+          abaGoogleAgenda?.close();
           setMensagem(
             "Demanda salva, mas erro ao enviar anexo: " + erroUpload.message
           );
@@ -140,12 +152,42 @@ export default function NovaDemanda() {
           });
 
         if (erroAnexo) {
+          abaGoogleAgenda?.close();
           setMensagem(
             "Arquivo enviado, mas erro ao salvar anexo: " + erroAnexo.message
           );
           return;
         }
       }
+    }
+
+    if (incluirGoogleAgenda) {
+      const googleCalendarUrl = criarGoogleCalendarUrl({
+        id: demandaCriada.id,
+        titulo,
+        descricao,
+        setor: setores.find((setor) => setor.id === Number(setorId))?.nome,
+        prioridade: prioridades.find(
+          (prioridade) => prioridade.id === Number(prioridadeId)
+        )?.nome,
+        responsavel: usuarios.find(
+          (solicitante) => solicitante.id === Number(usuarioId)
+        )?.nome,
+        status: "RECEBIDO",
+        data_entrega: dataEntrega,
+      });
+
+      if (googleCalendarUrl) {
+        if (abaGoogleAgenda) {
+          abaGoogleAgenda.location.href = googleCalendarUrl;
+        } else {
+          window.open(googleCalendarUrl, "_blank", "noopener,noreferrer");
+        }
+      } else {
+        abaGoogleAgenda?.close();
+      }
+    } else if (abaGoogleAgenda) {
+      abaGoogleAgenda.close();
     }
 
     setMensagem(
@@ -158,6 +200,7 @@ export default function NovaDemanda() {
     setPrioridadeId("");
     setUsuarioId("");
     setDataEntrega("");
+    setIncluirGoogleAgenda(false);
     setArquivos(null);
 
     const inputArquivo = document.getElementById(
@@ -242,6 +285,16 @@ export default function NovaDemanda() {
           style={campo}
         />
 
+        <label style={checkboxBox}>
+          <input
+            type="checkbox"
+            checked={incluirGoogleAgenda}
+            onChange={(e) => setIncluirGoogleAgenda(e.target.checked)}
+            style={checkbox}
+          />
+          <span>Deseja incluir demanda no Google Agenda?</span>
+        </label>
+
         <input
           id="arquivos"
           type="file"
@@ -291,6 +344,25 @@ const campo = {
   border: "1px solid #444",
   background: "#111827",
   color: "white",
+};
+
+const checkboxBox = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  background: "#0f172a",
+  border: "1px solid #334155",
+  color: "#e2e8f0",
+  padding: "12px",
+  borderRadius: "8px",
+  fontSize: "14px",
+  cursor: "pointer",
+};
+
+const checkbox = {
+  width: "16px",
+  height: "16px",
+  accentColor: "#dc2626",
 };
 
 const botao = {
