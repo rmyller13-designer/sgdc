@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import {
-  criarGoogleTaskTexto,
-  criarGoogleTasksUrl,
+  autorizarGoogleTasks,
+  criarTarefaGoogle,
 } from "@/lib/google-calendar";
 import { supabase } from "../../lib/supabase";
 
@@ -85,7 +85,20 @@ export default function NovaDemanda() {
       return;
     }
 
-    const abaGoogleAgenda = incluirGoogleAgenda ? window.open("", "_blank") : null;
+    let googleAccessToken: string | undefined;
+
+    if (incluirGoogleAgenda) {
+      try {
+        googleAccessToken = await autorizarGoogleTasks();
+      } catch (error) {
+        setMensagem(
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel autorizar o Google Agenda."
+        );
+        return;
+      }
+    }
 
     const { data: statusRecebido, error: erroStatus } = await supabase
       .from("status_demanda")
@@ -94,7 +107,6 @@ export default function NovaDemanda() {
       .single();
 
     if (erroStatus || !statusRecebido) {
-      abaGoogleAgenda?.close();
       setMensagem("Erro ao localizar o status RECEBIDO.");
       return;
     }
@@ -114,7 +126,6 @@ export default function NovaDemanda() {
       .single();
 
     if (erroDemanda) {
-      abaGoogleAgenda?.close();
       setMensagem("Erro ao salvar demanda: " + erroDemanda.message);
       return;
     }
@@ -134,7 +145,6 @@ export default function NovaDemanda() {
           .upload(caminhoArquivo, arquivo);
 
         if (erroUpload) {
-          abaGoogleAgenda?.close();
           setMensagem(
             "Demanda salva, mas erro ao enviar anexo: " + erroUpload.message
           );
@@ -157,7 +167,6 @@ export default function NovaDemanda() {
           });
 
         if (erroAnexo) {
-          abaGoogleAgenda?.close();
           setMensagem(
             "Arquivo enviado, mas erro ao salvar anexo: " + erroAnexo.message
           );
@@ -181,26 +190,21 @@ export default function NovaDemanda() {
         status: "RECEBIDO",
         data_entrega: dataEntrega,
       };
-      const textoTarefa = criarGoogleTaskTexto(demandaGoogle);
 
       try {
-        await navigator.clipboard.writeText(textoTarefa);
-      } catch {
-        // Se o navegador bloquear o clipboard, ainda abrimos a tela de tarefas.
+        await criarTarefaGoogle(demandaGoogle, googleAccessToken);
+      } catch (error) {
+        setMensagem(
+          "Demanda salva, mas erro ao criar tarefa no Google Agenda: " +
+            (error instanceof Error ? error.message : "")
+        );
+        return;
       }
-
-      if (abaGoogleAgenda) {
-        abaGoogleAgenda.location.href = criarGoogleTasksUrl();
-      } else {
-        window.open(criarGoogleTasksUrl(), "_blank", "noopener,noreferrer");
-      }
-    } else if (abaGoogleAgenda) {
-      abaGoogleAgenda.close();
     }
 
     setMensagem(
       incluirGoogleAgenda
-        ? "Demanda salva com sucesso! A tela de tarefas do Google Agenda foi aberta e os dados foram copiados."
+        ? "Demanda salva com sucesso! Tarefa criada no Google Agenda."
         : "Demanda salva com sucesso! Agora abra a demanda para definir eixos, destinos e produtos produzidos."
     );
 

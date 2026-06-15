@@ -1,9 +1,9 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { useState } from "react";
 import {
-  criarGoogleTaskTexto,
-  criarGoogleTasksUrl,
+  criarTarefaGoogle,
   type GoogleCalendarDemanda,
 } from "@/lib/google-calendar";
 
@@ -16,21 +16,33 @@ export default function GoogleTaskButton({
   children?: ReactNode;
   style?: CSSProperties;
 }) {
+  const [criando, setCriando] = useState(false);
+
   if (!demanda.data_entrega) return null;
 
-  async function abrirTarefa() {
-    try {
-      await navigator.clipboard.writeText(criarGoogleTaskTexto(demanda));
-    } catch {
-      // Ainda abrimos a tela de tarefas caso o navegador bloqueie a copia.
-    }
+  async function criarTarefa() {
+    if (criando) return;
 
-    window.open(criarGoogleTasksUrl(), "_blank", "noopener,noreferrer");
+    setCriando(true);
+
+    try {
+      await criarTarefaGoogle(demanda);
+      alert("Tarefa criada no Google Agenda.");
+    } catch (error) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Erro ao criar tarefa no Google Agenda.";
+
+      alert(mensagem);
+    } finally {
+      setCriando(false);
+    }
   }
 
   return (
-    <button type="button" onClick={abrirTarefa} style={style || botao}>
-      {children}
+    <button type="button" onClick={criarTarefa} disabled={criando} style={style || botao}>
+      {criando ? "Criando tarefa..." : children}
     </button>
   );
 }
