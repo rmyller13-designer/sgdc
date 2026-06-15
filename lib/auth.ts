@@ -52,12 +52,14 @@ export const cargosPorUsuario: Record<string, string> = {
 };
 
 export function criarSessaoUsuario(usuario: UsuarioComunicacao): UsuarioSessao {
+  const funcao = cargoDoUsuario(usuario.nome) || usuario.funcao;
+
   return {
     id: usuario.id,
     nome: nomeDoUsuario(usuario.nome),
-    funcao: cargoDoUsuario(usuario.nome) || usuario.funcao,
+    funcao,
     email: usuario.email,
-    permissoes: permissoesPorFuncao(usuario.funcao),
+    permissoes: permissoesPorFuncao(funcao),
   };
 }
 

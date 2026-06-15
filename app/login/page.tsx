@@ -1,90 +1,62 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   cargoDoUsuario,
   nomeDoUsuario,
   ordenarUsuariosAutorizados,
-  usuarioEstaAutorizado,
   type UsuarioComunicacao,
 } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
 
-const SENHAS_STORAGE_KEY = "sgdc.senhas";
-const EMAILS_STORAGE_KEY = "sgdc.emails";
+type UsuarioRegistro = UsuarioComunicacao & {
+  email_cadastrado?: boolean | null;
+  conta_criada?: boolean | null;
+};
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
-  const [usuarios, setUsuarios] = useState<UsuarioComunicacao[]>([]);
+  const { login, registrar } = useAuth();
+  const [usuarios, setUsuarios] = useState<UsuarioRegistro[]>([]);
   const [usuarioId, setUsuarioId] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [modoRegistro, setModoRegistro] = useState(false);
-  const [senhasRegistradas, setSenhasRegistradas] = useState<
-    Record<string, string>
-  >({});
-  const [emailsRegistrados, setEmailsRegistrados] = useState<
-    Record<string, string>
-  >({});
   const [mensagem, setMensagem] = useState("");
-  const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setSenhasRegistradas(carregarSenhasRegistradas());
-      setEmailsRegistrados(carregarEmailsRegistrados());
-    });
-  }, []);
+  const [carregando, setCarregando] = useState(false);
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
 
   useEffect(() => {
     async function carregarUsuarios() {
-      const { data, error } = await supabase
-        .from("usuarios_comunicacao")
-        .select("id, nome, funcao, email, ativo")
-        .eq("ativo", true)
-        .order("nome");
+      const { data, error } = await supabase.rpc("sgdc_usuarios_registro");
 
       if (error) {
         setMensagem(`Erro ao carregar usuários: ${error.message}`);
       } else {
-        const usuariosAtivos = (data as UsuarioComunicacao[] | null) || [];
         setUsuarios(
           ordenarUsuariosAutorizados(
-            usuariosAtivos.filter((usuario) =>
-              usuarioEstaAutorizado(usuario.nome)
-            )
+            ((data as UsuarioRegistro[] | null) || []).map((usuario) => ({
+              ...usuario,
+              id: Number(usuario.id),
+            }))
           )
         );
       }
 
-      setCarregando(false);
+      setCarregandoUsuarios(false);
     }
 
     void carregarUsuarios();
   }, []);
 
-  const usuarioSelecionado = useMemo(
-    () => usuarios.find((usuario) => String(usuario.id) === usuarioId) || null,
-    [usuarioId, usuarios]
-  );
-
-  const senhaJaRegistrada = usuarioSelecionado
-    ? Boolean(senhasRegistradas[chaveSenha(usuarioSelecionado)])
-    : false;
-
   async function entrar() {
-    if (!usuarioSelecionado) {
-      setMensagem("Selecione um usuário ativo.");
-      return;
-    }
+    setMensagem("");
 
-    if (!senhaJaRegistrada) {
-      setModoRegistro(true);
-      setMensagem("Registre uma senha para este usuário antes de entrar.");
+    if (!validarEmail(email)) {
+      setMensagem("Informe seu e-mail.");
       return;
     }
 
@@ -93,27 +65,34 @@ export default function LoginPage() {
       return;
     }
 
-    const hash = await gerarHashSenha(usuarioSelecionado, senha);
+    setCarregando(true);
+    const resultado = await login(email, senha);
+    setCarregando(false);
 
-    if (hash !== senhasRegistradas[chaveSenha(usuarioSelecionado)]) {
-      setMensagem("Senha incorreta.");
+    if (!resultado.ok) {
+      setMensagem(resultado.mensagem || "Não foi possível entrar.");
       return;
     }
-
-    login(usuarioSelecionado);
 
     const params = new URLSearchParams(window.location.search);
     router.push(params.get("next") || "/");
   }
 
-  async function registrarSenha() {
-    if (!usuarioSelecionado) {
-      setMensagem("Selecione um usuário para registrar a senha.");
+  async function criarAcesso() {
+    setMensagem("");
+
+    if (!usuarioId) {
+      setMensagem("Selecione o usuário.");
       return;
     }
 
-    if (senha.length < 4) {
-      setMensagem("A senha precisa ter pelo menos 4 caracteres.");
+    if (!validarEmail(email)) {
+      setMensagem("Informe um e-mail válido.");
+      return;
+    }
+
+    if (senha.length < 6) {
+      setMensagem("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -122,56 +101,73 @@ export default function LoginPage() {
       return;
     }
 
-    const proximasSenhas = {
-      ...senhasRegistradas,
-      [chaveSenha(usuarioSelecionado)]: await gerarHashSenha(
-        usuarioSelecionado,
-        senha
-      ),
-    };
+    setCarregando(true);
+    const resultado = await registrar(Number(usuarioId), email, senha);
+    setCarregando(false);
 
-    salvarSenhasRegistradas(proximasSenhas);
-    setSenhasRegistradas(proximasSenhas);
-    setConfirmarSenha("");
-    setModoRegistro(false);
-    setMensagem("Senha registrada. Agora você pode entrar.");
+    setMensagem(resultado.mensagem || "");
+
+    if (resultado.ok && resultado.mensagem === "Acesso criado com sucesso.") {
+      const params = new URLSearchParams(window.location.search);
+      router.push(params.get("next") || "/");
+    }
   }
 
-  function selecionarUsuario(id: string) {
-    setUsuarioId(id);
+  function alternarRegistro() {
+    setModoRegistro((atual) => !atual);
+    setMensagem("");
     setSenha("");
     setConfirmarSenha("");
-    setModoRegistro(false);
-    setMensagem("");
   }
 
   return (
     <div style={page}>
       <section style={painel}>
         <p style={eyebrow}>Acesso SGDC</p>
-        <h1 style={titulo}>Entrar</h1>
+        <h1 style={titulo}>{modoRegistro ? "Registre-se" : "Entrar"}</h1>
         <p style={descricao}>
-          Selecione seu usuário e informe a senha cadastrada para acessar o
-          sistema.
+          Use seu e-mail e senha do Supabase para acessar o sistema com usuário
+          real e permissões protegidas.
         </p>
 
-        <label style={label}>Usuário</label>
-        <select
-          value={usuarioId}
-          onChange={(event) => selecionarUsuario(event.target.value)}
+        {modoRegistro && (
+          <>
+            <label style={label}>Usuário</label>
+            <select
+              value={usuarioId}
+              onChange={(event) => setUsuarioId(event.target.value)}
+              style={campo}
+              disabled={carregandoUsuarios || carregando}
+            >
+              <option value="">
+                {carregandoUsuarios ? "Carregando usuários..." : "Selecione"}
+              </option>
+              {usuarios.map((usuario) => (
+                <option
+                  key={usuario.id}
+                  value={usuario.id}
+                  disabled={Boolean(usuario.conta_criada)}
+                >
+                  {nomeDoUsuario(usuario.nome)} -{" "}
+                  {cargoDoUsuario(usuario.nome) ||
+                    usuario.funcao ||
+                    "Solicitante"}
+                  {usuario.conta_criada ? " (conta criada)" : ""}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+
+        <label style={modoRegistro ? labelSenha : label}>E-mail</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           style={campo}
+          placeholder="nome@exemplo.com"
           disabled={carregando}
-        >
-          <option value="">
-            {carregando ? "Carregando usuários..." : "Selecione"}
-          </option>
-          {usuarios.map((usuario) => (
-            <option key={usuario.id} value={usuario.id}>
-              {nomeDoUsuario(usuario.nome)} -{" "}
-              {cargoDoUsuario(usuario.nome) || usuario.funcao || "Solicitante"}
-            </option>
-          ))}
-        </select>
+        />
 
         <label style={labelSenha}>Senha</label>
         <input
@@ -180,6 +176,7 @@ export default function LoginPage() {
           onChange={(event) => setSenha(event.target.value)}
           style={campo}
           placeholder="Digite sua senha"
+          disabled={carregando}
         />
 
         {modoRegistro && (
@@ -191,25 +188,32 @@ export default function LoginPage() {
               onChange={(event) => setConfirmarSenha(event.target.value)}
               style={campo}
               placeholder="Repita sua senha"
+              disabled={carregando}
             />
           </>
         )}
 
-        {usuarioSelecionado && !senhaJaRegistrada && !modoRegistro && (
-          <p style={avisoSenha}>Primeiro acesso: registre uma senha.</p>
-        )}
-
         <div style={botoes}>
-          <button type="button" onClick={entrar} style={botao}>
-            Entrar
+          <button
+            type="button"
+            onClick={modoRegistro ? criarAcesso : entrar}
+            style={botao}
+            disabled={carregando}
+          >
+            {carregando
+              ? "Aguarde..."
+              : modoRegistro
+                ? "Criar acesso"
+                : "Entrar"}
           </button>
 
           <button
             type="button"
-            onClick={modoRegistro ? registrarSenha : () => setModoRegistro(true)}
+            onClick={alternarRegistro}
             style={botaoSecundario}
+            disabled={carregando}
           >
-            {modoRegistro ? "Salvar senha" : "Registre-se"}
+            {modoRegistro ? "Voltar" : "Registre-se"}
           </button>
         </div>
 
@@ -219,31 +223,8 @@ export default function LoginPage() {
   );
 }
 
-function chaveSenha(usuario: UsuarioComunicacao) {
-  return String(usuario.id);
-}
-
-function carregarSenhasRegistradas() {
-  try {
-    const valor = localStorage.getItem(SENHAS_STORAGE_KEY);
-    return valor ? (JSON.parse(valor) as Record<string, string>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function salvarSenhasRegistradas(senhas: Record<string, string>) {
-  localStorage.setItem(SENHAS_STORAGE_KEY, JSON.stringify(senhas));
-}
-
-async function gerarHashSenha(usuario: UsuarioComunicacao, senha: string) {
-  const texto = `sgdc:${usuario.id}:${nomeDoUsuario(usuario.nome)}:${senha}`;
-  const bytes = new TextEncoder().encode(texto);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-
-  return Array.from(new Uint8Array(hash))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+function validarEmail(valor: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
 }
 
 const page = {
@@ -302,12 +283,6 @@ const campo = {
   border: "1px solid rgba(252, 165, 165, 0.28)",
   borderRadius: "8px",
   padding: "12px",
-};
-
-const avisoSenha = {
-  color: "#fecaca",
-  fontSize: "13px",
-  margin: "10px 0 0",
 };
 
 const botoes = {

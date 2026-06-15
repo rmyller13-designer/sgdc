@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -13,14 +14,14 @@ export default function UserMenu() {
 
   if (!usuario) {
     return (
-      <a href="/login" style={loginLink}>
+      <Link href="/login" style={loginLink}>
         Entrar
-      </a>
+      </Link>
     );
   }
 
-  function sair() {
-    logout();
+  async function sair() {
+    await logout();
     router.push("/login");
   }
 
