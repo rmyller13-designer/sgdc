@@ -11,15 +11,53 @@ type Item = {
   concluido: boolean;
 };
 
+type StatusProducao = "ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
+
+type ProdutoChecklist = {
+  id: number;
+  produto_id: number;
+  quantidade: number;
+  status_producao: StatusProducao;
+  produtos: {
+    nome: string;
+  } | null;
+};
+
+type ProdutoChecklistSupabase = {
+  id: number;
+  produto_id: number;
+  quantidade: number;
+  status_producao?: StatusProducao | null;
+  produtos: { nome: string } | { nome: string }[] | null;
+};
+
 function ChecklistDemanda({ demandaId }: { demandaId: number }) {
   const { usuario } = useAuth();
   const podeEditar = podeEditarFluxo(usuario);
   const [itens, setItens] = useState<Item[]>([]);
+  const [produtos, setProdutos] = useState<ProdutoChecklist[]>([]);
   const [novoItem, setNovoItem] = useState("");
   const [mensagem, setMensagem] = useState("");
 
   useEffect(() => {
     carregarItens();
+
+    function recarregarProdutos(event: Event) {
+      const detail = (event as CustomEvent<{ demandaId: number }>).detail;
+
+      if (detail?.demandaId === demandaId) {
+        void carregarProdutos();
+      }
+    }
+
+    window.addEventListener("sgdc:produtos-atualizados", recarregarProdutos);
+
+    return () => {
+      window.removeEventListener(
+        "sgdc:produtos-atualizados",
+        recarregarProdutos
+      );
+    };
   }, [demandaId]);
 
   async function carregarItens() {
@@ -35,6 +73,51 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     }
 
     setItens(data || []);
+    await carregarProdutos();
+  }
+
+  async function carregarProdutos() {
+    const { data, error } = await supabase
+      .from("demanda_produtos_quantidade")
+      .select("id, produto_id, quantidade, status_producao, produtos(nome)")
+      .eq("demanda_id", demandaId)
+      .order("id", { ascending: true });
+
+    let produtosData = data as ProdutoChecklistSupabase[] | null;
+
+    if (colunaStatusAusente(error)) {
+      const { data: produtosSemStatus, error: erroSemStatus } = await supabase
+        .from("demanda_produtos_quantidade")
+        .select("id, produto_id, quantidade, produtos(nome)")
+        .eq("demanda_id", demandaId)
+        .order("id", { ascending: true });
+
+      if (erroSemStatus) {
+        setMensagem("Erro ao carregar produtos: " + erroSemStatus.message);
+        return;
+      }
+
+      produtosData = produtosSemStatus as ProdutoChecklistSupabase[] | null;
+    } else if (error) {
+      setMensagem("Erro ao carregar produtos: " + error.message);
+      return;
+    }
+
+    setProdutos(
+      ((produtosData as ProdutoChecklistSupabase[] | null) || []).map(
+        (produto) => ({
+          id: Number(produto.id),
+          produto_id: Number(produto.produto_id),
+          quantidade: Number(produto.quantidade),
+          status_producao:
+            produto.status_producao ||
+            lerStatusProdutoLocal(demandaId, produto.produto_id),
+          produtos: Array.isArray(produto.produtos)
+            ? produto.produtos[0] || null
+            : produto.produtos,
+        })
+      )
+    );
   }
 
   async function adicionarItem() {
@@ -134,8 +217,12 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     carregarItens();
   }
 
-  const total = itens.length;
-  const concluidos = itens.filter((item) => item.concluido).length;
+  const produtosConcluidos = produtos.filter(
+    (produto) => produto.status_producao === "CONCLUIDO"
+  ).length;
+  const total = itens.length + produtos.length;
+  const concluidos =
+    itens.filter((item) => item.concluido).length + produtosConcluidos;
   const progresso = total === 0 ? 0 : Math.round((concluidos / total) * 100);
 
   return (
@@ -150,6 +237,21 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
         Progresso: <strong>{progresso}%</strong> — {concluidos}/{total} itens
         concluídos
       </p>
+
+      {produtos.length > 0 && (
+        <div style={produtosBox}>
+          {produtos.map((produto) => (
+            <div key={produto.id} style={produtoLinha}>
+              <span>
+                {produto.produtos?.nome || "Produto"} ({produto.quantidade})
+              </span>
+              <strong style={statusTexto[produto.status_producao]}>
+                {statusLabel[produto.status_producao]}
+              </strong>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={linha}>
         <input
@@ -216,6 +318,37 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 export { ChecklistDemanda };
 export default ChecklistDemanda;
 
+const statusLabel: Record<StatusProducao, string> = {
+  ANDAMENTO: "Andamento",
+  CONCLUIDO: "Concluído",
+  CANCELADO: "Cancelado",
+};
+
+function lerStatusProdutoLocal(
+  demandaId: number,
+  produtoId: number
+): StatusProducao {
+  if (typeof window === "undefined") return "ANDAMENTO";
+
+  const status = window.localStorage.getItem(
+    `sgdc_produto_status:${demandaId}:${produtoId}`
+  ) as StatusProducao | null;
+
+  if (
+    status === "ANDAMENTO" ||
+    status === "CONCLUIDO" ||
+    status === "CANCELADO"
+  ) {
+    return status;
+  }
+
+  return "ANDAMENTO";
+}
+
+function colunaStatusAusente(error?: { code?: string } | null) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
 const barraBox = {
   width: "100%",
   height: "10px",
@@ -234,6 +367,37 @@ const barraInterna = {
 const textoFraco = {
   color: "#fecaca",
   fontSize: "14px",
+};
+
+const produtosBox = {
+  display: "grid",
+  gap: "8px",
+  marginTop: "12px",
+  marginBottom: "14px",
+};
+
+const produtoLinha = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  background: "rgba(2, 6, 23, 0.35)",
+  border: "1px solid rgba(148, 163, 184, 0.18)",
+  borderRadius: "10px",
+  padding: "9px 12px",
+  color: "#fee2e2",
+};
+
+const statusTexto: Record<StatusProducao, object> = {
+  ANDAMENTO: {
+    color: "#93c5fd",
+  },
+  CONCLUIDO: {
+    color: "#86efac",
+  },
+  CANCELADO: {
+    color: "#fca5a5",
+  },
 };
 
 const linha = {

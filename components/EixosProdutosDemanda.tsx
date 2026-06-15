@@ -20,10 +20,13 @@ type Produto = {
   nome: string;
 };
 
+type StatusProducao = "ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
+
 type ProdutoSelecionado = {
   id: number;
   produto_id: number;
   quantidade: number;
+  status_producao: StatusProducao;
   produtos: {
     nome: string;
   } | null;
@@ -33,8 +36,14 @@ type ProdutoSelecionadoSupabase = {
   id: number;
   produto_id: number;
   quantidade: number;
+  status_producao?: StatusProducao | null;
   produtos: { nome: string } | { nome: string }[] | null;
 };
+
+type ProdutoSelecionadoSemStatusSupabase = Omit<
+  ProdutoSelecionadoSupabase,
+  "status_producao"
+>;
 
 export default function EixosProdutosDemanda({
   demandaId,
@@ -89,11 +98,26 @@ export default function EixosProdutosDemanda({
       .select("canal_id")
       .eq("demanda_id", demandaId);
 
-    const { data: produtosMarcados } = await supabase
+    const { data: produtosMarcados, error: produtosErro } = await supabase
       .from("demanda_produtos_quantidade")
-      .select("id, produto_id, quantidade, produtos(nome)")
+      .select("id, produto_id, quantidade, status_producao, produtos(nome)")
       .eq("demanda_id", demandaId)
       .order("id", { ascending: true });
+
+    let produtosMarcadosLista:
+      | ProdutoSelecionadoSupabase[]
+      | ProdutoSelecionadoSemStatusSupabase[]
+      | null = produtosMarcados;
+
+    if (colunaStatusAusente(produtosErro)) {
+      const { data: produtosSemStatus } = await supabase
+        .from("demanda_produtos_quantidade")
+        .select("id, produto_id, quantidade, produtos(nome)")
+        .eq("demanda_id", demandaId)
+        .order("id", { ascending: true });
+
+      produtosMarcadosLista = produtosSemStatus;
+    }
 
     setEixos(eixosData || []);
     setCanais(canaisData || []);
@@ -103,9 +127,12 @@ export default function EixosProdutosDemanda({
     setCanaisSelecionados(canaisMarcados?.map((item) => item.canal_id) || []);
 
     const lista =
-      ((produtosMarcados as ProdutoSelecionadoSupabase[] | null) || []).map(
+      ((produtosMarcadosLista as ProdutoSelecionadoSupabase[] | null) || []).map(
         (item) => ({
           ...item,
+          status_producao:
+            item.status_producao ||
+            lerStatusProdutoLocal(demandaId, item.produto_id),
           produtos: Array.isArray(item.produtos)
             ? item.produtos[0] || null
             : item.produtos,
@@ -216,13 +243,34 @@ export default function EixosProdutosDemanda({
         demanda_id: demandaId,
         produto_id: Number(produtoId),
         quantidade,
+        status_producao: "ANDAMENTO",
       },
       {
         onConflict: "demanda_id,produto_id",
       }
     );
 
-    if (error) {
+    if (colunaStatusAusente(error)) {
+      const { error: erroSemStatus } = await supabase
+        .from("demanda_produtos_quantidade")
+        .upsert(
+          {
+            demanda_id: demandaId,
+            produto_id: Number(produtoId),
+            quantidade,
+          },
+          {
+            onConflict: "demanda_id,produto_id",
+          }
+        );
+
+      if (erroSemStatus) {
+        setMensagem("Erro ao adicionar produto: " + erroSemStatus.message);
+        return;
+      }
+
+      salvarStatusProdutoLocal(demandaId, Number(produtoId), "ANDAMENTO");
+    } else if (error) {
       setMensagem("Erro ao adicionar produto: " + error.message);
       return;
     }
@@ -230,6 +278,7 @@ export default function EixosProdutosDemanda({
     setProdutoId("");
     setQuantidade(1);
     setMensagem("Produto adicionado.");
+    notificarAtualizacaoProdutos(demandaId);
     await carregarDados();
   }
 
@@ -257,6 +306,35 @@ export default function EixosProdutosDemanda({
     }
 
     setMensagem("Quantidade atualizada.");
+    notificarAtualizacaoProdutos(demandaId);
+    await carregarDados();
+  }
+
+  async function atualizarStatusProduto(
+    produtoIdAtualizar: number,
+    status: StatusProducao
+  ) {
+    setMensagem("");
+
+    const { error } = await supabase
+      .from("demanda_produtos_quantidade")
+      .update({
+        status_producao: status,
+      })
+      .eq("demanda_id", demandaId)
+      .eq("produto_id", produtoIdAtualizar);
+
+    if (error && !colunaStatusAusente(error)) {
+      setMensagem("Erro ao atualizar status: " + error.message);
+      return;
+    }
+
+    if (colunaStatusAusente(error)) {
+      salvarStatusProdutoLocal(demandaId, produtoIdAtualizar, status);
+    }
+
+    setMensagem("Status do produto atualizado.");
+    notificarAtualizacaoProdutos(demandaId);
     await carregarDados();
   }
 
@@ -275,6 +353,8 @@ export default function EixosProdutosDemanda({
     }
 
     setMensagem("Produto removido.");
+    removerStatusProdutoLocal(demandaId, produtoIdRemover);
+    notificarAtualizacaoProdutos(demandaId);
     await carregarDados();
   }
 
@@ -388,6 +468,32 @@ export default function EixosProdutosDemanda({
                     style={campoEdicao}
                   />
                 </div>
+
+                <div style={statusGrupo} aria-label="Status do produto">
+                  {statusOpcoes.map((opcao) => (
+                    <label
+                      key={opcao.valor}
+                      style={{
+                        ...statusOpcao,
+                        ...(item.status_producao === opcao.valor
+                          ? statusOpcaoAtiva[opcao.valor]
+                          : {}),
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name={`status-produto-${item.id}`}
+                        value={opcao.valor}
+                        checked={item.status_producao === opcao.valor}
+                        onChange={() =>
+                          atualizarStatusProduto(item.produto_id, opcao.valor)
+                        }
+                        style={radioStatus}
+                      />
+                      {opcao.label}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div style={linhaBotoes}>
@@ -414,6 +520,67 @@ export default function EixosProdutosDemanda({
 
       {mensagem && <p style={{ marginTop: "15px" }}>{mensagem}</p>}
     </div>
+  );
+}
+
+const statusOpcoes: { valor: StatusProducao; label: string }[] = [
+  { valor: "ANDAMENTO", label: "Andamento" },
+  { valor: "CONCLUIDO", label: "Concluído" },
+  { valor: "CANCELADO", label: "Cancelado" },
+];
+
+function lerStatusProdutoLocal(
+  demandaId: number,
+  produtoId: number
+): StatusProducao {
+  if (typeof window === "undefined") return "ANDAMENTO";
+
+  const status = window.localStorage.getItem(
+    chaveStatusProduto(demandaId, produtoId)
+  ) as StatusProducao | null;
+
+  return statusValido(status) ? status : "ANDAMENTO";
+}
+
+function salvarStatusProdutoLocal(
+  demandaId: number,
+  produtoId: number,
+  status: StatusProducao
+) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(chaveStatusProduto(demandaId, produtoId), status);
+}
+
+function removerStatusProdutoLocal(demandaId: number, produtoId: number) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.removeItem(chaveStatusProduto(demandaId, produtoId));
+}
+
+function chaveStatusProduto(demandaId: number, produtoId: number) {
+  return `sgdc_produto_status:${demandaId}:${produtoId}`;
+}
+
+function statusValido(status: string | null): status is StatusProducao {
+  return (
+    status === "ANDAMENTO" ||
+    status === "CONCLUIDO" ||
+    status === "CANCELADO"
+  );
+}
+
+function colunaStatusAusente(error?: { code?: string } | null) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
+function notificarAtualizacaoProdutos(demandaId: number) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(
+    new CustomEvent("sgdc:produtos-atualizados", {
+      detail: { demandaId },
+    })
   );
 }
 
@@ -485,6 +652,49 @@ const linhaEdicao = {
   gap: "10px",
   marginTop: "10px",
   alignItems: "center",
+};
+
+const statusGrupo = {
+  display: "flex",
+  flexWrap: "wrap" as const,
+  gap: "8px",
+  marginTop: "12px",
+};
+
+const statusOpcao = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "6px",
+  border: "1px solid #334155",
+  borderRadius: "999px",
+  padding: "7px 10px",
+  color: "#cbd5e1",
+  background: "#0f172a",
+  cursor: "pointer",
+  fontSize: "13px",
+  fontWeight: 700,
+};
+
+const statusOpcaoAtiva: Record<StatusProducao, object> = {
+  ANDAMENTO: {
+    color: "#dbeafe",
+    borderColor: "#2563eb",
+    background: "rgba(37, 99, 235, 0.22)",
+  },
+  CONCLUIDO: {
+    color: "#dcfce7",
+    borderColor: "#16a34a",
+    background: "rgba(22, 163, 74, 0.22)",
+  },
+  CANCELADO: {
+    color: "#fee2e2",
+    borderColor: "#dc2626",
+    background: "rgba(220, 38, 38, 0.22)",
+  },
+};
+
+const radioStatus = {
+  accentColor: "#dc2626",
 };
 
 const campoEdicao = {

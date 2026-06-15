@@ -4,46 +4,36 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
-  cargoDoUsuario,
   nomeDoUsuario,
   ordenarUsuariosAutorizados,
+  usuarioEstaAutorizado,
   type UsuarioComunicacao,
 } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
 
-type UsuarioRegistro = UsuarioComunicacao & {
-  email_cadastrado?: boolean | null;
-  conta_criada?: boolean | null;
-};
+type UsuarioLogin = UsuarioComunicacao;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, registrar } = useAuth();
-  const [usuarios, setUsuarios] = useState<UsuarioRegistro[]>([]);
+  const { login } = useAuth();
+  const [usuarios, setUsuarios] = useState<UsuarioLogin[]>([]);
   const [usuarioId, setUsuarioId] = useState("");
-  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [modoRegistro, setModoRegistro] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
 
   useEffect(() => {
     async function carregarUsuarios() {
-      const { data, error } = await supabase.rpc("sgdc_usuarios_registro");
+      const { data, error } = await supabase
+        .from("usuarios_comunicacao")
+        .select("id, nome, funcao, ativo")
+        .order("nome");
 
       if (error) {
         setMensagem(`Erro ao carregar usuários: ${error.message}`);
       } else {
-        setUsuarios(
-          ordenarUsuariosAutorizados(
-            ((data as UsuarioRegistro[] | null) || []).map((usuario) => ({
-              ...usuario,
-              id: Number(usuario.id),
-            }))
-          )
-        );
+        setUsuarios(prepararUsuariosLogin((data as UsuarioLogin[] | null) || []));
       }
 
       setCarregandoUsuarios(false);
@@ -55,8 +45,8 @@ export default function LoginPage() {
   async function entrar() {
     setMensagem("");
 
-    if (!validarEmail(email)) {
-      setMensagem("Informe seu e-mail.");
+    if (!usuarioId) {
+      setMensagem("Selecione o usuário.");
       return;
     }
 
@@ -66,7 +56,8 @@ export default function LoginPage() {
     }
 
     setCarregando(true);
-    const resultado = await login(email, senha);
+    const usuario = usuarios.find((item) => item.id === Number(usuarioId));
+    const resultado = await login(usuario || Number(usuarioId), senha);
     setCarregando(false);
 
     if (!resultado.ok) {
@@ -78,144 +69,53 @@ export default function LoginPage() {
     router.push(params.get("next") || "/");
   }
 
-  async function criarAcesso() {
-    setMensagem("");
-
-    if (!usuarioId) {
-      setMensagem("Selecione o usuário.");
-      return;
-    }
-
-    if (!validarEmail(email)) {
-      setMensagem("Informe um e-mail válido.");
-      return;
-    }
-
-    if (senha.length < 6) {
-      setMensagem("A senha precisa ter pelo menos 6 caracteres.");
-      return;
-    }
-
-    if (senha !== confirmarSenha) {
-      setMensagem("As senhas não conferem.");
-      return;
-    }
-
-    setCarregando(true);
-    const resultado = await registrar(Number(usuarioId), email, senha);
-    setCarregando(false);
-
-    setMensagem(resultado.mensagem || "");
-
-    if (resultado.ok && resultado.mensagem === "Acesso criado com sucesso.") {
-      const params = new URLSearchParams(window.location.search);
-      router.push(params.get("next") || "/");
-    }
-  }
-
-  function alternarRegistro() {
-    setModoRegistro((atual) => !atual);
-    setMensagem("");
-    setSenha("");
-    setConfirmarSenha("");
-  }
-
   return (
     <div style={page}>
       <section style={painel}>
         <p style={eyebrow}>Acesso SGDC</p>
-        <h1 style={titulo}>{modoRegistro ? "Registre-se" : "Entrar"}</h1>
+        <h1 style={titulo}>Entrar</h1>
         <p style={descricao}>
-          Use seu e-mail e senha do Supabase para acessar o sistema com usuário
-          real e permissões protegidas.
+          Selecione seu usuário e informe a senha de acesso.
         </p>
 
-        {modoRegistro && (
-          <>
-            <label style={label}>Usuário</label>
-            <select
-              value={usuarioId}
-              onChange={(event) => setUsuarioId(event.target.value)}
-              style={campo}
-              disabled={carregandoUsuarios || carregando}
-            >
-              <option value="">
-                {carregandoUsuarios ? "Carregando usuários..." : "Selecione"}
-              </option>
-              {usuarios.map((usuario) => (
-                <option
-                  key={usuario.id}
-                  value={usuario.id}
-                  disabled={Boolean(usuario.conta_criada)}
-                >
-                  {nomeDoUsuario(usuario.nome)} -{" "}
-                  {cargoDoUsuario(usuario.nome) ||
-                    usuario.funcao ||
-                    "Solicitante"}
-                  {usuario.conta_criada ? " (conta criada)" : ""}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
-
-        <label style={modoRegistro ? labelSenha : label}>E-mail</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+        <label style={label}>Usuário</label>
+        <select
+          value={usuarioId}
+          onChange={(event) => setUsuarioId(event.target.value)}
           style={campo}
-          placeholder="nome@exemplo.com"
-          disabled={carregando}
-        />
+          disabled={carregandoUsuarios || carregando || usuarios.length === 0}
+        >
+          <option value="">
+            {opcaoInicialUsuarios(carregandoUsuarios, usuarios.length)}
+          </option>
+          {usuarios.map((usuario) => (
+            <option key={usuario.id} value={usuario.id}>
+              {nomeDoUsuario(usuario.nome)}
+            </option>
+          ))}
+        </select>
 
         <label style={labelSenha}>Senha</label>
         <input
           type="password"
           value={senha}
           onChange={(event) => setSenha(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") void entrar();
+          }}
           style={campo}
           placeholder="Digite sua senha"
           disabled={carregando}
         />
 
-        {modoRegistro && (
-          <>
-            <label style={labelSenha}>Confirmar senha</label>
-            <input
-              type="password"
-              value={confirmarSenha}
-              onChange={(event) => setConfirmarSenha(event.target.value)}
-              style={campo}
-              placeholder="Repita sua senha"
-              disabled={carregando}
-            />
-          </>
-        )}
-
-        <div style={botoes}>
-          <button
-            type="button"
-            onClick={modoRegistro ? criarAcesso : entrar}
-            style={botao}
-            disabled={carregando}
-          >
-            {carregando
-              ? "Aguarde..."
-              : modoRegistro
-                ? "Criar acesso"
-                : "Entrar"}
-          </button>
-
-          <button
-            type="button"
-            onClick={alternarRegistro}
-            style={botaoSecundario}
-            disabled={carregando}
-          >
-            {modoRegistro ? "Voltar" : "Registre-se"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={entrar}
+          style={botao}
+          disabled={carregando || carregandoUsuarios}
+        >
+          {carregando ? "Aguarde..." : "Entrar"}
+        </button>
 
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
       </section>
@@ -223,8 +123,27 @@ export default function LoginPage() {
   );
 }
 
-function validarEmail(valor: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
+function prepararUsuariosLogin(usuarios: UsuarioLogin[]) {
+  return ordenarUsuariosAutorizados(
+    usuarios
+      .filter(
+        (usuario) =>
+          usuarioEstaAutorizado(usuario.nome) && usuario.ativo !== false
+      )
+      .map((usuario) => ({
+        ...usuario,
+        id: Number(usuario.id),
+      }))
+  );
+}
+
+function opcaoInicialUsuarios(
+  carregandoUsuarios: boolean,
+  totalUsuarios: number
+) {
+  if (carregandoUsuarios) return "Carregando usuários...";
+  if (totalUsuarios === 0) return "Nenhum usuário disponível";
+  return "Selecione";
 }
 
 const page = {
@@ -285,13 +204,6 @@ const campo = {
   padding: "12px",
 };
 
-const botoes = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "10px",
-  marginTop: "18px",
-};
-
 const botao = {
   width: "100%",
   background: "linear-gradient(135deg, #dc2626, #991b1b)",
@@ -301,12 +213,7 @@ const botao = {
   borderRadius: "8px",
   cursor: "pointer",
   fontWeight: 700,
-};
-
-const botaoSecundario = {
-  ...botao,
-  background: "rgba(15, 23, 42, 0.85)",
-  border: "1px solid rgba(252, 165, 165, 0.28)",
+  marginTop: "18px",
 };
 
 const mensagemStyle = {
