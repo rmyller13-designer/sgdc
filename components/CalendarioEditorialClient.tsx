@@ -11,6 +11,7 @@ import {
 } from "@hello-pangea/dnd";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarFluxo } from "@/lib/auth";
+import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
 import { supabase } from "@/lib/supabase";
 
 type DemandaCalendario = {
@@ -430,13 +431,23 @@ function DemandaCard({
   isDragging?: boolean;
 }) {
   const status = demanda.status || "SEM_STATUS";
+  const googleCalendarUrl = criarGoogleCalendarUrl({
+    id: demanda.id,
+    titulo: demanda.titulo,
+    descricao: demanda.descricao,
+    produto: demanda.produto,
+    setor: demanda.setor,
+    status: demanda.status,
+    prioridade: demanda.prioridade,
+    responsavel: demanda.responsavel,
+    data_entrega: demanda.data_entrega,
+  });
 
   return (
-    <Link
+    <div
       ref={dragProvided?.innerRef}
       {...dragProvided?.draggableProps}
       {...dragProvided?.dragHandleProps}
-      href={`/demandas/${demanda.id}`}
       style={{
         ...cardDemanda,
         opacity: isDragging ? 0.88 : 1,
@@ -450,14 +461,26 @@ function DemandaCard({
           background: statusCores[status] || "#ef4444",
         }}
       />
-      <span style={cardTitulo}>{demanda.titulo || `Demanda #${demanda.id}`}</span>
-      <span style={cardMeta}>
-        {formatarLabel(status)} - {demanda.produto || "Sem produto"}
-      </span>
-      <span style={cardFooter}>
-        {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
-      </span>
-    </Link>
+      <Link href={`/demandas/${demanda.id}`} style={cardConteudo}>
+        <span style={cardTitulo}>{demanda.titulo || `Demanda #${demanda.id}`}</span>
+        <span style={cardMeta}>
+          {formatarLabel(status)} - {demanda.produto || "Sem produto"}
+        </span>
+        <span style={cardFooter}>
+          {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
+        </span>
+      </Link>
+      {googleCalendarUrl && (
+        <a
+          href={googleCalendarUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={googleAgendaCardLink}
+        >
+          Google Agenda
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -471,17 +494,46 @@ function ListaDemandas({ demandas }: { demandas: DemandaCalendario[] }) {
       {ordenadas.length === 0 ? (
         <p style={vazio}>Nenhuma demanda encontrada.</p>
       ) : (
-        ordenadas.map((demanda) => (
-          <Link key={demanda.id} href={`/demandas/${demanda.id}`} style={linhaLista}>
-            <span style={dataLista}>{formatarData(pegarDataEditorial(demanda))}</span>
-            <strong style={{ minWidth: 0 }}>{demanda.titulo}</strong>
-            <span style={pill}>{formatarLabel(demanda.status || "Sem status")}</span>
-            <span style={textoFraco}>{demanda.setor || "Sem setor"}</span>
-            <span style={textoFraco}>
-              {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
-            </span>
-          </Link>
-        ))
+        ordenadas.map((demanda) => {
+          const googleCalendarUrl = criarGoogleCalendarUrl({
+            id: demanda.id,
+            titulo: demanda.titulo,
+            descricao: demanda.descricao,
+            produto: demanda.produto,
+            setor: demanda.setor,
+            status: demanda.status,
+            prioridade: demanda.prioridade,
+            responsavel: demanda.responsavel,
+            data_entrega: demanda.data_entrega,
+          });
+
+          return (
+            <div key={demanda.id} style={linhaLista}>
+              <Link href={`/demandas/${demanda.id}`} style={linkLista}>
+                <span style={dataLista}>{formatarData(pegarDataEditorial(demanda))}</span>
+                <strong style={{ minWidth: 0 }}>{demanda.titulo}</strong>
+                <span style={pill}>{formatarLabel(demanda.status || "Sem status")}</span>
+                <span style={textoFraco}>{demanda.setor || "Sem setor"}</span>
+                <span style={textoFraco}>
+                  {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
+                </span>
+              </Link>
+
+              {googleCalendarUrl ? (
+                <a
+                  href={googleCalendarUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={googleAgendaLink}
+                >
+                  Google Agenda
+                </a>
+              ) : (
+                <span style={textoFraco}>Sem data</span>
+              )}
+            </div>
+          );
+        })
       )}
     </div>
   );
@@ -761,6 +813,23 @@ const cardDemanda = {
   overflow: "hidden",
 };
 
+const cardConteudo = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "4px",
+  color: "white",
+  textDecoration: "none",
+};
+
+const googleAgendaCardLink = {
+  alignSelf: "flex-start",
+  color: "#bfdbfe",
+  fontSize: "11px",
+  fontWeight: 800,
+  textDecoration: "none",
+  marginTop: "2px",
+};
+
 const statusBar = {
   position: "absolute" as const,
   left: 0,
@@ -802,15 +871,23 @@ const lista = {
 
 const linhaLista = {
   display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 140px",
+  gap: "12px",
+  alignItems: "center",
+  background: "rgba(15,23,42,.72)",
+  border: "1px solid rgba(252,165,165,.18)",
+  borderRadius: "8px",
+  padding: "12px",
+};
+
+const linkLista = {
+  display: "grid",
   gridTemplateColumns: "110px minmax(220px, 1fr) 150px 160px 180px",
   gap: "12px",
   alignItems: "center",
   color: "white",
   textDecoration: "none",
-  background: "rgba(15,23,42,.72)",
-  border: "1px solid rgba(252,165,165,.18)",
-  borderRadius: "8px",
-  padding: "12px",
+  minWidth: 0,
 };
 
 const dataLista = {
@@ -831,6 +908,17 @@ const pill = {
 const textoFraco = {
   color: "#94a3b8",
   fontSize: "13px",
+};
+
+const googleAgendaLink = {
+  color: "#bfdbfe",
+  border: "1px solid rgba(147,197,253,.28)",
+  borderRadius: "8px",
+  padding: "7px 9px",
+  textAlign: "center" as const,
+  textDecoration: "none",
+  fontSize: "12px",
+  fontWeight: 800,
 };
 
 const vazio = {

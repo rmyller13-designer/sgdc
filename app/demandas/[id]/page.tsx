@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import StatusDemanda from "@/components/StatusDemanda";
 import ResponsavelDemanda from "@/components/ResponsavelDemanda";
@@ -9,6 +10,7 @@ import ChecklistDemanda from "@/components/ChecklistDemanda";
 import UploadAnexo from "@/components/UploadAnexo";
 import ExcluirAnexo from "@/components/ExcluirAnexo";
 import EditarDemandaInfo from "@/components/EditarDemandaInfo";
+import { criarGoogleCalendarUrl } from "@/lib/google-calendar";
 
 type Anexo = {
   id: number;
@@ -50,13 +52,24 @@ export default async function DetalheDemanda({
   }
 
   const anexosLista = (anexos || []) as Anexo[];
+  const googleCalendarUrl = criarGoogleCalendarUrl({
+    id: demanda.id,
+    titulo: demanda.titulo,
+    descricao: demanda.descricao,
+    produto: demanda.produto,
+    setor: demanda.setor,
+    status: demanda.status,
+    prioridade: demanda.prioridade,
+    responsavel: demanda.responsavel,
+    data_entrega: demanda.data_entrega,
+  });
 
   return (
     <div style={page}>
       <div style={workspaceHeader}>
-        <a href="/demandas" style={backLink}>
+        <Link href="/demandas" style={backLink}>
           Demandas
-        </a>
+        </Link>
         <span style={separator}>/</span>
         <span style={headerCurrent}>#{demanda.id}</span>
       </div>
@@ -99,6 +112,16 @@ export default async function DetalheDemanda({
                   ? formatarData(demanda.data_entrega)
                   : "Não informada"}
               </strong>
+              {googleCalendarUrl && (
+                <a
+                  href={googleCalendarUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={googleAgendaLink}
+                >
+                  Adicionar ao Google Agenda
+                </a>
+              )}
             </div>
           </div>
 
@@ -328,6 +351,13 @@ const campoResumo: CSSProperties = {
   gap: "6px",
   color: "#fecaca",
   minWidth: 0,
+};
+
+const googleAgendaLink: CSSProperties = {
+  color: "#bfdbfe",
+  fontSize: "12px",
+  fontWeight: 700,
+  textDecoration: "none",
 };
 
 const tabs: CSSProperties = {
