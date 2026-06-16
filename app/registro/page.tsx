@@ -31,6 +31,7 @@ export default function RegistroPage() {
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
   const usuarioSelecionado =
     usuarios.find((usuario) => usuario.id === Number(usuarioId)) || null;
+  const redirectConfirmacao = obterUrlRedirecionamento();
 
   useEffect(() => {
     async function carregarUsuarios() {
@@ -87,6 +88,7 @@ export default function RegistroPage() {
       email: email.trim(),
       password: senha,
       options: {
+        emailRedirectTo: redirectConfirmacao,
         data: {
           nome: usuarioSelecionado?.nome || "",
           sgdc_usuario_id: Number(usuarioId),
@@ -249,6 +251,19 @@ function traduzirErroCadastro(mensagem: string) {
   }
 
   return mensagem;
+}
+
+function obterUrlRedirecionamento() {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/login`;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    return `${appUrl.replace(/\/+$/, "")}/login`;
+  }
+
+  return "http://localhost:3000/login";
 }
 
 function rpcNaoDisponivel(mensagem: string) {
