@@ -8,6 +8,7 @@ import {
   ordenarUsuariosAutorizados,
   usuarioEstaAutorizado,
 } from "@/lib/auth";
+import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 
 type UsuarioRegistro = {
@@ -21,6 +22,7 @@ type UsuarioRegistro = {
 
 export default function RegistroPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [usuarios, setUsuarios] = useState<UsuarioRegistro[]>([]);
   const [usuarioId, setUsuarioId] = useState("");
   const [email, setEmail] = useState("");
@@ -32,7 +34,6 @@ export default function RegistroPage() {
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
   const usuarioSelecionado =
     usuarios.find((usuario) => usuario.id === Number(usuarioId)) || null;
-  const redirectConfirmacao = obterUrlRedirecionamento();
 
   useEffect(() => {
     async function carregarUsuarios() {
@@ -91,67 +92,39 @@ export default function RegistroPage() {
 
     setCarregando(true);
 
-    const { error: cadastroError, data } = await supabase.auth.signUp({
-      email: email.trim(),
-      password: senha,
-      options: {
-        emailRedirectTo: redirectConfirmacao,
-        data: {
-          nome: usuarioSelecionado?.nome || "",
-          sgdc_usuario_id: Number(usuarioId),
-        },
+    const resposta = await fetch("/api/registro", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        usuarioId: Number(usuarioId),
+        email: email.trim(),
+        senha,
+      }),
     });
 
-    if (cadastroError) {
+    const resultado = (await resposta.json()) as {
+      ok?: boolean;
+      error?: string;
+    };
+
+    if (!resposta.ok || !resultado.ok) {
       setTipoMensagem("erro");
-      setMensagem(traduzirErroCadastro(cadastroError.message));
+      setMensagem(resultado.error || "Nao foi possivel criar a conta.");
       setCarregando(false);
       return;
     }
 
-    if (!data.session) {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email: email.trim(),
-        options: {
-          emailRedirectTo: redirectConfirmacao,
-        },
-      });
+    const loginResultado = await login(email.trim(), senha);
 
-      setTipoMensagem(resendError ? "erro" : "sucesso");
+    if (!loginResultado.ok) {
+      setTipoMensagem("sucesso");
       setMensagem(
-        resendError
-          ? "Conta criada, mas nao foi possivel reenviar o email de confirmacao agora. Use o botao abaixo para reenviar ou tente entrar para validar se a conta ja esta ativa."
-          : "Conta criada. Enviamos o email de confirmacao novamente. Depois de confirmar, faca login e o sistema concluira o vinculo automaticamente."
+        "Conta criada com sucesso. Entre com seu email e senha para continuar."
       );
       setCarregando(false);
-      return;
-    }
-
-    const { error: vinculoError } = await supabase.rpc(
-      "sgdc_registrar_usuario_acesso",
-      {
-        usuario_id_param: Number(usuarioId),
-        email_param: email.trim(),
-      }
-    );
-
-    if (vinculoError) {
-      if (rpcNaoDisponivel(vinculoError.message)) {
-        setTipoMensagem("sucesso");
-        setMensagem(
-          "Conta criada em modo de compatibilidade. O acesso sera concluido com os dados da propria conta ate que as funcoes do Supabase sejam publicadas."
-        );
-        setCarregando(false);
-        router.push("/");
-        return;
-      }
-
-      await supabase.auth.signOut();
-      setTipoMensagem("erro");
-      setMensagem(`Conta criada, mas nao foi possivel vincular o usuario: ${vinculoError.message}`);
-      setCarregando(false);
+      router.push("/login");
       return;
     }
 
@@ -159,32 +132,10 @@ export default function RegistroPage() {
   }
 
   async function reenviarConfirmacao() {
-    if (!email.trim()) {
-      setTipoMensagem("erro");
-      setMensagem("Digite o email para reenviar a confirmacao.");
-      return;
-    }
-
-    setCarregando(true);
-
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: email.trim(),
-      options: {
-        emailRedirectTo: redirectConfirmacao,
-      },
-    });
-
-    if (error) {
-      setTipoMensagem("erro");
-      setMensagem(`Nao foi possivel reenviar o email: ${error.message}`);
-      setCarregando(false);
-      return;
-    }
-
     setTipoMensagem("sucesso");
-    setMensagem("Email de confirmacao reenviado.");
-    setCarregando(false);
+    setMensagem(
+      "A confirmacao por email nao e mais necessaria. Crie a conta e entre direto com email e senha."
+    );
   }
 
   return (
@@ -299,42 +250,6 @@ export default function RegistroPage() {
         )}
       </form>
     </main>
-  );
-}
-
-function traduzirErroCadastro(mensagem: string) {
-  const texto = mensagem.toLowerCase();
-
-  if (texto.includes("user already registered")) {
-    return "Este email ja esta cadastrado.";
-  }
-
-  if (texto.includes("password should be at least")) {
-    return "A senha precisa atender aos requisitos minimos do Supabase.";
-  }
-
-  return mensagem;
-}
-
-function obterUrlRedirecionamento() {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}/login`;
-  }
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (appUrl) {
-    return `${appUrl.replace(/\/+$/, "")}/login`;
-  }
-
-  return "http://localhost:3000/login";
-}
-
-function rpcNaoDisponivel(mensagem: string) {
-  const texto = mensagem.toLowerCase();
-  return (
-    texto.includes("could not find the function") ||
-    texto.includes("function public.sgdc_") ||
-    texto.includes("schema cache")
   );
 }
 
