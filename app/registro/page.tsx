@@ -34,11 +34,7 @@ export default function RegistroPage() {
       if (error) {
         setMensagem(`Erro ao carregar usuarios: ${error.message}`);
       } else {
-        setUsuarios(
-          ((data as UsuarioRegistro[] | null) || []).filter(
-            (usuario) => !usuario.conta_criada
-          )
-        );
+        setUsuarios((data as UsuarioRegistro[] | null) || []);
       }
 
       setCarregandoUsuarios(false);
@@ -141,10 +137,18 @@ export default function RegistroPage() {
           </option>
           {usuarios.map((usuario) => (
             <option key={usuario.id} value={usuario.id}>
-              {usuario.nome}
+              {formatarOpcaoUsuario(usuario)}
             </option>
           ))}
         </select>
+
+        {usuarioSelecionado && (
+          <p style={ajuda}>
+            {usuarioSelecionado.conta_criada
+              ? "Este usuario ja possui um vinculo registrado. Se o acesso antigo nao estiver funcionando, continue com o cadastro para reativar o acesso com este email."
+              : "Este usuario esta liberado para criar o primeiro acesso."}
+          </p>
+        )}
 
         <label style={labelSenha}>Email</label>
         <input
@@ -224,6 +228,14 @@ function traduzirErroCadastro(mensagem: string) {
   return mensagem;
 }
 
+function formatarOpcaoUsuario(usuario: UsuarioRegistro) {
+  if (usuario.conta_criada) {
+    return `${usuario.nome} - conta existente`;
+  }
+
+  return `${usuario.nome} - novo acesso`;
+}
+
 const page = {
   minHeight: "calc(100vh - 140px)",
   display: "grid",
@@ -257,6 +269,14 @@ const descricao = {
   color: "#fecaca",
   lineHeight: "22px",
   marginBottom: "22px",
+};
+
+const ajuda = {
+  color: "#fecaca",
+  fontSize: "12px",
+  lineHeight: "18px",
+  marginTop: "8px",
+  marginBottom: 0,
 };
 
 const label = {
