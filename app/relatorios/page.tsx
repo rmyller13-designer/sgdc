@@ -6,6 +6,7 @@ type DemandaRelatorio = {
   titulo: string | null;
   produto: string | null;
   responsavel: string | null;
+  cadastrado_por?: string | null;
   setor: string | null;
   status: string | null;
   data_solicitacao: string | null;
@@ -33,6 +34,10 @@ export default async function Relatorios({
 
   const total = demandas.length;
 
+  function nomeResponsavel(demanda: DemandaRelatorio) {
+    return demanda.responsavel || demanda.cadastrado_por || "NÃ£o atribuÃ­do";
+  }
+
   const porStatus = demandas.reduce<Record<string, number>>((acc, demanda) => {
     const status = demanda.status || "Sem status";
     acc[status] = (acc[status] || 0) + 1;
@@ -46,7 +51,7 @@ export default async function Relatorios({
   }, {});
 
   const porResponsavel = demandas.reduce<Record<string, number>>((acc, demanda) => {
-    const responsavel = demanda.responsavel || "NÃ£o atribuÃ­do";
+    const responsavel = nomeResponsavel(demanda);
     acc[responsavel] = (acc[responsavel] || 0) + 1;
     return acc;
   }, {});
@@ -138,7 +143,7 @@ export default async function Relatorios({
                 </a>
               </td>
               <td style={td}>{demanda.produto}</td>
-              <td style={td}>{demanda.responsavel || "NÃ£o atribuÃ­do"}</td>
+              <td style={td}>{nomeResponsavel(demanda)}</td>
               <td style={td}>{demanda.setor}</td>
               <td style={td}>{demanda.status}</td>
               <td style={td}>{demanda.data_solicitacao || "Sem data"}</td>
