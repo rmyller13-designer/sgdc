@@ -150,16 +150,28 @@ export default function KanbanDemandas({
     const listaAnterior = lista;
     setLista((atual) => atual.filter((item) => item.id !== demanda.id));
 
-    const { count, error } = await supabase
-      .from("demandas")
-      .delete({ count: "exact" })
-      .eq("id", demanda.id);
+    const response = await fetch(`/api/demandas/${demanda.id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario: {
+          id: usuario.id,
+          nome: usuario.nome,
+        },
+      }),
+    });
 
-    if (error || count === 0) {
+    const resultado = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+
+    if (!response.ok) {
       setLista(listaAnterior);
       alert(
         "Erro ao excluir demanda: " +
-          (error?.message || "A demanda nao foi encontrada ou seu usuario nao tem permissao.")
+          (resultado?.error || "Nao foi possivel excluir a demanda.")
       );
       return;
     }
