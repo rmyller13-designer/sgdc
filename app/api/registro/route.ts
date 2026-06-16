@@ -66,21 +66,48 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: createdUser, error: createError } =
-      await admin.auth.admin.createUser({
-        email,
-        password: senha,
-        email_confirm: true,
-        user_metadata: {
-          nome: usuario.nome,
-          sgdc_usuario_id: usuarioId,
-        },
-      });
+    const usuarioAuthExistente = await buscarUsuarioAuthPorEmail(admin, email);
 
-    if (createError) {
+    const { data: createdUser, error: createError } = usuarioAuthExistente
+      ? await admin.auth.admin.updateUserById(usuarioAuthExistente.id, {
+          email,
+          password: senha,
+          email_confirm: true,
+          user_metadata: {
+            nome: usuario.nome,
+            sgdc_usuario_id: usuarioId,
+          },
+        })
+      : await admin.auth.admin.createUser({
+          email,
+          password: senha,
+          email_confirm: true,
+          user_metadata: {
+            nome: usuario.nome,
+            sgdc_usuario_id: usuarioId,
+          },
+        });
+
+    if (createError || !createdUser.user) {
       return NextResponse.json(
-        { error: traduzirErroAuthAdmin(createError.message) },
+        { error: traduzirErroAuthAdmin(createError?.message || "Falha ao criar conta.") },
         { status: 400 }
+      );
+    }
+
+    const { data: acessoExistente } = await admin
+      .from("usuarios_acesso")
+      .select("usuario_comunicacao_id, auth_user_id")
+      .eq("auth_user_id", createdUser.user.id)
+      .maybeSingle();
+
+    if (
+      acessoExistente &&
+      Number(acessoExistente.usuario_comunicacao_id) !== usuarioId
+    ) {
+      return NextResponse.json(
+        { error: "Este email ja esta vinculado a outro usuario interno." },
+        { status: 409 }
       );
     }
 
@@ -115,6 +142,41 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: mensagem }, { status: 500 });
   }
+}
+
+async function buscarUsuarioAuthPorEmail(
+  admin: ReturnType<typeof criarSupabaseAdmin>,
+  email: string
+) {
+  let page = 1;
+
+  while (page <= 5) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+
+    if (error || !data?.users?.length) {
+      return null;
+    }
+
+    const encontrado =
+      data.users.find(
+        (user) => user.email?.trim().toLowerCase() === email.toLowerCase()
+      ) || null;
+
+    if (encontrado) {
+      return encontrado;
+    }
+
+    if (data.users.length < 200) {
+      return null;
+    }
+
+    page += 1;
+  }
+
+  return null;
 }
 
 function traduzirErroAuthAdmin(mensagem: string) {
