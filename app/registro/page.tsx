@@ -27,6 +27,7 @@ export default function RegistroPage() {
   const [senha, setSenha] = useState("");
   const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
+  const [tipoMensagem, setTipoMensagem] = useState<"erro" | "sucesso">("sucesso");
   const [carregando, setCarregando] = useState(false);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
   const usuarioSelecionado =
@@ -41,9 +42,11 @@ export default function RegistroPage() {
         const usuariosFallback = await carregarUsuariosFallback();
 
         if (usuariosFallback.length === 0) {
+          setTipoMensagem("erro");
           setMensagem(`Erro ao carregar usuarios: ${error.message}`);
         } else {
           setUsuarios(usuariosFallback);
+          setTipoMensagem("sucesso");
           setMensagem(
             "Lista carregada em modo de compatibilidade. Ainda falta publicar as funcoes de registro no Supabase."
           );
@@ -63,21 +66,25 @@ export default function RegistroPage() {
     setMensagem("");
 
     if (!usuarioId) {
+      setTipoMensagem("erro");
       setMensagem("Selecione o usuario que sera vinculado.");
       return;
     }
 
     if (!email.trim()) {
+      setTipoMensagem("erro");
       setMensagem("Digite um email.");
       return;
     }
 
     if (senha.length < 6) {
+      setTipoMensagem("erro");
       setMensagem("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
     if (senha !== confirmacaoSenha) {
+      setTipoMensagem("erro");
       setMensagem("As senhas nao conferem.");
       return;
     }
@@ -97,14 +104,26 @@ export default function RegistroPage() {
     });
 
     if (cadastroError) {
+      setTipoMensagem("erro");
       setMensagem(traduzirErroCadastro(cadastroError.message));
       setCarregando(false);
       return;
     }
 
     if (!data.session) {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: {
+          emailRedirectTo: redirectConfirmacao,
+        },
+      });
+
+      setTipoMensagem(resendError ? "erro" : "sucesso");
       setMensagem(
-        "Conta criada. Se a confirmacao de email estiver ativa no Supabase, confirme o email e depois faca login. O sistema concluira o vinculo automaticamente no primeiro acesso."
+        resendError
+          ? "Conta criada, mas nao foi possivel reenviar o email de confirmacao agora. Use o botao abaixo para reenviar ou tente entrar para validar se a conta ja esta ativa."
+          : "Conta criada. Enviamos o email de confirmacao novamente. Depois de confirmar, faca login e o sistema concluira o vinculo automaticamente."
       );
       setCarregando(false);
       return;
@@ -120,6 +139,7 @@ export default function RegistroPage() {
 
     if (vinculoError) {
       if (rpcNaoDisponivel(vinculoError.message)) {
+        setTipoMensagem("sucesso");
         setMensagem(
           "Conta criada em modo de compatibilidade. O acesso sera concluido com os dados da propria conta ate que as funcoes do Supabase sejam publicadas."
         );
@@ -129,12 +149,42 @@ export default function RegistroPage() {
       }
 
       await supabase.auth.signOut();
+      setTipoMensagem("erro");
       setMensagem(`Conta criada, mas nao foi possivel vincular o usuario: ${vinculoError.message}`);
       setCarregando(false);
       return;
     }
 
     router.push("/");
+  }
+
+  async function reenviarConfirmacao() {
+    if (!email.trim()) {
+      setTipoMensagem("erro");
+      setMensagem("Digite o email para reenviar a confirmacao.");
+      return;
+    }
+
+    setCarregando(true);
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: {
+        emailRedirectTo: redirectConfirmacao,
+      },
+    });
+
+    if (error) {
+      setTipoMensagem("erro");
+      setMensagem(`Nao foi possivel reenviar o email: ${error.message}`);
+      setCarregando(false);
+      return;
+    }
+
+    setTipoMensagem("sucesso");
+    setMensagem("Email de confirmacao reenviado.");
+    setCarregando(false);
   }
 
   return (
@@ -229,11 +279,24 @@ export default function RegistroPage() {
           {carregando ? "Criando..." : "Criar conta"}
         </button>
 
+        <button
+          type="button"
+          style={botaoSecundario}
+          onClick={() => void reenviarConfirmacao()}
+          disabled={carregando}
+        >
+          Reenviar confirmacao
+        </button>
+
         <p style={rodape}>
           Ja possui conta? <Link href="/login" style={link}>Entrar</Link>
         </p>
 
-        {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
+        {mensagem && (
+          <p style={tipoMensagem === "erro" ? mensagemErroStyle : mensagemSucessoStyle}>
+            {mensagem}
+          </p>
+        )}
       </form>
     </main>
   );
@@ -404,6 +467,18 @@ const botao = {
   marginTop: "18px",
 };
 
+const botaoSecundario = {
+  width: "100%",
+  background: "transparent",
+  color: "#fee2e2",
+  border: "1px solid rgba(252, 165, 165, 0.3)",
+  padding: "12px",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: 700,
+  marginTop: "10px",
+};
+
 const rodape = {
   color: "#fecaca",
   marginTop: "16px",
@@ -416,7 +491,12 @@ const link = {
   fontWeight: 700,
 };
 
-const mensagemStyle = {
+const mensagemErroStyle = {
   color: "#fecaca",
+  marginBottom: 0,
+};
+
+const mensagemSucessoStyle = {
+  color: "#bbf7d0",
   marginBottom: 0,
 };
