@@ -43,7 +43,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const usuarioLogado =
-      (await buscarUsuarioLogado()) || (await vincularUsuarioPendente(session));
+      (await buscarUsuarioLogado()) ||
+      (await vincularUsuarioPendente(session)) ||
+      (await buscarUsuarioPorMetadata(session));
 
     if (!usuarioLogado) {
       await supabase.auth.signOut();
@@ -114,7 +116,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    const usuarioLogado = await buscarUsuarioLogado();
+    const session = (await supabase.auth.getSession()).data.session;
+    const usuarioLogado =
+      (await buscarUsuarioLogado()) ||
+      (session ? await vincularUsuarioPendente(session) : null) ||
+      (session ? await buscarUsuarioPorMetadata(session) : null);
 
     if (!usuarioLogado) {
       await supabase.auth.signOut();
@@ -200,9 +206,50 @@ async function vincularUsuarioPendente(
     email_param: email,
   });
 
-  if (error) return null;
+  if (error) {
+    if (rpcNaoDisponivel(error.message)) {
+      return buscarUsuarioPorMetadata(session);
+    }
+
+    return null;
+  }
 
   return buscarUsuarioLogado();
+}
+
+async function buscarUsuarioPorMetadata(
+  session: Session
+): Promise<UsuarioComunicacao | null> {
+  const usuarioId = Number(session.user.user_metadata?.sgdc_usuario_id);
+
+  if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("usuarios_comunicacao")
+    .select("id, nome, funcao, ativo, email")
+    .eq("id", usuarioId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: Number(data.id),
+    nome: data.nome,
+    funcao: data.funcao,
+    ativo: data.ativo,
+    email: data.email,
+  };
+}
+
+function rpcNaoDisponivel(mensagem: string) {
+  const texto = mensagem.toLowerCase();
+  return (
+    texto.includes("could not find the function") ||
+    texto.includes("function public.sgdc_") ||
+    texto.includes("schema cache")
+  );
 }
 
 function traduzirErroAuth(mensagem: string) {

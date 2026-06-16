@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import {
+  nomeDoUsuario,
+  ordenarUsuariosAutorizados,
+  usuarioEstaAutorizado,
+} from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 type UsuarioRegistro = {
@@ -32,9 +37,18 @@ export default function RegistroPage() {
       const { data, error } = await supabase.rpc("sgdc_usuarios_registro");
 
       if (error) {
-        setMensagem(`Erro ao carregar usuarios: ${error.message}`);
+        const usuariosFallback = await carregarUsuariosFallback();
+
+        if (usuariosFallback.length === 0) {
+          setMensagem(`Erro ao carregar usuarios: ${error.message}`);
+        } else {
+          setUsuarios(usuariosFallback);
+          setMensagem(
+            "Lista carregada em modo de compatibilidade. Ainda falta publicar as funcoes de registro no Supabase."
+          );
+        }
       } else {
-        setUsuarios((data as UsuarioRegistro[] | null) || []);
+        setUsuarios(prepararUsuariosRegistro((data as UsuarioRegistro[] | null) || []));
       }
 
       setCarregandoUsuarios(false);
@@ -103,6 +117,15 @@ export default function RegistroPage() {
     );
 
     if (vinculoError) {
+      if (rpcNaoDisponivel(vinculoError.message)) {
+        setMensagem(
+          "Conta criada em modo de compatibilidade. O acesso sera concluido com os dados da propria conta ate que as funcoes do Supabase sejam publicadas."
+        );
+        setCarregando(false);
+        router.push("/");
+        return;
+      }
+
       await supabase.auth.signOut();
       setMensagem(`Conta criada, mas nao foi possivel vincular o usuario: ${vinculoError.message}`);
       setCarregando(false);
@@ -226,6 +249,58 @@ function traduzirErroCadastro(mensagem: string) {
   }
 
   return mensagem;
+}
+
+function rpcNaoDisponivel(mensagem: string) {
+  const texto = mensagem.toLowerCase();
+  return (
+    texto.includes("could not find the function") ||
+    texto.includes("function public.sgdc_") ||
+    texto.includes("schema cache")
+  );
+}
+
+function prepararUsuariosRegistro(usuarios: UsuarioRegistro[]) {
+  return ordenarUsuariosAutorizados(
+    usuarios
+      .filter(
+        (usuario) =>
+          usuarioEstaAutorizado(usuario.nome) && usuario.ativo !== false
+      )
+      .map((usuario) => ({
+        ...usuario,
+        id: Number(usuario.id),
+        nome: nomeDoUsuario(usuario.nome),
+      }))
+  );
+}
+
+async function carregarUsuariosFallback(): Promise<UsuarioRegistro[]> {
+  const { data, error } = await supabase
+    .from("usuarios_comunicacao")
+    .select("id, nome, funcao, ativo, email")
+    .order("nome");
+
+  if (error) return [];
+
+  return prepararUsuariosRegistro(
+    ((data as
+      | Array<{
+          id: number;
+          nome: string;
+          funcao: string | null;
+          ativo: boolean;
+          email?: string | null;
+        }>
+      | null) || []).map((usuario) => ({
+      id: Number(usuario.id),
+      nome: usuario.nome,
+      funcao: usuario.funcao,
+      ativo: usuario.ativo,
+      email_cadastrado: Boolean(usuario.email && usuario.email.trim()),
+      conta_criada: Boolean(usuario.email && usuario.email.trim()),
+    }))
+  );
 }
 
 function formatarOpcaoUsuario(usuario: UsuarioRegistro) {
