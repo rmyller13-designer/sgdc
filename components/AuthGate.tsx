@@ -8,27 +8,27 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { usuario, carregando } = useAuth();
-  const estaNoLogin = pathname === "/login";
+  const rotaPublica = pathname === "/login" || pathname === "/registro";
 
   useEffect(() => {
     if (carregando) return;
 
-    if (!usuario && !estaNoLogin) {
+    if (!usuario && !rotaPublica) {
       router.replace(`/login?next=${encodeURIComponent(pathname || "/")}`);
       return;
     }
 
-    if (usuario && estaNoLogin) {
+    if (usuario && rotaPublica) {
       const params = new URLSearchParams(window.location.search);
       router.replace(params.get("next") || "/");
     }
-  }, [carregando, estaNoLogin, pathname, router, usuario]);
+  }, [carregando, pathname, rotaPublica, router, usuario]);
 
   if (carregando) {
     return <div style={loading}>Carregando sessão...</div>;
   }
 
-  if (!usuario && !estaNoLogin) {
+  if (!usuario && !rotaPublica) {
     return <div style={loading}>Abrindo login...</div>;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -47,7 +47,8 @@ export default function RegistroPage() {
     void carregarUsuarios();
   }, []);
 
-  async function registrar() {
+  async function registrar(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     setMensagem("");
 
     if (!usuarioId) {
@@ -117,7 +118,7 @@ export default function RegistroPage() {
 
   return (
     <main style={page}>
-      <section style={painel}>
+      <form style={painel} onSubmit={registrar}>
         <p style={eyebrow}>Primeiro acesso</p>
         <h1 style={titulo}>Criar conta</h1>
         <p style={descricao}>
@@ -192,8 +193,7 @@ export default function RegistroPage() {
         />
 
         <button
-          type="button"
-          onClick={registrar}
+          type="submit"
           style={botao}
           disabled={carregando || carregandoUsuarios}
         >
@@ -205,7 +205,7 @@ export default function RegistroPage() {
         </p>
 
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
-      </section>
+      </form>
     </main>
   );
 }
