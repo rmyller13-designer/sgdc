@@ -200,15 +200,16 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 
     const itemRemovido = itens.find((item) => item.id === id);
 
-    const { error } = await supabase
+    const { count, error } = await supabase
       .from("demanda_checklist")
-      .delete()
-      .eq("id", id)
-      .select("id")
-      .single();
+      .delete({ count: "exact" })
+      .eq("id", id);
 
-    if (error) {
-      setMensagem("Erro ao remover item: " + error.message);
+    if (error || count === 0) {
+      setMensagem(
+        "Erro ao remover item: " +
+          (error?.message || "Item nao encontrado ou sem permissao.")
+      );
       return;
     }
 

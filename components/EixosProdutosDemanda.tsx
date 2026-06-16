@@ -156,16 +156,17 @@ export default function EixosProdutosDemanda({
     const marcado = eixosSelecionados.includes(eixoId);
 
     if (marcado) {
-      const { error } = await supabase
+      const { count, error } = await supabase
         .from("demanda_eixos")
-        .delete()
+        .delete({ count: "exact" })
         .eq("demanda_id", demandaId)
-        .eq("eixo_id", eixoId)
-        .select("eixo_id")
-        .single();
+        .eq("eixo_id", eixoId);
 
-      if (error) {
-        setMensagem("Erro ao remover eixo: " + error.message);
+      if (error || count === 0) {
+        setMensagem(
+          "Erro ao remover eixo: " +
+            (error?.message || "Eixo nao encontrado ou sem permissao.")
+        );
         return;
       }
 
@@ -215,16 +216,17 @@ export default function EixosProdutosDemanda({
     const marcado = canaisSelecionados.includes(canalId);
 
     if (marcado) {
-      const { error } = await supabase
+      const { count, error } = await supabase
         .from("demanda_canais")
-        .delete()
+        .delete({ count: "exact" })
         .eq("demanda_id", demandaId)
-        .eq("canal_id", canalId)
-        .select("canal_id")
-        .single();
+        .eq("canal_id", canalId);
 
-      if (error) {
-        setMensagem("Erro ao remover destino: " + error.message);
+      if (error || count === 0) {
+        setMensagem(
+          "Erro ao remover destino: " +
+            (error?.message || "Destino nao encontrado ou sem permissao.")
+        );
         return;
       }
 
@@ -369,16 +371,17 @@ export default function EixosProdutosDemanda({
   async function removerProduto(produtoIdRemover: number) {
     setMensagem("");
 
-    const { error } = await supabase
+    const { count, error } = await supabase
       .from("demanda_produtos_quantidade")
-      .delete()
+      .delete({ count: "exact" })
       .eq("demanda_id", demandaId)
-      .eq("produto_id", produtoIdRemover)
-      .select("produto_id")
-      .single();
+      .eq("produto_id", produtoIdRemover);
 
-    if (error) {
-      setMensagem("Erro ao remover produto: " + error.message);
+    if (error || count === 0) {
+      setMensagem(
+        "Erro ao remover produto: " +
+          (error?.message || "Produto nao encontrado ou sem permissao.")
+      );
       return;
     }
 

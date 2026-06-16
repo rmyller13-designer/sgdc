@@ -150,16 +150,17 @@ export default function KanbanDemandas({
     const listaAnterior = lista;
     setLista((atual) => atual.filter((item) => item.id !== demanda.id));
 
-    const { error } = await supabase
+    const { count, error } = await supabase
       .from("demandas")
-      .delete()
-      .eq("id", demanda.id)
-      .select("id")
-      .single();
+      .delete({ count: "exact" })
+      .eq("id", demanda.id);
 
-    if (error) {
+    if (error || count === 0) {
       setLista(listaAnterior);
-      alert("Erro ao excluir demanda: " + error.message);
+      alert(
+        "Erro ao excluir demanda: " +
+          (error?.message || "A demanda nao foi encontrada ou seu usuario nao tem permissao.")
+      );
       return;
     }
 
