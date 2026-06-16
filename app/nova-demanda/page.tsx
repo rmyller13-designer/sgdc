@@ -8,6 +8,7 @@ import {
   criarTarefaGoogle,
 } from "@/lib/google-calendar";
 import {
+  criarCaminhoAnexoDemanda,
   TIPOS_ACEITOS_UPLOAD,
   validarArquivoUpload,
 } from "@/lib/storage-policy";
@@ -149,7 +150,10 @@ export default function NovaDemanda() {
           return;
         }
 
-        const caminhoArquivo = `demanda-${demandaCriada.id}/${Date.now()}-${arquivo.name}`;
+        const caminhoArquivo = criarCaminhoAnexoDemanda(
+          demandaCriada.id,
+          arquivo
+        );
 
         const { error: erroUpload } = await supabase.storage
           .from("demandas")
