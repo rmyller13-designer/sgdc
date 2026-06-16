@@ -159,6 +159,8 @@ export default function KanbanDemandas({
         usuario: {
           id: usuario.id,
           nome: usuario.nome,
+          funcao: usuario.funcao,
+          email: usuario.email,
         },
       }),
     });

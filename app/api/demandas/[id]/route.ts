@@ -6,6 +6,8 @@ type DeleteBody = {
   usuario?: {
     id?: number;
     nome?: string | null;
+    funcao?: string | null;
+    email?: string | null;
   };
 };
 
@@ -35,9 +37,9 @@ export async function DELETE(request: Request, { params }: Params) {
     );
   }
 
-  const usuarioId = Number(body.usuario?.id);
+  const nomeUsuario = body.usuario?.nome?.trim();
 
-  if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+  if (!nomeUsuario) {
     return NextResponse.json(
       { error: "Usuario invalido para excluir demanda." },
       { status: 401 }
@@ -55,36 +57,13 @@ export async function DELETE(request: Request, { params }: Params) {
     );
   }
 
-  const { usuarioBanco, error: usuarioError } = await buscarUsuarioSolicitante(
-    supabase,
-    usuarioId,
-    body.usuario?.nome || ""
-  );
-
-  if (usuarioError || !usuarioBanco || usuarioBanco.ativo === false) {
-    return NextResponse.json(
-      { error: "Usuario nao encontrado ou inativo." },
-      { status: 403 }
-    );
-  }
-
   const usuarioSessao = criarSessaoUsuario({
-    id: Number(usuarioBanco.id),
-    nome: usuarioBanco.nome,
-    funcao: usuarioBanco.funcao,
-    email: usuarioBanco.email,
-    ativo: usuarioBanco.ativo,
+    id: Number(body.usuario?.id || 0),
+    nome: nomeUsuario,
+    funcao: body.usuario?.funcao || null,
+    email: body.usuario?.email || null,
+    ativo: true,
   });
-
-  if (
-    body.usuario?.nome &&
-    normalizar(body.usuario.nome) !== normalizar(usuarioSessao.nome)
-  ) {
-    return NextResponse.json(
-      { error: "Sessao local nao confere com o usuario informado." },
-      { status: 403 }
-    );
-  }
 
   if (!podeEditarFluxo(usuarioSessao)) {
     return NextResponse.json(
@@ -195,63 +174,4 @@ async function excluirDependencias(
 
 function tabelaAusente(error: { code?: string }) {
   return error.code === "42P01" || error.code === "PGRST205";
-}
-
-async function buscarUsuarioSolicitante(
-  supabase: ReturnType<typeof criarSupabaseAdmin>,
-  usuarioId: number,
-  nomeUsuario: string
-) {
-  const porId = await supabase
-    .from("usuarios_comunicacao")
-    .select("id, nome, funcao, email, ativo")
-    .eq("id", usuarioId)
-    .maybeSingle();
-
-  if (porId.data || porId.error) {
-    return { usuarioBanco: porId.data, error: porId.error };
-  }
-
-  if (!nomeUsuario) {
-    return { usuarioBanco: null, error: null };
-  }
-
-  const { data, error } = await supabase
-    .from("usuarios_comunicacao")
-    .select("id, nome, funcao, email, ativo");
-
-  if (error) {
-    return { usuarioBanco: null, error };
-  }
-
-  const nomeNormalizado = normalizar(nomeUsuario);
-  const usuarioBanco =
-    data?.find((item) => {
-      if (item.ativo === false) {
-        return false;
-      }
-
-      const sessao = criarSessaoUsuario({
-        id: Number(item.id),
-        nome: item.nome,
-        funcao: item.funcao,
-        email: item.email,
-        ativo: item.ativo,
-      });
-
-      return (
-        normalizar(item.nome) === nomeNormalizado ||
-        normalizar(sessao.nome) === nomeNormalizado
-      );
-    }) || null;
-
-  return { usuarioBanco, error: null };
-}
-
-function normalizar(valor: string) {
-  return valor
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
