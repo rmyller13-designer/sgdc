@@ -113,7 +113,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     setCarregando(true);
-    localStorage.removeItem(STORAGE_KEY);
+    const storage = obterStorageSeguro();
+    storage?.removeItem(STORAGE_KEY);
     setUsuario(null);
     setCarregando(false);
   }, []);
@@ -164,17 +165,33 @@ async function buscarUsuario(usuarioId: number) {
 }
 
 function lerUsuarioSalvo() {
+  const storage = obterStorageSeguro();
+  if (!storage) return null;
+
   try {
-    const valor = localStorage.getItem(STORAGE_KEY);
+    const valor = storage.getItem(STORAGE_KEY);
     if (!valor) return null;
 
     return JSON.parse(valor) as UsuarioSessao;
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    storage.removeItem(STORAGE_KEY);
     return null;
   }
 }
 
 function salvarUsuario(usuario: UsuarioSessao) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
+  const storage = obterStorageSeguro();
+  if (!storage) return;
+
+  storage.setItem(STORAGE_KEY, JSON.stringify(usuario));
+}
+
+function obterStorageSeguro() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }

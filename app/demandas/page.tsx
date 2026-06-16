@@ -1,7 +1,10 @@
 import { supabase } from "../../lib/supabase";
 import KanbanDemandas from "../../components/KanbanDemandas";
+import { connection } from "next/server";
 
 export default async function Demandas() {
+  await connection();
+
   const { data: demandas, error } = await supabase
     .from("demandas_kanban")
     .select("*")

@@ -11,8 +11,39 @@ export const TIPOS_UPLOAD_PERMITIDOS = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
+  "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+  "application/vnd.ms-excel.sheet.macroEnabled.12",
+  "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
   "text/csv",
   "text/plain",
+];
+
+export const EXTENSOES_UPLOAD_PERMITIDAS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".xlsm",
+  ".xlsb",
+  ".csv",
+  ".txt",
+  ".ppt",
+  ".pptx",
+  ".pps",
+  ".ppsx",
+];
+
+export const TIPOS_ACEITOS_UPLOAD = [
+  ...TIPOS_UPLOAD_PERMITIDOS,
+  ...EXTENSOES_UPLOAD_PERMITIDAS,
 ];
 
 export function validarArquivoUpload(arquivo: File) {
@@ -20,10 +51,12 @@ export function validarArquivoUpload(arquivo: File) {
     return `O arquivo ${arquivo.name} ultrapassa o limite de ${LIMITE_UPLOAD_MB} MB.`;
   }
 
-  if (
-    arquivo.type &&
-    !TIPOS_UPLOAD_PERMITIDOS.includes(arquivo.type)
-  ) {
+  const extensao = pegarExtensaoArquivo(arquivo.name);
+  const tipoPermitido =
+    !arquivo.type || TIPOS_UPLOAD_PERMITIDOS.includes(arquivo.type);
+  const extensaoPermitida = EXTENSOES_UPLOAD_PERMITIDAS.includes(extensao);
+
+  if (!tipoPermitido && !extensaoPermitida) {
     return `Tipo de arquivo nao permitido: ${arquivo.name}.`;
   }
 
@@ -54,4 +87,10 @@ function limparNomeArquivo(nome: string) {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
     .toLowerCase();
+}
+
+function pegarExtensaoArquivo(nome: string) {
+  const indice = nome.lastIndexOf(".");
+  if (indice === -1) return "";
+  return nome.slice(indice).toLowerCase();
 }

@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import StatusDemanda from "@/components/StatusDemanda";
 import ResponsavelDemanda from "@/components/ResponsavelDemanda";
@@ -25,6 +27,8 @@ export default async function DetalheDemanda({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await connection();
+
   const { id } = await params;
   const demandaId = Number(id);
 
@@ -178,9 +182,12 @@ export default async function DetalheDemanda({
                     </a>
 
                     {anexo.tipo_arquivo?.startsWith("image/") && (
-                      <img
+                      <Image
                         src={anexo.url_arquivo}
                         alt={anexo.nome_arquivo}
+                        width={480}
+                        height={320}
+                        unoptimized
                         style={imagemAnexo}
                       />
                     )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarFluxo } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
@@ -39,44 +39,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
   const [novoItem, setNovoItem] = useState("");
   const [mensagem, setMensagem] = useState("");
 
-  useEffect(() => {
-    carregarItens();
-
-    function recarregarProdutos(event: Event) {
-      const detail = (event as CustomEvent<{ demandaId: number }>).detail;
-
-      if (detail?.demandaId === demandaId) {
-        void carregarProdutos();
-      }
-    }
-
-    window.addEventListener("sgdc:produtos-atualizados", recarregarProdutos);
-
-    return () => {
-      window.removeEventListener(
-        "sgdc:produtos-atualizados",
-        recarregarProdutos
-      );
-    };
-  }, [demandaId]);
-
-  async function carregarItens() {
-    const { data, error } = await supabase
-      .from("demanda_checklist")
-      .select("*")
-      .eq("demanda_id", demandaId)
-      .order("id", { ascending: true });
-
-    if (error) {
-      setMensagem("Erro ao carregar checklist: " + error.message);
-      return;
-    }
-
-    setItens(data || []);
-    await carregarProdutos();
-  }
-
-  async function carregarProdutos() {
+  const carregarProdutos = useCallback(async () => {
     const { data, error } = await supabase
       .from("demanda_produtos_quantidade")
       .select("id, produto_id, quantidade, status_producao, produtos(nome)")
@@ -118,7 +81,46 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
         })
       )
     );
-  }
+  }, [demandaId]);
+
+  const carregarItens = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("demanda_checklist")
+      .select("*")
+      .eq("demanda_id", demandaId)
+      .order("id", { ascending: true });
+
+    if (error) {
+      setMensagem("Erro ao carregar checklist: " + error.message);
+      return;
+    }
+
+    setItens(data || []);
+    await carregarProdutos();
+  }, [carregarProdutos, demandaId]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void carregarItens();
+    });
+
+    function recarregarProdutos(event: Event) {
+      const detail = (event as CustomEvent<{ demandaId: number }>).detail;
+
+      if (detail?.demandaId === demandaId) {
+        void carregarProdutos();
+      }
+    }
+
+    window.addEventListener("sgdc:produtos-atualizados", recarregarProdutos);
+
+    return () => {
+      window.removeEventListener(
+        "sgdc:produtos-atualizados",
+        recarregarProdutos
+      );
+    };
+  }, [carregarItens, carregarProdutos, demandaId]);
 
   async function adicionarItem() {
     setMensagem("");
@@ -138,7 +140,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     const { error } = await supabase.from("demanda_checklist").insert({
       demanda_id: demandaId,
       titulo: tituloItem,
-    });
+    }).select("id").single();
 
     if (error) {
       setMensagem("Erro ao adicionar item: " + error.message);
@@ -152,7 +154,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     });
 
     setNovoItem("");
-    carregarItens();
+    void carregarItens();
   }
 
   async function alternarItem(item: Item) {
@@ -168,7 +170,9 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     const { error } = await supabase
       .from("demanda_checklist")
       .update({ concluido: novoStatus })
-      .eq("id", item.id);
+      .eq("id", item.id)
+      .select("id")
+      .single();
 
     if (error) {
       setMensagem("Erro ao atualizar item: " + error.message);
@@ -183,7 +187,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       }`,
     });
 
-    carregarItens();
+    void carregarItens();
   }
 
   async function removerItem(id: number) {
@@ -199,7 +203,9 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     const { error } = await supabase
       .from("demanda_checklist")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .single();
 
     if (error) {
       setMensagem("Erro ao remover item: " + error.message);
@@ -214,7 +220,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       });
     }
 
-    carregarItens();
+    void carregarItens();
   }
 
   const produtosConcluidos = produtos.filter(
@@ -328,9 +334,10 @@ function lerStatusProdutoLocal(
   demandaId: number,
   produtoId: number
 ): StatusProducao {
-  if (typeof window === "undefined") return "ANDAMENTO";
+  const storage = obterStorageSeguro();
+  if (!storage) return "ANDAMENTO";
 
-  const status = window.localStorage.getItem(
+  const status = storage.getItem(
     `sgdc_produto_status:${demandaId}:${produtoId}`
   ) as StatusProducao | null;
 
@@ -347,6 +354,16 @@ function lerStatusProdutoLocal(
 
 function colunaStatusAusente(error?: { code?: string } | null) {
   return error?.code === "42703" || error?.code === "PGRST204";
+}
+
+function obterStorageSeguro() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 const barraBox = {

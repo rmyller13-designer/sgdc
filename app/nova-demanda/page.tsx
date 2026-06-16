@@ -7,6 +7,10 @@ import {
   autorizarGoogleTasks,
   criarTarefaGoogle,
 } from "@/lib/google-calendar";
+import {
+  TIPOS_ACEITOS_UPLOAD,
+  validarArquivoUpload,
+} from "@/lib/storage-policy";
 import { supabase } from "../../lib/supabase";
 
 type Opcao = {
@@ -138,6 +142,13 @@ export default function NovaDemanda() {
 
     if (arquivos && arquivos.length > 0) {
       for (const arquivo of Array.from(arquivos)) {
+        const erroArquivo = validarArquivoUpload(arquivo);
+
+        if (erroArquivo) {
+          setMensagem(erroArquivo);
+          return;
+        }
+
         const caminhoArquivo = `demanda-${demandaCriada.id}/${Date.now()}-${arquivo.name}`;
 
         const { error: erroUpload } = await supabase.storage
@@ -224,6 +235,7 @@ export default function NovaDemanda() {
     if (inputArquivo) inputArquivo.value = "";
 
     router.push("/demandas");
+    router.refresh();
   }
 
   return (
@@ -315,6 +327,7 @@ export default function NovaDemanda() {
           id="arquivos"
           type="file"
           multiple
+          accept={TIPOS_ACEITOS_UPLOAD.join(",")}
           onChange={(e) => setArquivos(e.target.files)}
           style={campo}
         />

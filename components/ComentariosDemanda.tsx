@@ -5,7 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import {
   criarCaminhoAnexoComentario,
   LIMITE_UPLOAD_MB,
-  TIPOS_UPLOAD_PERMITIDOS,
+  TIPOS_ACEITOS_UPLOAD,
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../lib/supabase";
@@ -181,7 +181,7 @@ export default function ComentariosDemanda({
           ref={inputRef}
           type="file"
           multiple
-          accept={TIPOS_UPLOAD_PERMITIDOS.join(",")}
+          accept={TIPOS_ACEITOS_UPLOAD.join(",")}
           onChange={(e) => selecionarArquivos(e.target.files)}
           style={{ display: "none" }}
         />

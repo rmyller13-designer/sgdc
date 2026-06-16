@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 type Eixo = {
@@ -65,11 +65,7 @@ export default function EixosProdutosDemanda({
   const [edicoes, setEdicoes] = useState<Record<number, number>>({});
   const [mensagem, setMensagem] = useState("");
 
-  useEffect(() => {
-    carregarDados();
-  }, [demandaId]);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     const { data: eixosData } = await supabase
       .from("eixos_comunicacao")
       .select("*")
@@ -138,6 +134,7 @@ export default function EixosProdutosDemanda({
             : item.produtos,
         })
       );
+
     setProdutosSelecionados(lista);
 
     const mapa: Record<number, number> = {};
@@ -145,7 +142,13 @@ export default function EixosProdutosDemanda({
       mapa[item.produto_id] = item.quantidade;
     });
     setEdicoes(mapa);
-  }
+  }, [demandaId]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void carregarDados();
+    });
+  }, [carregarDados]);
 
   async function alternarEixo(eixoId: number) {
     setMensagem("");
@@ -153,22 +156,34 @@ export default function EixosProdutosDemanda({
     const marcado = eixosSelecionados.includes(eixoId);
 
     if (marcado) {
-      await supabase
+      const { error } = await supabase
         .from("demanda_eixos")
         .delete()
         .eq("demanda_id", demandaId)
-        .eq("eixo_id", eixoId);
+        .eq("eixo_id", eixoId)
+        .select("eixo_id")
+        .single();
+
+      if (error) {
+        setMensagem("Erro ao remover eixo: " + error.message);
+        return;
+      }
 
       const canaisDoEixo = canais
         .filter((canal) => canal.eixo_id === eixoId)
         .map((canal) => canal.id);
 
       if (canaisDoEixo.length > 0) {
-        await supabase
+        const { error: errorCanais } = await supabase
           .from("demanda_canais")
           .delete()
           .eq("demanda_id", demandaId)
           .in("canal_id", canaisDoEixo);
+
+        if (errorCanais) {
+          setMensagem("Erro ao remover destinos do eixo: " + errorCanais.message);
+          return;
+        }
       }
 
       setEixosSelecionados((atual) => atual.filter((id) => id !== eixoId));
@@ -200,11 +215,18 @@ export default function EixosProdutosDemanda({
     const marcado = canaisSelecionados.includes(canalId);
 
     if (marcado) {
-      await supabase
+      const { error } = await supabase
         .from("demanda_canais")
         .delete()
         .eq("demanda_id", demandaId)
-        .eq("canal_id", canalId);
+        .eq("canal_id", canalId)
+        .select("canal_id")
+        .single();
+
+      if (error) {
+        setMensagem("Erro ao remover destino: " + error.message);
+        return;
+      }
 
       setCanaisSelecionados((atual) => atual.filter((id) => id !== canalId));
       setMensagem("Destino removido.");
@@ -238,10 +260,12 @@ export default function EixosProdutosDemanda({
       return;
     }
 
+    const produtoIdNumero = Number(produtoId);
+
     const { error } = await supabase.from("demanda_produtos_quantidade").upsert(
       {
         demanda_id: demandaId,
-        produto_id: Number(produtoId),
+        produto_id: produtoIdNumero,
         quantidade,
         status_producao: "ANDAMENTO",
       },
@@ -256,7 +280,7 @@ export default function EixosProdutosDemanda({
         .upsert(
           {
             demanda_id: demandaId,
-            produto_id: Number(produtoId),
+            produto_id: produtoIdNumero,
             quantidade,
           },
           {
@@ -269,7 +293,7 @@ export default function EixosProdutosDemanda({
         return;
       }
 
-      salvarStatusProdutoLocal(demandaId, Number(produtoId), "ANDAMENTO");
+      salvarStatusProdutoLocal(demandaId, produtoIdNumero, "ANDAMENTO");
     } else if (error) {
       setMensagem("Erro ao adicionar produto: " + error.message);
       return;
@@ -298,7 +322,9 @@ export default function EixosProdutosDemanda({
         quantidade: quantidadeNova,
       })
       .eq("demanda_id", demandaId)
-      .eq("produto_id", produtoIdAtualizar);
+      .eq("produto_id", produtoIdAtualizar)
+      .select("produto_id")
+      .single();
 
     if (error) {
       setMensagem("Erro ao atualizar quantidade: " + error.message);
@@ -322,7 +348,9 @@ export default function EixosProdutosDemanda({
         status_producao: status,
       })
       .eq("demanda_id", demandaId)
-      .eq("produto_id", produtoIdAtualizar);
+      .eq("produto_id", produtoIdAtualizar)
+      .select("produto_id")
+      .single();
 
     if (error && !colunaStatusAusente(error)) {
       setMensagem("Erro ao atualizar status: " + error.message);
@@ -345,7 +373,9 @@ export default function EixosProdutosDemanda({
       .from("demanda_produtos_quantidade")
       .delete()
       .eq("demanda_id", demandaId)
-      .eq("produto_id", produtoIdRemover);
+      .eq("produto_id", produtoIdRemover)
+      .select("produto_id")
+      .single();
 
     if (error) {
       setMensagem("Erro ao remover produto: " + error.message);
@@ -412,7 +442,7 @@ export default function EixosProdutosDemanda({
       <h3 style={{ marginTop: "30px" }}>3. Produtos produzidos</h3>
 
       <p style={descricao}>
-        Aqui você informa apenas o que realmente foi produzido nesta demanda.
+        Aqui vocÃª informa apenas o que realmente foi produzido nesta demanda.
       </p>
 
       <div style={linha}>
@@ -525,7 +555,7 @@ export default function EixosProdutosDemanda({
 
 const statusOpcoes: { valor: StatusProducao; label: string }[] = [
   { valor: "ANDAMENTO", label: "Andamento" },
-  { valor: "CONCLUIDO", label: "Concluído" },
+  { valor: "CONCLUIDO", label: "ConcluÃ­do" },
   { valor: "CANCELADO", label: "Cancelado" },
 ];
 
@@ -533,9 +563,10 @@ function lerStatusProdutoLocal(
   demandaId: number,
   produtoId: number
 ): StatusProducao {
-  if (typeof window === "undefined") return "ANDAMENTO";
+  const storage = obterStorageSeguro();
+  if (!storage) return "ANDAMENTO";
 
-  const status = window.localStorage.getItem(
+  const status = storage.getItem(
     chaveStatusProduto(demandaId, produtoId)
   ) as StatusProducao | null;
 
@@ -547,15 +578,17 @@ function salvarStatusProdutoLocal(
   produtoId: number,
   status: StatusProducao
 ) {
-  if (typeof window === "undefined") return;
+  const storage = obterStorageSeguro();
+  if (!storage) return;
 
-  window.localStorage.setItem(chaveStatusProduto(demandaId, produtoId), status);
+  storage.setItem(chaveStatusProduto(demandaId, produtoId), status);
 }
 
 function removerStatusProdutoLocal(demandaId: number, produtoId: number) {
-  if (typeof window === "undefined") return;
+  const storage = obterStorageSeguro();
+  if (!storage) return;
 
-  window.localStorage.removeItem(chaveStatusProduto(demandaId, produtoId));
+  storage.removeItem(chaveStatusProduto(demandaId, produtoId));
 }
 
 function chaveStatusProduto(demandaId: number, produtoId: number) {
@@ -568,6 +601,16 @@ function statusValido(status: string | null): status is StatusProducao {
     status === "CONCLUIDO" ||
     status === "CANCELADO"
   );
+}
+
+function obterStorageSeguro() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 function colunaStatusAusente(error?: { code?: string } | null) {

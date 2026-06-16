@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarFluxo } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
@@ -12,43 +13,52 @@ export default function StatusDemanda({
   demandaId: number;
   statusAtual: string;
 }) {
+  const router = useRouter();
   const { usuario } = useAuth();
   const podeEditar = podeEditarFluxo(usuario);
   const [status, setStatus] = useState(statusAtual);
   const [mensagem, setMensagem] = useState("");
 
   async function atualizarStatus() {
-  setMensagem("");
+    setMensagem("");
 
-  if (!podeEditar || !usuario) {
-    setMensagem("Seu usuário não tem permissão para alterar status.");
-    return;
+    if (!podeEditar || !usuario) {
+      setMensagem("Seu usuÃ¡rio nÃ£o tem permissÃ£o para alterar status.");
+      return;
+    }
+
+    const { data: statusSelecionado, error: statusError } = await supabase
+      .from("status_demanda")
+      .select("id")
+      .eq("nome", status)
+      .single();
+
+    if (statusError || !statusSelecionado) {
+      setMensagem("Erro ao localizar o status selecionado.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("demandas")
+      .update({ status_id: statusSelecionado.id })
+      .eq("id", demandaId)
+      .select("id")
+      .single();
+
+    if (error) {
+      setMensagem("Erro ao atualizar status: " + error.message);
+      return;
+    }
+
+    await supabase.from("historico_demanda").insert({
+      demanda_id: demandaId,
+      usuario_id: usuario.id,
+      acao: `${usuario.nome} alterou o status para ${status}`,
+    });
+
+    setMensagem("Status atualizado com sucesso!");
+    router.refresh();
   }
-
-  const { data: statusSelecionado } = await supabase
-    .from("status_demanda")
-    .select("id")
-    .eq("nome", status)
-    .single();
-
-  const { error } = await supabase
-    .from("demandas")
-    .update({ status_id: statusSelecionado?.id })
-    .eq("id", demandaId);
-
-  if (error) {
-    setMensagem("Erro ao atualizar status.");
-    return;
-  }
-
-  await supabase.from("historico_demanda").insert({
-    demanda_id: demandaId,
-    usuario_id: usuario.id,
-    acao: `${usuario.nome} alterou o status para ${status}`,
-  });
-
-  setMensagem("Status atualizado com sucesso!");
-}
 
   return (
     <div style={{ marginTop: "20px" }}>
@@ -68,7 +78,7 @@ export default function StatusDemanda({
           <option value="CANCELADO">CANCELADO</option>
         </select>
 
-        <button onClick={atualizarStatus} style={botao} disabled={!podeEditar}>
+        <button type="button" onClick={atualizarStatus} style={botao} disabled={!podeEditar}>
           Atualizar
         </button>
       </div>

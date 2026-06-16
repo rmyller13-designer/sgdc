@@ -1,4 +1,5 @@
 import CalendarioEditorialClient from "@/components/CalendarioEditorialClient";
+import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 type SearchParams = {
@@ -25,6 +26,8 @@ export default async function CalendarioEditorialPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await connection();
+
   const params = await searchParams;
   const mesAtual = normalizarMes(params.mes);
   const intervalo = intervaloCalendario(mesAtual);

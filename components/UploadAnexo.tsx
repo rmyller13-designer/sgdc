@@ -5,7 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import {
   criarCaminhoAnexoDemanda,
   LIMITE_UPLOAD_MB,
-  TIPOS_UPLOAD_PERMITIDOS,
+  TIPOS_ACEITOS_UPLOAD,
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../lib/supabase";
@@ -76,7 +76,7 @@ export default function UploadAnexo({ demandaId }: { demandaId: number }) {
       <input
         ref={inputRef}
         type="file"
-        accept={TIPOS_UPLOAD_PERMITIDOS.join(",")}
+        accept={TIPOS_ACEITOS_UPLOAD.join(",")}
         onChange={(e) => setArquivo(e.target.files?.[0] || null)}
         style={{ display: "none" }}
       />

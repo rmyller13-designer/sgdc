@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { supabase } from "../lib/supabase";
 
 type DemandaDashboard = {
@@ -9,6 +10,8 @@ type DemandaDashboard = {
 };
 
 export default async function Dashboard() {
+  await connection();
+
   const { data: demandas } = await supabase
     .from("demandas_completas")
     .select("*");

@@ -1,10 +1,23 @@
+import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
+
+type DemandaRelatorio = {
+  id: number;
+  titulo: string | null;
+  produto: string | null;
+  responsavel: string | null;
+  setor: string | null;
+  status: string | null;
+  data_solicitacao: string | null;
+};
 
 export default async function Relatorios({
   searchParams,
 }: {
   searchParams: Promise<{ inicio?: string; fim?: string }>;
 }) {
+  await connection();
+
   const params = await searchParams;
 
   let query = supabase
@@ -15,37 +28,38 @@ export default async function Relatorios({
   if (params.inicio) query = query.gte("data_solicitacao", params.inicio);
   if (params.fim) query = query.lte("data_solicitacao", params.fim);
 
-  const { data: demandas } = await query;
+  const { data: demandasData } = await query;
+  const demandas = (demandasData || []) as DemandaRelatorio[];
 
-  const total = demandas?.length || 0;
+  const total = demandas.length;
 
-  const porStatus = demandas?.reduce((acc: any, demanda) => {
+  const porStatus = demandas.reduce<Record<string, number>>((acc, demanda) => {
     const status = demanda.status || "Sem status";
     acc[status] = (acc[status] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
-  const porProduto = demandas?.reduce((acc: any, demanda) => {
+  const porProduto = demandas.reduce<Record<string, number>>((acc, demanda) => {
     const produto = demanda.produto || "Sem produto";
     acc[produto] = (acc[produto] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
-  const porResponsavel = demandas?.reduce((acc: any, demanda) => {
-    const responsavel = demanda.responsavel || "Não atribuído";
+  const porResponsavel = demandas.reduce<Record<string, number>>((acc, demanda) => {
+    const responsavel = demanda.responsavel || "NÃ£o atribuÃ­do";
     acc[responsavel] = (acc[responsavel] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
-  const porSetor = demandas?.reduce((acc: any, demanda) => {
+  const porSetor = demandas.reduce<Record<string, number>>((acc, demanda) => {
     const setor = demanda.setor || "Sem setor";
     acc[setor] = (acc[setor] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
   return (
     <div>
-      <h1>Relatórios</h1>
+      <h1>RelatÃ³rios</h1>
 
       <form style={form}>
         <div>
@@ -64,50 +78,50 @@ export default async function Relatorios({
       <h2 style={{ marginTop: "30px" }}>Resumo</h2>
 
       <div style={grid}>
-        <Card titulo="Total no período" valor={total} />
+        <Card titulo="Total no perÃ­odo" valor={total} />
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Status</h2>
+      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por Status</h2>
 
       <div style={grid}>
         {Object.entries(porStatus).map(([status, quantidade]) => (
-          <Card key={status} titulo={status} valor={quantidade as number} />
+          <Card key={status} titulo={status} valor={quantidade} />
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Produto</h2>
+      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por Produto</h2>
 
       <div style={grid}>
         {Object.entries(porProduto).map(([produto, quantidade]) => (
-          <Card key={produto} titulo={produto} valor={quantidade as number} />
+          <Card key={produto} titulo={produto} valor={quantidade} />
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Responsável</h2>
+      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por ResponsÃ¡vel</h2>
 
       <div style={grid}>
         {Object.entries(porResponsavel).map(([responsavel, quantidade]) => (
-          <Card key={responsavel} titulo={responsavel} valor={quantidade as number} />
+          <Card key={responsavel} titulo={responsavel} valor={quantidade} />
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Setor</h2>
+      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por Setor</h2>
 
       <div style={grid}>
         {Object.entries(porSetor).map(([setor, quantidade]) => (
-          <Card key={setor} titulo={setor} valor={quantidade as number} />
+          <Card key={setor} titulo={setor} valor={quantidade} />
         ))}
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>Demandas do período</h2>
+      <h2 style={{ marginTop: "40px" }}>Demandas do perÃ­odo</h2>
 
       <table style={table}>
         <thead>
           <tr>
             <th style={th}>ID</th>
-            <th style={th}>Título</th>
+            <th style={th}>TÃ­tulo</th>
             <th style={th}>Produto</th>
-            <th style={th}>Responsável</th>
+            <th style={th}>ResponsÃ¡vel</th>
             <th style={th}>Setor</th>
             <th style={th}>Status</th>
             <th style={th}>Data</th>
@@ -115,7 +129,7 @@ export default async function Relatorios({
         </thead>
 
         <tbody>
-          {demandas?.map((demanda) => (
+          {demandas.map((demanda) => (
             <tr key={demanda.id}>
               <td style={td}>{demanda.id}</td>
               <td style={td}>
@@ -124,7 +138,7 @@ export default async function Relatorios({
                 </a>
               </td>
               <td style={td}>{demanda.produto}</td>
-              <td style={td}>{demanda.responsavel || "Não atribuído"}</td>
+              <td style={td}>{demanda.responsavel || "NÃ£o atribuÃ­do"}</td>
               <td style={td}>{demanda.setor}</td>
               <td style={td}>{demanda.status}</td>
               <td style={td}>{demanda.data_solicitacao || "Sem data"}</td>

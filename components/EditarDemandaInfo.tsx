@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarDados } from "@/lib/auth";
@@ -64,11 +64,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
   const [form, setForm] = useState<DemandaForm>(formInicial);
   const [valoresSalvos, setValoresSalvos] = useState<DemandaForm>(formInicial);
 
-  useEffect(() => {
-    void carregarDados();
-  }, [demandaId]);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     const [
       { data: demanda, error: demandaError },
       { data: setoresData },
@@ -104,7 +100,13 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     setUsuarios((usuariosData as Opcao[] | null) || []);
     setProdutos((produtosData as Opcao[] | null) || []);
     setPrioridades((prioridadesData as Opcao[] | null) || []);
-  }
+  }, [demandaId]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void carregarDados();
+    });
+  }, [carregarDados]);
 
   function atualizarCampo(campo: CampoEditando, valor: string) {
     setForm((atual) => ({ ...atual, [campo]: valor }));

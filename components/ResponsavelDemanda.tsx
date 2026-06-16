@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeAtribuirResponsavel } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
@@ -18,6 +19,7 @@ export default function ResponsavelDemanda({
   demandaId: number;
   responsavelAtual?: string | null;
 }) {
+  const router = useRouter();
   const { usuario } = useAuth();
   const podeAtribuir = podeAtribuirResponsavel(usuario);
   const [usuarios, setUsuarios] = useState<UsuarioResponsavel[]>([]);
@@ -39,47 +41,50 @@ export default function ResponsavelDemanda({
     });
   }, [carregarUsuarios]);
 
- async function atualizarResponsavel() {
-  setMensagem("");
+  async function atualizarResponsavel() {
+    setMensagem("");
 
-  if (!podeAtribuir || !usuario) {
-    setMensagem("Seu usuário não tem permissão para atribuir responsável.");
-    return;
+    if (!podeAtribuir || !usuario) {
+      setMensagem("Seu usuÃ¡rio nÃ£o tem permissÃ£o para atribuir responsÃ¡vel.");
+      return;
+    }
+
+    if (!responsavelId) {
+      setMensagem("Selecione um responsÃ¡vel.");
+      return;
+    }
+
+    const usuarioSelecionado = usuarios.find(
+      (item) => String(item.id) === responsavelId
+    );
+
+    const { error } = await supabase
+      .from("demandas")
+      .update({ responsavel_id: Number(responsavelId) })
+      .eq("id", demandaId)
+      .select("id")
+      .single();
+
+    if (error) {
+      setMensagem("Erro ao atualizar responsÃ¡vel: " + error.message);
+      return;
+    }
+
+    await supabase.from("historico_demanda").insert({
+      demanda_id: demandaId,
+      usuario_id: usuario.id,
+      acao: `${usuario.nome} atribuiu a demanda para ${usuarioSelecionado?.nome}`,
+    });
+
+    setMensagem("ResponsÃ¡vel atualizado com sucesso!");
+    router.refresh();
   }
-
-  if (!responsavelId) {
-    setMensagem("Selecione um responsável.");
-    return;
-  }
-
-  const usuarioSelecionado = usuarios.find(
-    (usuario) => String(usuario.id) === responsavelId
-  );
-
-  const { error } = await supabase
-    .from("demandas")
-    .update({ responsavel_id: Number(responsavelId) })
-    .eq("id", demandaId);
-
-  if (error) {
-    setMensagem("Erro ao atualizar responsável.");
-    return;
-  }
-
-  await supabase.from("historico_demanda").insert({
-    demanda_id: demandaId,
-    usuario_id: usuario.id,
-    acao: `${usuario.nome} atribuiu a demanda para ${usuarioSelecionado?.nome}`,
-  });
-
-  setMensagem("Responsável atualizado com sucesso!");
-}
 
   return (
     <div style={{ marginTop: "20px" }}>
       <p>
-        <strong>Responsável atual:</strong>{" "}
-        {responsavelAtual || "Não definido"}
+        <strong>ResponsÃ¡vel atual:</strong>{" "}
+        {responsavelAtual || "NÃ£o definido"}
       </p>
 
       <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
@@ -89,17 +94,17 @@ export default function ResponsavelDemanda({
           style={campo}
           disabled={!podeAtribuir}
         >
-          <option value="">Selecione o responsável</option>
+          <option value="">Selecione o responsÃ¡vel</option>
 
-          {usuarios.map((usuario) => (
-            <option key={usuario.id} value={usuario.id}>
-              {usuario.nome} - {usuario.funcao}
+          {usuarios.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.nome} - {item.funcao}
             </option>
           ))}
         </select>
 
-        <button onClick={atualizarResponsavel} style={botao} disabled={!podeAtribuir}>
-          Atualizar Responsável
+        <button type="button" onClick={atualizarResponsavel} style={botao} disabled={!podeAtribuir}>
+          Atualizar ResponsÃ¡vel
         </button>
       </div>
 

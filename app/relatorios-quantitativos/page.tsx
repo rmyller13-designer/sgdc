@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import RelatoriosQuantitativosClient from "../../components/RelatoriosQuantitativosClient";
 
@@ -45,6 +46,8 @@ export default async function RelatoriosQuantitativos({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await connection();
+
   const params = await searchParams;
   const periodo = resolverPeriodo(params);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   DragDropContext,
   Droppable,
@@ -40,6 +41,7 @@ export default function KanbanDemandas({
 }: {
   demandas: DemandaKanban[];
 }) {
+  const router = useRouter();
   const { usuario } = useAuth();
   const podeMover = podeEditarFluxo(usuario);
   const [lista, setLista] = useState(demandas || []);
@@ -115,12 +117,16 @@ export default function KanbanDemandas({
     const { error } = await supabase
       .from("demandas")
       .update({ status_id: novoStatus.id })
-      .eq("id", demandaId);
+      .eq("id", demandaId)
+      .select("id")
+      .single();
 
     if (error) {
       alert("Erro ao atualizar status: " + error.message);
       return;
     }
+
+    router.refresh();
 
     await supabase.from("historico_demanda").insert({
       demanda_id: demandaId,
@@ -147,12 +153,17 @@ export default function KanbanDemandas({
     const { error } = await supabase
       .from("demandas")
       .delete()
-      .eq("id", demanda.id);
+      .eq("id", demanda.id)
+      .select("id")
+      .single();
 
     if (error) {
       setLista(listaAnterior);
       alert("Erro ao excluir demanda: " + error.message);
+      return;
     }
+
+    router.refresh();
   }
 
   return (
