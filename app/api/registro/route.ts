@@ -167,6 +167,19 @@ async function criarOuAtualizarContaAuth(args: {
   const usuarioAuthExistente = await buscarUsuarioAuthPorEmail(admin, email);
 
   if (usuarioAuthExistente) {
+    const conflito = await buscarAcessoPorAuthUserId(admin, usuarioAuthExistente.id);
+
+    if (
+      conflito &&
+      Number(conflito.usuario_comunicacao_id) !== usuarioId
+    ) {
+      return {
+        ok: false,
+        user: null,
+        error: "Este email ja esta vinculado a outro usuario interno.",
+      };
+    }
+
     const { data, error } = await admin.auth.admin.updateUserById(
       usuarioAuthExistente.id,
       payload
@@ -189,6 +202,22 @@ async function criarOuAtualizarContaAuth(args: {
     const usuarioCriadoEntreTentativas = await buscarUsuarioAuthPorEmail(admin, email);
 
     if (usuarioCriadoEntreTentativas) {
+      const conflito = await buscarAcessoPorAuthUserId(
+        admin,
+        usuarioCriadoEntreTentativas.id
+      );
+
+      if (
+        conflito &&
+        Number(conflito.usuario_comunicacao_id) !== usuarioId
+      ) {
+        return {
+          ok: false,
+          user: null,
+          error: "Este email ja esta vinculado a outro usuario interno.",
+        };
+      }
+
       const updateResultado = await admin.auth.admin.updateUserById(
         usuarioCriadoEntreTentativas.id,
         payload
@@ -213,6 +242,12 @@ async function buscarUsuarioAuthPorEmail(
   admin: ReturnType<typeof criarSupabaseAdmin>,
   email: string
 ) {
+  const encontradoNoBanco = await buscarUsuarioAuthPorEmailNoBanco(admin, email);
+
+  if (encontradoNoBanco) {
+    return encontradoNoBanco;
+  }
+
   let page = 1;
 
   while (page <= 5) {
@@ -244,6 +279,28 @@ async function buscarUsuarioAuthPorEmail(
   return null;
 }
 
+async function buscarUsuarioAuthPorEmailNoBanco(
+  admin: ReturnType<typeof criarSupabaseAdmin>,
+  email: string
+) {
+  const { data, error } = await admin
+    .schema("auth")
+    .from("users")
+    .select("id, email")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return null;
+  }
+
+  return {
+    id: data.id as string,
+    email: data.email as string | null,
+  };
+}
+
 async function buscarAcessoAtual(
   admin: ReturnType<typeof criarSupabaseAdmin>,
   usuarioId: number
@@ -252,6 +309,23 @@ async function buscarAcessoAtual(
     .from("usuarios_acesso")
     .select("usuario_comunicacao_id, auth_user_id, ativo")
     .eq("usuario_comunicacao_id", usuarioId)
+    .maybeSingle();
+
+  if (error && !tabelaOuColunaInexistente(error.message)) {
+    throw new Error(error.message);
+  }
+
+  return data ?? null;
+}
+
+async function buscarAcessoPorAuthUserId(
+  admin: ReturnType<typeof criarSupabaseAdmin>,
+  authUserId: string
+) {
+  const { data, error } = await admin
+    .from("usuarios_acesso")
+    .select("usuario_comunicacao_id, auth_user_id, ativo")
+    .eq("auth_user_id", authUserId)
     .maybeSingle();
 
   if (error && !tabelaOuColunaInexistente(error.message)) {
