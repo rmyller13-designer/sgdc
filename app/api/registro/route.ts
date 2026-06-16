@@ -58,39 +58,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const acessoAtual = await buscarAcessoAtual(admin, usuarioId);
     const emailAtual = usuario.email?.trim().toLowerCase() || "";
-    if (emailAtual && emailAtual !== email) {
+    if (emailAtual && emailAtual !== email && !acessoAtual) {
       return NextResponse.json(
         { error: "Este usuario ja possui outro email cadastrado." },
         { status: 409 }
       );
     }
 
-    const usuarioAuthExistente = await buscarUsuarioAuthPorEmail(admin, email);
+    const createdUser = await criarOuAtualizarContaAuth({
+      admin,
+      email,
+      senha,
+      usuarioId,
+      nome: usuario.nome,
+      authUserIdAtual: acessoAtual?.auth_user_id || null,
+    });
 
-    const { data: createdUser, error: createError } = usuarioAuthExistente
-      ? await admin.auth.admin.updateUserById(usuarioAuthExistente.id, {
-          email,
-          password: senha,
-          email_confirm: true,
-          user_metadata: {
-            nome: usuario.nome,
-            sgdc_usuario_id: usuarioId,
-          },
-        })
-      : await admin.auth.admin.createUser({
-          email,
-          password: senha,
-          email_confirm: true,
-          user_metadata: {
-            nome: usuario.nome,
-            sgdc_usuario_id: usuarioId,
-          },
-        });
-
-    if (createError || !createdUser.user) {
+    if (!createdUser.ok || !createdUser.user) {
       return NextResponse.json(
-        { error: traduzirErroAuthAdmin(createError?.message || "Falha ao criar conta.") },
+        { error: traduzirErroAuthAdmin(createdUser.error || "Falha ao criar conta.") },
         { status: 400 }
       );
     }
@@ -144,6 +132,83 @@ export async function POST(request: Request) {
   }
 }
 
+async function criarOuAtualizarContaAuth(args: {
+  admin: ReturnType<typeof criarSupabaseAdmin>;
+  email: string;
+  senha: string;
+  usuarioId: number;
+  nome: string;
+  authUserIdAtual: string | null;
+}) {
+  const { admin, email, senha, usuarioId, nome, authUserIdAtual } = args;
+  const payload = {
+    email,
+    password: senha,
+    email_confirm: true,
+    user_metadata: {
+      nome,
+      sgdc_usuario_id: usuarioId,
+    },
+  };
+
+  if (authUserIdAtual) {
+    const { data, error } = await admin.auth.admin.updateUserById(
+      authUserIdAtual,
+      payload
+    );
+
+    return {
+      ok: !error && Boolean(data.user),
+      user: data.user ?? null,
+      error: error?.message,
+    };
+  }
+
+  const usuarioAuthExistente = await buscarUsuarioAuthPorEmail(admin, email);
+
+  if (usuarioAuthExistente) {
+    const { data, error } = await admin.auth.admin.updateUserById(
+      usuarioAuthExistente.id,
+      payload
+    );
+
+    return {
+      ok: !error && Boolean(data.user),
+      user: data.user ?? null,
+      error: error?.message,
+    };
+  }
+
+  const { data, error } = await admin.auth.admin.createUser(payload);
+
+  if (!error && data.user) {
+    return { ok: true, user: data.user, error: undefined };
+  }
+
+  if (podeSerContaExistente(error?.message)) {
+    const usuarioCriadoEntreTentativas = await buscarUsuarioAuthPorEmail(admin, email);
+
+    if (usuarioCriadoEntreTentativas) {
+      const updateResultado = await admin.auth.admin.updateUserById(
+        usuarioCriadoEntreTentativas.id,
+        payload
+      );
+
+      return {
+        ok: !updateResultado.error && Boolean(updateResultado.data.user),
+        user: updateResultado.data.user ?? null,
+        error: updateResultado.error?.message,
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    user: null,
+    error: error?.message || "Falha ao criar conta.",
+  };
+}
+
 async function buscarUsuarioAuthPorEmail(
   admin: ReturnType<typeof criarSupabaseAdmin>,
   email: string
@@ -179,6 +244,23 @@ async function buscarUsuarioAuthPorEmail(
   return null;
 }
 
+async function buscarAcessoAtual(
+  admin: ReturnType<typeof criarSupabaseAdmin>,
+  usuarioId: number
+) {
+  const { data, error } = await admin
+    .from("usuarios_acesso")
+    .select("usuario_comunicacao_id, auth_user_id, ativo")
+    .eq("usuario_comunicacao_id", usuarioId)
+    .maybeSingle();
+
+  if (error && !tabelaOuColunaInexistente(error.message)) {
+    throw new Error(error.message);
+  }
+
+  return data ?? null;
+}
+
 function traduzirErroAuthAdmin(mensagem: string) {
   const texto = mensagem.toLowerCase();
 
@@ -186,11 +268,26 @@ function traduzirErroAuthAdmin(mensagem: string) {
     return "Este email ja esta cadastrado.";
   }
 
+  if (texto.includes("database error creating new user")) {
+    return "Ja existe um cadastro parcial para este email no Auth. Tente novamente para reativar a conta ou use outro email.";
+  }
+
   if (texto.includes("password")) {
     return "A senha informada nao atende aos requisitos minimos.";
   }
 
   return mensagem;
+}
+
+function podeSerContaExistente(mensagem?: string) {
+  const texto = (mensagem || "").toLowerCase();
+
+  return (
+    texto.includes("already been registered") ||
+    texto.includes("database error creating new user") ||
+    texto.includes("duplicate key") ||
+    texto.includes("unique constraint")
+  );
 }
 
 function tabelaOuColunaInexistente(mensagem: string) {
