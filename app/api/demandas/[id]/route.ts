@@ -55,11 +55,11 @@ export async function DELETE(request: Request, { params }: Params) {
     );
   }
 
-  const { data: usuarioBanco, error: usuarioError } = await supabase
-    .from("usuarios_comunicacao")
-    .select("id, nome, funcao, email, ativo")
-    .eq("id", usuarioId)
-    .maybeSingle();
+  const { usuarioBanco, error: usuarioError } = await buscarUsuarioSolicitante(
+    supabase,
+    usuarioId,
+    body.usuario?.nome || ""
+  );
 
   if (usuarioError || !usuarioBanco || usuarioBanco.ativo === false) {
     return NextResponse.json(
@@ -195,6 +195,57 @@ async function excluirDependencias(
 
 function tabelaAusente(error: { code?: string }) {
   return error.code === "42P01" || error.code === "PGRST205";
+}
+
+async function buscarUsuarioSolicitante(
+  supabase: ReturnType<typeof criarSupabaseAdmin>,
+  usuarioId: number,
+  nomeUsuario: string
+) {
+  const porId = await supabase
+    .from("usuarios_comunicacao")
+    .select("id, nome, funcao, email, ativo")
+    .eq("id", usuarioId)
+    .maybeSingle();
+
+  if (porId.data || porId.error) {
+    return { usuarioBanco: porId.data, error: porId.error };
+  }
+
+  if (!nomeUsuario) {
+    return { usuarioBanco: null, error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("usuarios_comunicacao")
+    .select("id, nome, funcao, email, ativo");
+
+  if (error) {
+    return { usuarioBanco: null, error };
+  }
+
+  const nomeNormalizado = normalizar(nomeUsuario);
+  const usuarioBanco =
+    data?.find((item) => {
+      if (item.ativo === false) {
+        return false;
+      }
+
+      const sessao = criarSessaoUsuario({
+        id: Number(item.id),
+        nome: item.nome,
+        funcao: item.funcao,
+        email: item.email,
+        ativo: item.ativo,
+      });
+
+      return (
+        normalizar(item.nome) === nomeNormalizado ||
+        normalizar(sessao.nome) === nomeNormalizado
+      );
+    }) || null;
+
+  return { usuarioBanco, error: null };
 }
 
 function normalizar(valor: string) {
