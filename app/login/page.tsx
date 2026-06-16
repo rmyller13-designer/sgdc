@@ -1,52 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import {
-  nomeDoUsuario,
-  ordenarUsuariosAutorizados,
-  usuarioEstaAutorizado,
-  type UsuarioComunicacao,
-} from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
-
-type UsuarioLogin = UsuarioComunicacao;
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [usuarios, setUsuarios] = useState<UsuarioLogin[]>([]);
-  const [usuarioId, setUsuarioId] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
-  const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
-
-  useEffect(() => {
-    async function carregarUsuarios() {
-      const { data, error } = await supabase
-        .from("usuarios_comunicacao")
-        .select("id, nome, funcao, ativo")
-        .order("nome");
-
-      if (error) {
-        setMensagem(`Erro ao carregar usuários: ${error.message}`);
-      } else {
-        setUsuarios(prepararUsuariosLogin((data as UsuarioLogin[] | null) || []));
-      }
-
-      setCarregandoUsuarios(false);
-    }
-
-    void carregarUsuarios();
-  }, []);
 
   async function entrar() {
     setMensagem("");
 
-    if (!usuarioId) {
-      setMensagem("Selecione o usuário.");
+    if (!email.trim()) {
+      setMensagem("Digite seu email.");
       return;
     }
 
@@ -56,12 +27,11 @@ export default function LoginPage() {
     }
 
     setCarregando(true);
-    const usuario = usuarios.find((item) => item.id === Number(usuarioId));
-    const resultado = await login(usuario || Number(usuarioId), senha);
+    const resultado = await login(email.trim(), senha);
     setCarregando(false);
 
     if (!resultado.ok) {
-      setMensagem(resultado.mensagem || "Não foi possível entrar.");
+      setMensagem(resultado.mensagem || "Nao foi possivel entrar.");
       return;
     }
 
@@ -75,25 +45,22 @@ export default function LoginPage() {
         <p style={eyebrow}>Acesso ASCOM STACASA</p>
         <h1 style={titulo}>Entrar</h1>
         <p style={descricao}>
-          Selecione seu usuário e informe a senha de acesso.
+          Entre com o email e a senha da sua conta do sistema.
         </p>
 
-        <label style={label}>Usuário</label>
-        <select
-          value={usuarioId}
-          onChange={(event) => setUsuarioId(event.target.value)}
+        <label style={label}>Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") void entrar();
+          }}
           style={campo}
-          disabled={carregandoUsuarios || carregando || usuarios.length === 0}
-        >
-          <option value="">
-            {opcaoInicialUsuarios(carregandoUsuarios, usuarios.length)}
-          </option>
-          {usuarios.map((usuario) => (
-            <option key={usuario.id} value={usuario.id}>
-              {nomeDoUsuario(usuario.nome)}
-            </option>
-          ))}
-        </select>
+          placeholder="voce@stacasa.com.br"
+          disabled={carregando}
+          autoComplete="email"
+        />
 
         <label style={labelSenha}>Senha</label>
         <input
@@ -106,44 +73,26 @@ export default function LoginPage() {
           style={campo}
           placeholder="Digite sua senha"
           disabled={carregando}
+          autoComplete="current-password"
         />
 
         <button
           type="button"
           onClick={entrar}
           style={botao}
-          disabled={carregando || carregandoUsuarios}
+          disabled={carregando}
         >
           {carregando ? "Aguarde..." : "Entrar"}
         </button>
+
+        <p style={rodape}>
+          Primeiro acesso? <Link href="/registro" style={link}>Criar conta</Link>
+        </p>
 
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
       </section>
     </div>
   );
-}
-
-function prepararUsuariosLogin(usuarios: UsuarioLogin[]) {
-  return ordenarUsuariosAutorizados(
-    usuarios
-      .filter(
-        (usuario) =>
-          usuarioEstaAutorizado(usuario.nome) && usuario.ativo !== false
-      )
-      .map((usuario) => ({
-        ...usuario,
-        id: Number(usuario.id),
-      }))
-  );
-}
-
-function opcaoInicialUsuarios(
-  carregandoUsuarios: boolean,
-  totalUsuarios: number
-) {
-  if (carregandoUsuarios) return "Carregando usuários...";
-  if (totalUsuarios === 0) return "Nenhum usuário disponível";
-  return "Selecione";
 }
 
 const page = {
@@ -214,6 +163,18 @@ const botao = {
   cursor: "pointer",
   fontWeight: 700,
   marginTop: "18px",
+};
+
+const rodape = {
+  color: "#fecaca",
+  marginTop: "16px",
+  marginBottom: 0,
+  fontSize: "13px",
+};
+
+const link = {
+  color: "white",
+  fontWeight: 700,
 };
 
 const mensagemStyle = {
