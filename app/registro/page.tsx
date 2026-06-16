@@ -24,6 +24,8 @@ export default function RegistroPage() {
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
+  const usuarioSelecionado =
+    usuarios.find((usuario) => usuario.id === Number(usuarioId)) || null;
 
   useEffect(() => {
     async function carregarUsuarios() {
@@ -73,6 +75,12 @@ export default function RegistroPage() {
     const { error: cadastroError, data } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
+      options: {
+        data: {
+          nome: usuarioSelecionado?.nome || "",
+          sgdc_usuario_id: Number(usuarioId),
+        },
+      },
     });
 
     if (cadastroError) {
@@ -83,7 +91,7 @@ export default function RegistroPage() {
 
     if (!data.session) {
       setMensagem(
-        "Conta criada. Se a confirmacao de email estiver ativa no Supabase, confirme o email e depois faca login."
+        "Conta criada. Se a confirmacao de email estiver ativa no Supabase, confirme o email e depois faca login. O sistema concluira o vinculo automaticamente no primeiro acesso."
       );
       setCarregando(false);
       return;
@@ -108,7 +116,7 @@ export default function RegistroPage() {
   }
 
   return (
-    <div style={page}>
+    <main style={page}>
       <section style={painel}>
         <p style={eyebrow}>Primeiro acesso</p>
         <h1 style={titulo}>Criar conta</h1>
@@ -146,6 +154,16 @@ export default function RegistroPage() {
           placeholder="voce@stacasa.com.br"
           disabled={carregando}
           autoComplete="email"
+        />
+
+        <label style={labelSenha}>Nome</label>
+        <input
+          type="text"
+          value={usuarioSelecionado?.nome || ""}
+          style={campo}
+          placeholder="Selecione o usuario interno"
+          disabled
+          readOnly
         />
 
         <label style={labelSenha}>Senha</label>
@@ -188,7 +206,7 @@ export default function RegistroPage() {
 
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
       </section>
-    </div>
+    </main>
   );
 }
 

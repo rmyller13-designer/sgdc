@@ -42,7 +42,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const usuarioLogado = await buscarUsuarioLogado();
+    const usuarioLogado =
+      (await buscarUsuarioLogado()) || (await vincularUsuarioPendente(session));
 
     if (!usuarioLogado) {
       await supabase.auth.signOut();
@@ -182,6 +183,26 @@ async function buscarUsuarioLogado(): Promise<UsuarioComunicacao | null> {
     email: usuario.email,
     ativo: usuario.ativo,
   };
+}
+
+async function vincularUsuarioPendente(
+  session: Session
+): Promise<UsuarioComunicacao | null> {
+  const usuarioId = Number(session.user.user_metadata?.sgdc_usuario_id);
+  const email = session.user.email?.trim().toLowerCase();
+
+  if (!Number.isFinite(usuarioId) || usuarioId <= 0 || !email) {
+    return null;
+  }
+
+  const { error } = await supabase.rpc("sgdc_registrar_usuario_acesso", {
+    usuario_id_param: usuarioId,
+    email_param: email,
+  });
+
+  if (error) return null;
+
+  return buscarUsuarioLogado();
 }
 
 function traduzirErroAuth(mensagem: string) {
