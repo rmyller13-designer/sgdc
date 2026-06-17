@@ -45,7 +45,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const usuarioLogado =
       (await buscarUsuarioLogado()) ||
       (await vincularUsuarioPendente(session)) ||
-      (await buscarUsuarioPorMetadata(session));
+      (await buscarUsuarioPorMetadata(session)) ||
+      (await reconciliarSessao(session));
 
     if (!usuarioLogado) {
       await supabase.auth.signOut();
@@ -120,7 +121,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const usuarioLogado =
       (await buscarUsuarioLogado()) ||
       (session ? await vincularUsuarioPendente(session) : null) ||
-      (session ? await buscarUsuarioPorMetadata(session) : null);
+      (session ? await buscarUsuarioPorMetadata(session) : null) ||
+      (session ? await reconciliarSessao(session) : null);
 
     if (!usuarioLogado) {
       await supabase.auth.signOut();
@@ -240,6 +242,45 @@ async function buscarUsuarioPorMetadata(
     funcao: data.funcao,
     ativo: data.ativo,
     email: data.email,
+  };
+}
+
+async function reconciliarSessao(
+  session: Session
+): Promise<UsuarioComunicacao | null> {
+  const accessToken = session.access_token;
+
+  if (!accessToken) {
+    return null;
+  }
+
+  const resposta = await fetch("/api/auth/reconcile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ accessToken }),
+  });
+
+  if (!resposta.ok) {
+    return null;
+  }
+
+  const resultado = (await resposta.json()) as {
+    ok?: boolean;
+    usuario?: UsuarioComunicacao;
+  };
+
+  if (!resultado.ok || !resultado.usuario) {
+    return null;
+  }
+
+  return {
+    id: Number(resultado.usuario.id),
+    nome: resultado.usuario.nome,
+    funcao: resultado.usuario.funcao,
+    ativo: resultado.usuario.ativo,
+    email: resultado.usuario.email,
   };
 }
 

@@ -59,13 +59,6 @@ export async function POST(request: Request) {
     }
 
     const acessoAtual = await buscarAcessoAtual(admin, usuarioId);
-    const emailAtual = usuario.email?.trim().toLowerCase() || "";
-    if (emailAtual && emailAtual !== email && !acessoAtual) {
-      return NextResponse.json(
-        { error: "Este usuario ja possui outro email cadastrado." },
-        { status: 409 }
-      );
-    }
 
     const createdUser = await criarOuAtualizarContaAuth({
       admin,
