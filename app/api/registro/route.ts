@@ -67,6 +67,7 @@ export async function POST(request: Request) {
       usuarioId,
       nome: usuario.nome,
       authUserIdAtual: acessoAtual?.auth_user_id || null,
+      emailAtualUsuario: usuario.email?.trim().toLowerCase() || null,
     });
 
     if (!createdUser.ok || !createdUser.user) {
@@ -97,17 +98,14 @@ export async function POST(request: Request) {
       .update({ email })
       .eq("id", usuarioId);
 
-    const { error: acessoError } = await admin
-      .from("usuarios_acesso")
-      .upsert(
-        {
-          usuario_comunicacao_id: usuarioId,
-          auth_user_id: createdUser.user.id,
-          perfil: "admin",
-          ativo: true,
-        },
-        { onConflict: "usuario_comunicacao_id" }
-      );
+    await limparConflitosDeAcesso(admin, usuarioId, createdUser.user.id);
+
+    const { error: acessoError } = await admin.from("usuarios_acesso").insert({
+      usuario_comunicacao_id: usuarioId,
+      auth_user_id: createdUser.user.id,
+      perfil: "admin",
+      ativo: true,
+    });
 
     if (acessoError && !tabelaOuColunaInexistente(acessoError.message)) {
       return NextResponse.json(
@@ -132,8 +130,17 @@ async function criarOuAtualizarContaAuth(args: {
   usuarioId: number;
   nome: string;
   authUserIdAtual: string | null;
+  emailAtualUsuario: string | null;
 }) {
-  const { admin, email, senha, usuarioId, nome, authUserIdAtual } = args;
+  const {
+    admin,
+    email,
+    senha,
+    usuarioId,
+    nome,
+    authUserIdAtual,
+    emailAtualUsuario,
+  } = args;
   const payload = {
     email,
     password: senha,
@@ -155,6 +162,26 @@ async function criarOuAtualizarContaAuth(args: {
       user: data.user ?? null,
       error: error?.message,
     };
+  }
+
+  if (emailAtualUsuario && emailAtualUsuario !== email) {
+    const usuarioAuthPorEmailAnterior = await buscarUsuarioAuthPorEmail(
+      admin,
+      emailAtualUsuario
+    );
+
+    if (usuarioAuthPorEmailAnterior) {
+      const { data, error } = await admin.auth.admin.updateUserById(
+        usuarioAuthPorEmailAnterior.id,
+        payload
+      );
+
+      return {
+        ok: !error && Boolean(data.user),
+        user: data.user ?? null,
+        error: error?.message,
+      };
+    }
   }
 
   const usuarioAuthExistente = await buscarUsuarioAuthPorEmail(admin, email);
@@ -326,6 +353,22 @@ async function buscarAcessoPorAuthUserId(
   }
 
   return data ?? null;
+}
+
+async function limparConflitosDeAcesso(
+  admin: ReturnType<typeof criarSupabaseAdmin>,
+  usuarioId: number,
+  authUserId: string
+) {
+  await admin
+    .from("usuarios_acesso")
+    .delete()
+    .eq("usuario_comunicacao_id", usuarioId);
+
+  await admin
+    .from("usuarios_acesso")
+    .delete()
+    .eq("auth_user_id", authUserId);
 }
 
 function traduzirErroAuthAdmin(mensagem: string) {
