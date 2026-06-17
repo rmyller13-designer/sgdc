@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session } from "@supabase/supabase-js";
 import {
   criarSessaoUsuario,
   type UsuarioComunicacao,
@@ -25,10 +24,16 @@ type AuthResultado = {
 type AuthContextValue = {
   usuario: UsuarioSessao | null;
   carregando: boolean;
-  login: (email: string, senha: string) => Promise<AuthResultado>;
+  login: (
+    usuario: UsuarioComunicacao | number,
+    senha: string
+  ) => Promise<AuthResultado>;
   logout: () => Promise<void>;
   recarregarUsuario: () => Promise<void>;
 };
+
+const SENHA_PADRAO = "Ascon.2026";
+const STORAGE_KEY = "sgdc_usuario";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -36,121 +41,87 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioSessao | null>(null);
   const [carregando, setCarregando] = useState(true);
 
-  const aplicarSessao = useCallback(async (session: Session | null) => {
-    if (!session) {
+  const carregarUsuarioSalvo = useCallback(async () => {
+    const usuarioSalvo = lerUsuarioSalvo();
+
+    if (!usuarioSalvo) {
       setUsuario(null);
       return;
     }
 
-    const usuarioLogado =
-      (await buscarUsuarioLogado()) ||
-      (await vincularUsuarioPendente(session)) ||
-      (await buscarUsuarioPorMetadata(session)) ||
-      (await reconciliarSessao(session));
+    const usuarioAtualizado = await buscarUsuario(usuarioSalvo.id);
+    const usuarioSessao = criarSessaoUsuario(usuarioAtualizado || usuarioSalvo);
 
-    if (!usuarioLogado) {
-      await supabase.auth.signOut();
-      setUsuario(null);
-      return;
-    }
-
-    setUsuario(criarSessaoUsuario(usuarioLogado));
+    setUsuario(usuarioSessao);
+    salvarUsuario(usuarioSessao);
   }, []);
-
-  const carregarSessaoAtual = useCallback(
-    async (session?: Session | null) => {
-      const sessaoAtual =
-        session === undefined
-          ? (await supabase.auth.getSession()).data.session
-          : session;
-
-      await aplicarSessao(sessaoAtual);
-    },
-    [aplicarSessao]
-  );
 
   useEffect(() => {
     let ativo = true;
 
     async function iniciarSessao() {
-      await carregarSessaoAtual();
+      await carregarUsuarioSalvo();
 
       if (ativo) {
         setCarregando(false);
       }
     }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_evento, session) => {
-      void (async () => {
-        await carregarSessaoAtual(session);
-
-        if (ativo) {
-          setCarregando(false);
-        }
-      })();
-    });
-
     void iniciarSessao();
 
     return () => {
       ativo = false;
-      subscription.unsubscribe();
     };
-  }, [carregarSessaoAtual]);
+  }, [carregarUsuarioSalvo]);
 
-  const login = useCallback(async (email: string, senha: string) => {
-    setCarregando(true);
+  const login = useCallback(
+    async (usuarioEntrada: UsuarioComunicacao | number, senha: string) => {
+      setCarregando(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: senha,
-    });
+      if (senha !== SENHA_PADRAO) {
+        setUsuario(null);
+        setCarregando(false);
+        return {
+          ok: false,
+          mensagem: "Senha incorreta.",
+        };
+      }
 
-    if (error) {
-      setUsuario(null);
+      const usuarioSelecionado =
+        typeof usuarioEntrada === "number"
+          ? await buscarUsuario(usuarioEntrada)
+          : usuarioEntrada;
+
+      if (!usuarioSelecionado || usuarioSelecionado.ativo === false) {
+        setUsuario(null);
+        setCarregando(false);
+        return {
+          ok: false,
+          mensagem: "Usuario nao encontrado ou inativo.",
+        };
+      }
+
+      const usuarioSessao = criarSessaoUsuario(usuarioSelecionado);
+      setUsuario(usuarioSessao);
+      salvarUsuario(usuarioSessao);
       setCarregando(false);
-      return {
-        ok: false,
-        mensagem: traduzirErroAuth(error.message),
-      };
-    }
 
-    const session = (await supabase.auth.getSession()).data.session;
-    const usuarioLogado =
-      (await buscarUsuarioLogado()) ||
-      (session ? await vincularUsuarioPendente(session) : null) ||
-      (session ? await buscarUsuarioPorMetadata(session) : null) ||
-      (session ? await reconciliarSessao(session) : null);
-
-    if (!usuarioLogado) {
-      await supabase.auth.signOut();
-      setUsuario(null);
-      setCarregando(false);
-      return {
-        ok: false,
-        mensagem:
-          "Sua conta entrou, mas nao esta vinculada a um usuario autorizado do sistema.",
-      };
-    }
-
-    setUsuario(criarSessaoUsuario(usuarioLogado));
-    setCarregando(false);
-
-    return { ok: true };
-  }, []);
+      return { ok: true };
+    },
+    []
+  );
 
   const logout = useCallback(async () => {
     setCarregando(true);
-    await supabase.auth.signOut();
+    const storage = obterStorageSeguro();
+    storage?.removeItem(STORAGE_KEY);
     setUsuario(null);
     setCarregando(false);
   }, []);
 
   const recarregarUsuario = useCallback(async () => {
-    await carregarSessaoAtual();
-  }, [carregarSessaoAtual]);
+    await carregarUsuarioSalvo();
+  }, [carregarUsuarioSalvo]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -176,61 +147,10 @@ export function useAuth() {
   return context;
 }
 
-async function buscarUsuarioLogado(): Promise<UsuarioComunicacao | null> {
-  const { data, error } = await supabase.rpc("sgdc_usuario_logado");
-
-  if (error) return null;
-
-  const usuario = Array.isArray(data) ? data[0] : data;
-  if (!usuario) return null;
-
-  return {
-    id: Number(usuario.id),
-    nome: usuario.nome,
-    funcao: usuario.funcao,
-    email: usuario.email,
-    ativo: usuario.ativo,
-  };
-}
-
-async function vincularUsuarioPendente(
-  session: Session
-): Promise<UsuarioComunicacao | null> {
-  const usuarioId = Number(session.user.user_metadata?.sgdc_usuario_id);
-  const email = session.user.email?.trim().toLowerCase();
-
-  if (!Number.isFinite(usuarioId) || usuarioId <= 0 || !email) {
-    return null;
-  }
-
-  const { error } = await supabase.rpc("sgdc_registrar_usuario_acesso", {
-    usuario_id_param: usuarioId,
-    email_param: email,
-  });
-
-  if (error) {
-    if (rpcNaoDisponivel(error.message)) {
-      return buscarUsuarioPorMetadata(session);
-    }
-
-    return null;
-  }
-
-  return buscarUsuarioLogado();
-}
-
-async function buscarUsuarioPorMetadata(
-  session: Session
-): Promise<UsuarioComunicacao | null> {
-  const usuarioId = Number(session.user.user_metadata?.sgdc_usuario_id);
-
-  if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
-    return null;
-  }
-
+async function buscarUsuario(usuarioId: number) {
   const { data, error } = await supabase
     .from("usuarios_comunicacao")
-    .select("id, nome, funcao, ativo, email")
+    .select("id, nome, funcao, ativo")
     .eq("id", usuarioId)
     .maybeSingle();
 
@@ -241,72 +161,37 @@ async function buscarUsuarioPorMetadata(
     nome: data.nome,
     funcao: data.funcao,
     ativo: data.ativo,
-    email: data.email,
   };
 }
 
-async function reconciliarSessao(
-  session: Session
-): Promise<UsuarioComunicacao | null> {
-  const accessToken = session.access_token;
+function lerUsuarioSalvo() {
+  const storage = obterStorageSeguro();
+  if (!storage) return null;
 
-  if (!accessToken) {
+  try {
+    const valor = storage.getItem(STORAGE_KEY);
+    if (!valor) return null;
+
+    return JSON.parse(valor) as UsuarioSessao;
+  } catch {
+    storage.removeItem(STORAGE_KEY);
     return null;
   }
-
-  const resposta = await fetch("/api/auth/reconcile", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ accessToken }),
-  });
-
-  if (!resposta.ok) {
-    return null;
-  }
-
-  const resultado = (await resposta.json()) as {
-    ok?: boolean;
-    usuario?: UsuarioComunicacao;
-  };
-
-  if (!resultado.ok || !resultado.usuario) {
-    return null;
-  }
-
-  return {
-    id: Number(resultado.usuario.id),
-    nome: resultado.usuario.nome,
-    funcao: resultado.usuario.funcao,
-    ativo: resultado.usuario.ativo,
-    email: resultado.usuario.email,
-  };
 }
 
-function rpcNaoDisponivel(mensagem: string) {
-  const texto = mensagem.toLowerCase();
-  return (
-    texto.includes("could not find the function") ||
-    texto.includes("function public.sgdc_") ||
-    texto.includes("schema cache")
-  );
+function salvarUsuario(usuario: UsuarioSessao) {
+  const storage = obterStorageSeguro();
+  if (!storage) return;
+
+  storage.setItem(STORAGE_KEY, JSON.stringify(usuario));
 }
 
-function traduzirErroAuth(mensagem: string) {
-  const texto = mensagem.toLowerCase();
+function obterStorageSeguro() {
+  if (typeof window === "undefined") return null;
 
-  if (texto.includes("invalid login credentials")) {
-    return "Email ou senha invalidos.";
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
   }
-
-  if (texto.includes("email not confirmed")) {
-    return "Confirme o email antes de entrar.";
-  }
-
-  if (texto.includes("signup is disabled")) {
-    return "O cadastro por email esta desabilitado no Supabase.";
-  }
-
-  return mensagem;
 }

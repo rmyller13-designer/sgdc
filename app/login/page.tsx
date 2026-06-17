@@ -1,33 +1,63 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import {
+  nomeDoUsuario,
+  ordenarUsuariosAutorizados,
+  usuarioEstaAutorizado,
+  type UsuarioComunicacao,
+} from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
+
+type UsuarioLogin = UsuarioComunicacao;
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [usuarios, setUsuarios] = useState<UsuarioLogin[]>([]);
+  const [usuarioId, setUsuarioId] = useState("");
   const [senha, setSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
+
+  useEffect(() => {
+    async function carregarUsuarios() {
+      const { data, error } = await supabase
+        .from("usuarios_comunicacao")
+        .select("id, nome, funcao, ativo")
+        .order("nome");
+
+      if (error) {
+        setMensagem(`Erro ao carregar usuarios: ${error.message}`);
+      } else {
+        setUsuarios(prepararUsuariosLogin((data as UsuarioLogin[] | null) || []));
+      }
+
+      setCarregandoUsuarios(false);
+    }
+
+    void carregarUsuarios();
+  }, []);
 
   async function entrar() {
     setMensagem("");
 
-    if (!email.trim()) {
-      setMensagem("Digite seu email.");
+    if (!usuarioId) {
+      setMensagem("Selecione o usuario.");
       return;
     }
 
     if (!senha) {
-      setMensagem("Digite sua senha.");
+      setMensagem("Digite a senha.");
       return;
     }
 
     setCarregando(true);
-    const resultado = await login(email.trim(), senha);
+    const usuario = usuarios.find((item) => item.id === Number(usuarioId));
+    const resultado = await login(usuario || Number(usuarioId), senha);
     setCarregando(false);
 
     if (!resultado.ok) {
@@ -45,22 +75,25 @@ export default function LoginPage() {
         <p style={eyebrow}>Acesso ASCOM STACASA</p>
         <h1 style={titulo}>Entrar</h1>
         <p style={descricao}>
-          Entre com o email e a senha da sua conta do sistema.
+          Selecione seu usuario e informe a senha padrao do sistema.
         </p>
 
-        <label style={label}>Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") void entrar();
-          }}
+        <label style={label}>Usuario</label>
+        <select
+          value={usuarioId}
+          onChange={(event) => setUsuarioId(event.target.value)}
           style={campo}
-          placeholder="voce@stacasa.com.br"
-          disabled={carregando}
-          autoComplete="email"
-        />
+          disabled={carregandoUsuarios || carregando || usuarios.length === 0}
+        >
+          <option value="">
+            {opcaoInicialUsuarios(carregandoUsuarios, usuarios.length)}
+          </option>
+          {usuarios.map((usuario) => (
+            <option key={usuario.id} value={usuario.id}>
+              {nomeDoUsuario(usuario.nome)}
+            </option>
+          ))}
+        </select>
 
         <label style={labelSenha}>Senha</label>
         <input
@@ -71,28 +104,48 @@ export default function LoginPage() {
             if (event.key === "Enter") void entrar();
           }}
           style={campo}
-          placeholder="Digite sua senha"
+          placeholder="Digite a senha"
           disabled={carregando}
-          autoComplete="current-password"
         />
 
         <button
           type="button"
           onClick={entrar}
           style={botao}
-          disabled={carregando}
+          disabled={carregando || carregandoUsuarios}
         >
           {carregando ? "Aguarde..." : "Entrar"}
         </button>
 
-        <p style={rodape}>
-          Primeiro acesso? <Link href="/registro" style={link}>Criar conta</Link>
-        </p>
+        <p style={ajudaSenha}>Senha padrao: Ascon.2026</p>
 
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
       </section>
     </div>
   );
+}
+
+function prepararUsuariosLogin(usuarios: UsuarioLogin[]) {
+  return ordenarUsuariosAutorizados(
+    usuarios
+      .filter(
+        (usuario) =>
+          usuarioEstaAutorizado(usuario.nome) && usuario.ativo !== false
+      )
+      .map((usuario) => ({
+        ...usuario,
+        id: Number(usuario.id),
+      }))
+  );
+}
+
+function opcaoInicialUsuarios(
+  carregandoUsuarios: boolean,
+  totalUsuarios: number
+) {
+  if (carregandoUsuarios) return "Carregando usuarios...";
+  if (totalUsuarios === 0) return "Nenhum usuario disponivel";
+  return "Selecione";
 }
 
 const page = {
@@ -165,16 +218,11 @@ const botao = {
   marginTop: "18px",
 };
 
-const rodape = {
-  color: "#fecaca",
-  marginTop: "16px",
+const ajudaSenha = {
+  color: "#bbf7d0",
+  marginTop: "14px",
   marginBottom: 0,
   fontSize: "13px",
-};
-
-const link = {
-  color: "white",
-  fontWeight: 700,
 };
 
 const mensagemStyle = {

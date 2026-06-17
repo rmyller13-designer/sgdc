@@ -81,7 +81,7 @@ begin
   ) then
     execute $sql$
       delete from auth.sessions
-      where user_id in (select id from sgdc_reset_auth_ids)
+      where user_id::text in (select id::text from sgdc_reset_auth_ids)
     $sql$;
   end if;
 
@@ -93,7 +93,7 @@ begin
   ) then
     execute $sql$
       delete from auth.refresh_tokens
-      where user_id in (select id from sgdc_reset_auth_ids)
+      where user_id::text in (select id::text from sgdc_reset_auth_ids)
     $sql$;
   end if;
 
@@ -105,7 +105,7 @@ begin
   ) then
     execute $sql$
       delete from auth.mfa_factors
-      where user_id in (select id from sgdc_reset_auth_ids)
+      where user_id::text in (select id::text from sgdc_reset_auth_ids)
     $sql$;
   end if;
 
@@ -117,7 +117,7 @@ begin
   ) then
     execute $sql$
       delete from auth.one_time_tokens
-      where user_id in (select id from sgdc_reset_auth_ids)
+      where user_id::text in (select id::text from sgdc_reset_auth_ids)
     $sql$;
   end if;
 
@@ -129,7 +129,7 @@ begin
   ) then
     execute $sql$
       delete from auth.audit_log_entries
-      where user_id in (select id::uuid from sgdc_reset_auth_ids)
+      where user_id::text in (select id::text from sgdc_reset_auth_ids)
     $sql$;
   end if;
 end $$;

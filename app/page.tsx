@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { supabase } from "../lib/supabase";
@@ -64,6 +65,17 @@ export default async function Dashboard() {
 
   return (
     <div>
+      <div style={logoWrap}>
+        <Image
+          src="/logo-sc.png"
+          alt="Logomarca da instituicao"
+          width={220}
+          height={220}
+          priority
+          style={logoInicio}
+        />
+      </div>
+
       <div style={hero}>
         <div>
           <p style={eyebrow}>Painel Executivo</p>
@@ -251,6 +263,19 @@ const hero = {
   alignItems: "center",
   gap: "20px",
   marginBottom: "26px",
+};
+
+const logoWrap = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  marginBottom: "22px",
+};
+
+const logoInicio = {
+  width: "auto",
+  height: "auto",
+  objectFit: "contain" as const,
 };
 
 const eyebrow = {

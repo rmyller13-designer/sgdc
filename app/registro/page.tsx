@@ -8,7 +8,6 @@ import {
   ordenarUsuariosAutorizados,
   usuarioEstaAutorizado,
 } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 
 type UsuarioRegistro = {
@@ -22,7 +21,6 @@ type UsuarioRegistro = {
 
 export default function RegistroPage() {
   const router = useRouter();
-  const { login } = useAuth();
   const [usuarios, setUsuarios] = useState<UsuarioRegistro[]>([]);
   const [usuarioId, setUsuarioId] = useState("");
   const [email, setEmail] = useState("");
@@ -116,19 +114,12 @@ export default function RegistroPage() {
       return;
     }
 
-    const loginResultado = await login(email.trim(), senha);
-
-    if (!loginResultado.ok) {
-      setTipoMensagem("sucesso");
-      setMensagem(
-        "Conta criada com sucesso. Entre com seu email e senha para continuar."
-      );
-      setCarregando(false);
-      router.push("/login");
-      return;
-    }
-
-    router.push("/");
+    setTipoMensagem("sucesso");
+    setMensagem(
+      "Conta criada com sucesso. Volte para o login e entre com seu usuario e a senha padrao do sistema."
+    );
+    setCarregando(false);
+    router.push("/login");
   }
 
   async function reenviarConfirmacao() {
