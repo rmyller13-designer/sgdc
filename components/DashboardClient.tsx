@@ -2,21 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 type Item = {
   titulo: string;
@@ -58,7 +43,7 @@ export default function DashboardClient(props: {
       <div style={logoWrap}>
         <Image
           src="/logo-sc.png"
-          alt="Logomarca da instituição"
+          alt="Logomarca da instituicao"
           width={220}
           height={220}
           priority
@@ -71,7 +56,7 @@ export default function DashboardClient(props: {
           <p style={eyebrow}>Painel Executivo</p>
           <h1 style={title}>Dashboard ASCOM STACASA</h1>
           <p style={subtitle}>
-            Visão geral das demandas, produção, prazos, canais e eixos da Comunicação.
+            Visao geral das demandas, producao, prazos, canais e eixos da comunicacao.
           </p>
         </div>
 
@@ -83,91 +68,50 @@ export default function DashboardClient(props: {
       <div style={gridResumo}>
         <Card titulo="Total de Demandas" valor={props.total} destaque />
         <Card titulo="Recebidas" valor={props.recebidas} />
-        <Card titulo="Em Produção" valor={props.emProducao} />
-        <Card titulo="Em Aprovação" valor={props.emAprovacao} />
+        <Card titulo="Em Producao" valor={props.emProducao} />
+        <Card titulo="Em Aprovacao" valor={props.emAprovacao} />
         <Card titulo="AP. para Publicar" valor={props.apParaPublicar} />
-        <Card titulo="Concluídas" valor={props.concluidas} />
+        <Card titulo="Concluidas" valor={props.concluidas} />
         <Card titulo="Canceladas" valor={props.canceladas} />
       </div>
 
       <div style={dashboardGrid}>
-        <Painel titulo="Evolução das demandas">
-          <div style={chartGrande}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={props.evolucaoMensal}>
-                <defs>
-                  <linearGradient id="dashboard-area" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.7} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.08} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(255,255,255,.08)" strokeDasharray="3 3" />
-                <XAxis dataKey="mes" stroke="#fecaca" />
-                <YAxis allowDecimals={false} stroke="#fecaca" />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Area
-                  type="monotone"
-                  dataKey="demandas"
-                  stroke="#f87171"
-                  strokeWidth={3}
-                  fill="url(#dashboard-area)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+        <Painel titulo="Pulso mensal das demandas">
+          <TrendColumns dados={props.evolucaoMensal} />
         </Painel>
 
-        <Painel titulo="Distribuição por status">
-          <div style={chartGrande}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={props.status}
-                  dataKey="valor"
-                  nameKey="titulo"
-                  innerRadius={72}
-                  outerRadius={112}
-                  paddingAngle={3}
-                >
-                  {props.status.map((item, index) => (
-                    <Cell key={item.titulo} fill={cores[index % cores.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+        <Painel titulo="Matriz de status">
+          <StatusDonut dados={props.status} />
         </Painel>
 
         <Painel titulo="Controle de prazos">
           <div style={prazosGrid}>
             <Card titulo="Atrasadas" valor={props.prazos.atrasadas} alerta />
             <Card titulo="Vencem Hoje" valor={props.prazos.hoje} />
-            <Card titulo="Até 3 dias" valor={props.prazos.ateTresDias} />
+            <Card titulo="Ate 3 dias" valor={props.prazos.ateTresDias} />
             <Card titulo="No Prazo" valor={props.prazos.noPrazo} />
             <Card titulo="Sem Prazo" valor={props.prazos.semPrazo} />
           </div>
         </Painel>
 
         <Painel titulo="Produtos mais produzidos">
-          <GraficoBarras dados={props.produtos} cor="#ef4444" />
+          <FloatingBars dados={props.produtos} cor="#ef4444" />
         </Painel>
 
         <Painel titulo="Canais mais utilizados">
-          <GraficoBarras dados={props.canais} cor="#f97316" />
+          <FloatingBars dados={props.canais} cor="#f97316" />
         </Painel>
 
         <Painel titulo="Eixos mais utilizados">
-          <GraficoBarras dados={props.eixos} cor="#3b82f6" />
+          <FloatingBars dados={props.eixos} cor="#3b82f6" />
         </Painel>
 
-        <Painel titulo="Demandas por responsável">
-          <GraficoBarras dados={props.responsaveis} cor="#a855f7" />
+        <Painel titulo="Demandas por responsavel">
+          <FloatingBars dados={props.responsaveis} cor="#a855f7" />
         </Painel>
 
         <Painel titulo="Demandas por setor">
-          <GraficoBarras dados={props.setores} cor="#22c55e" />
+          <FloatingBars dados={props.setores} cor="#22c55e" />
         </Painel>
       </div>
     </div>
@@ -208,46 +152,134 @@ function Painel({
   );
 }
 
-function GraficoBarras({
-  dados,
-  cor,
-}: {
-  dados: Item[];
-  cor: string;
-}) {
-  const lista = dados.slice(0, 8);
+function TrendColumns({ dados }: { dados: EvolucaoItem[] }) {
+  const lista = dados.slice(0, 12);
+  const maximo = Math.max(...lista.map((item) => item.demandas), 1);
 
   if (lista.length === 0) {
     return <p style={vazio}>Nenhum dado encontrado.</p>;
   }
 
   return (
-    <div style={chartNormal}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={lista} layout="vertical" margin={{ left: 8, right: 12 }}>
-          <CartesianGrid stroke="rgba(255,255,255,.08)" strokeDasharray="3 3" />
-          <XAxis type="number" stroke="#fecaca" allowDecimals={false} />
-          <YAxis
-            type="category"
-            dataKey="titulo"
-            stroke="#fecaca"
-            width={132}
-            tick={{ fontSize: 12 }}
-          />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="valor" fill={cor} radius={[0, 10, 10, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div style={trendWrap}>
+      {lista.map((item, index) => {
+        const altura = Math.max(14, (item.demandas / maximo) * 220);
+
+        return (
+          <div
+            key={`${item.mes}-${index}`}
+            style={trendItem}
+            title={`${item.mes}: ${item.demandas}`}
+          >
+            <div style={trendValue}>{item.demandas}</div>
+            <div
+              style={{
+                ...trendBar,
+                height: `${altura}px`,
+                background:
+                  "linear-gradient(180deg, rgba(248,113,113,1), rgba(220,38,38,.22))",
+              }}
+            />
+            <div style={trendLabel}>{item.mes}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-const tooltipStyle = {
-  background: "rgba(15,23,42,.96)",
-  border: "1px solid rgba(252,165,165,.22)",
-  borderRadius: "10px",
-  color: "#fff",
-};
+function StatusDonut({ dados }: { dados: Item[] }) {
+  const total = dados.reduce((soma, item) => soma + item.valor, 0);
+
+  if (dados.length === 0) {
+    return <p style={vazio}>Nenhum dado encontrado.</p>;
+  }
+
+  const acumulados = dados.reduce<number[]>((lista, item, index) => {
+    const anterior = index === 0 ? 0 : lista[index - 1];
+    lista.push(anterior + item.valor);
+    return lista;
+  }, []);
+
+  const gradiente = dados
+    .map((item, index) => {
+      const inicio = index === 0 ? 0 : acumulados[index - 1];
+      const fim = acumulados[index];
+      return `${cores[index % cores.length]} ${(inicio / total) * 100}% ${(fim / total) * 100}%`;
+    })
+    .join(", ");
+
+  return (
+    <div style={donutWrap}>
+      <div
+        style={{
+          ...donut,
+          background: `conic-gradient(${gradiente})`,
+        }}
+      >
+        <div style={donutCenter}>
+          <strong style={donutTotal}>{total}</strong>
+          <span style={donutSub}>demandas</span>
+        </div>
+      </div>
+
+      <div style={donutLegend}>
+        {dados.map((item, index) => (
+          <div key={item.titulo} style={legendRow}>
+            <span
+              style={{
+                ...legendDot,
+                background: cores[index % cores.length],
+              }}
+            />
+            <span style={legendLabel}>{item.titulo}</span>
+            <strong>{item.valor}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FloatingBars({ dados, cor }: { dados: Item[]; cor: string }) {
+  const lista = dados.slice(0, 8);
+  const maximo = Math.max(...lista.map((item) => item.valor), 1);
+
+  if (lista.length === 0) {
+    return <p style={vazio}>Nenhum dado encontrado.</p>;
+  }
+
+  return (
+    <div style={floatingList}>
+      {lista.map((item) => {
+        const largura = Math.max(8, (item.valor / maximo) * 100);
+
+        return (
+          <div
+            key={item.titulo}
+            style={floatingCard}
+            title={`${item.titulo}: ${item.valor}`}
+          >
+            <div style={floatingHeader}>
+              <span style={floatingTitle}>{item.titulo}</span>
+              <strong style={floatingValue}>{item.valor}</strong>
+            </div>
+
+            <div style={floatingTrack}>
+              <div
+                style={{
+                  ...floatingFill,
+                  width: `${largura}%`,
+                  background: `linear-gradient(90deg, ${cor}, rgba(255,255,255,.88))`,
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const hero = {
   display: "flex",
@@ -361,20 +393,159 @@ const sectionTitle = {
   fontSize: "18px",
 };
 
-const chartGrande = {
-  width: "100%",
-  height: "340px",
+const trendWrap = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(42px, 1fr))",
+  alignItems: "end",
+  gap: "12px",
+  minHeight: "300px",
+  paddingTop: "10px",
+  paddingBottom: "8px",
+  borderBottom: "1px solid rgba(255,255,255,.08)",
 };
 
-const chartNormal = {
+const trendItem = {
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  gap: "8px",
+};
+
+const trendValue = {
+  color: "#fecaca",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const trendBar = {
   width: "100%",
-  height: "320px",
+  maxWidth: "44px",
+  borderRadius: "14px 14px 6px 6px",
+  boxShadow: "0 16px 22px rgba(239,68,68,.18)",
+  border: "1px solid rgba(255,255,255,.12)",
+};
+
+const trendLabel = {
+  color: "#cbd5e1",
+  fontSize: "11px",
+  writingMode: "vertical-rl" as const,
+  transform: "rotate(180deg)",
+  minHeight: "56px",
+  textAlign: "center" as const,
+};
+
+const donutWrap = {
+  display: "grid",
+  gridTemplateColumns: "200px 1fr",
+  gap: "18px",
+  alignItems: "center",
+};
+
+const donut = {
+  width: "180px",
+  height: "180px",
+  borderRadius: "999px",
+  position: "relative" as const,
+  boxShadow: "0 22px 38px rgba(0,0,0,.26)",
+};
+
+const donutCenter = {
+  position: "absolute" as const,
+  inset: "24px",
+  borderRadius: "999px",
+  background: "rgba(15,23,42,.98)",
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  justifyContent: "center",
+  color: "white",
+};
+
+const donutTotal = {
+  fontSize: "34px",
+  lineHeight: "34px",
+};
+
+const donutSub = {
+  color: "#cbd5e1",
+  fontSize: "12px",
+  marginTop: "6px",
+};
+
+const donutLegend = {
+  display: "grid",
+  gap: "10px",
+};
+
+const legendRow = {
+  display: "grid",
+  gridTemplateColumns: "12px 1fr auto",
+  gap: "10px",
+  alignItems: "center",
+  color: "#e5e7eb",
+  fontSize: "13px",
+};
+
+const legendDot = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "999px",
+};
+
+const legendLabel = {
+  overflowWrap: "anywhere" as const,
 };
 
 const prazosGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
   gap: "12px",
+};
+
+const floatingList = {
+  display: "grid",
+  gap: "12px",
+};
+
+const floatingCard = {
+  background: "rgba(15,23,42,.72)",
+  border: "1px solid rgba(252,165,165,.14)",
+  borderRadius: "14px",
+  padding: "14px",
+  boxShadow: "0 18px 32px rgba(0,0,0,.18)",
+};
+
+const floatingHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "14px",
+  alignItems: "center",
+  marginBottom: "10px",
+};
+
+const floatingTitle = {
+  color: "#e5e7eb",
+  fontSize: "13px",
+  overflowWrap: "anywhere" as const,
+};
+
+const floatingValue = {
+  color: "#fff",
+  fontSize: "18px",
+};
+
+const floatingTrack = {
+  width: "100%",
+  height: "14px",
+  background: "rgba(255,255,255,.08)",
+  borderRadius: "999px",
+  overflow: "hidden",
+};
+
+const floatingFill = {
+  height: "100%",
+  borderRadius: "999px",
+  boxShadow: "0 10px 22px rgba(255,255,255,.14)",
 };
 
 const vazio = {
