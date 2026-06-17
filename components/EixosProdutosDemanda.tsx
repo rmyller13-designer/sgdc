@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import {
+  CANAL_PARA_PRODUTOS_PADRAO,
+  normalizarTextoComunicacao,
+} from "@/lib/comunicacao-base";
 
 type Eixo = {
   id: number;
@@ -289,8 +293,9 @@ export default function EixosProdutosDemanda({
       return;
     }
 
+    await sincronizarProdutosDoCanal(canalId);
     setCanaisSelecionados((atual) => [...atual, canalId]);
-    setMensagem("Destino adicionado.");
+    setMensagem("Destino adicionado e produtos relacionados atualizados.");
   }
 
   async function adicionarProduto() {
@@ -431,6 +436,80 @@ export default function EixosProdutosDemanda({
 
     setMensagem("Produto removido.");
     removerStatusProdutoLocal(demandaId, produtoIdRemover);
+    notificarAtualizacaoProdutos(demandaId);
+    await carregarDados();
+  }
+
+  async function sincronizarProdutosDoCanal(canalId: number) {
+    const canal = canais.find((item) => item.id === canalId);
+    if (!canal) return;
+
+    const produtosRelacionados =
+      CANAL_PARA_PRODUTOS_PADRAO[normalizarTextoComunicacao(canal.nome)] || [];
+
+    if (produtosRelacionados.length === 0) return;
+
+    const produtosPorNome = new Map(
+      produtos.map((produto) => [
+        normalizarTextoComunicacao(produto.nome),
+        produto,
+      ])
+    );
+
+    for (const nomeProduto of produtosRelacionados) {
+      const produto = produtosPorNome.get(normalizarTextoComunicacao(nomeProduto));
+
+      if (!produto) continue;
+
+      const jaExiste = produtosSelecionados.some(
+        (item) => Number(item.produto_id) === Number(produto.id)
+      );
+
+      if (jaExiste) continue;
+
+      const { error } = await supabase.from("demanda_produtos_quantidade").upsert(
+        {
+          demanda_id: demandaId,
+          produto_id: produto.id,
+          quantidade: 1,
+          status_producao: "ANDAMENTO",
+        },
+        {
+          onConflict: "demanda_id,produto_id",
+        }
+      );
+
+      if (colunaStatusAusente(error)) {
+        const { error: erroSemStatus } = await supabase
+          .from("demanda_produtos_quantidade")
+          .upsert(
+            {
+              demanda_id: demandaId,
+              produto_id: produto.id,
+              quantidade: 1,
+            },
+            {
+              onConflict: "demanda_id,produto_id",
+            }
+          );
+
+        if (erroSemStatus) {
+          setMensagem(
+            "Erro ao sincronizar produto automatico: " + erroSemStatus.message
+          );
+          return;
+        }
+
+        salvarStatusProdutoLocal(demandaId, produto.id, "ANDAMENTO");
+        continue;
+      }
+
+      if (error) {
+        setMensagem("Erro ao sincronizar produto automatico: " + error.message);
+        return;
+      }
+    }
+
     notificarAtualizacaoProdutos(demandaId);
     await carregarDados();
   }

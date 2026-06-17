@@ -65,10 +65,15 @@ export async function POST() {
             { status: 500 }
           );
         }
-      } else if (existente.ativo !== true || existente.descricao !== eixoPadrao.descricao) {
+      } else if (
+        existente.ativo !== true ||
+        existente.descricao !== eixoPadrao.descricao ||
+        existente.nome !== eixoPadrao.nome
+      ) {
         const { error } = await admin
           .from("eixos_comunicacao")
           .update({
+            nome: eixoPadrao.nome,
             descricao: eixoPadrao.descricao,
             ativo: true,
           })
@@ -142,10 +147,15 @@ export async function POST() {
             { status: 500 }
           );
         }
-      } else if (existente.ativo !== true || Number(existente.eixo_id) !== eixoId) {
+      } else if (
+        existente.ativo !== true ||
+        Number(existente.eixo_id) !== eixoId ||
+        existente.nome !== canalPadrao.nome
+      ) {
         const { error } = await admin
           .from("canais_comunicacao")
           .update({
+            nome: canalPadrao.nome,
             eixo_id: eixoId,
             ativo: true,
           })
@@ -206,10 +216,10 @@ export async function POST() {
             { status: 500 }
           );
         }
-      } else if (existente.ativo !== true) {
+      } else if (existente.ativo !== true || existente.nome !== nomeProduto) {
         const { error } = await admin
           .from("produtos")
-          .update({ ativo: true })
+          .update({ nome: nomeProduto, ativo: true })
           .eq("id", existente.id);
 
         if (error) {
