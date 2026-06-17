@@ -45,12 +45,12 @@ export default function ResponsavelDemanda({
     setMensagem("");
 
     if (!podeAtribuir || !usuario) {
-      setMensagem("Seu usuÃ¡rio nÃ£o tem permissÃ£o para atribuir responsÃ¡vel.");
+      setMensagem("Seu usuário não tem permissão para atribuir responsável.");
       return;
     }
 
     if (!responsavelId) {
-      setMensagem("Selecione um responsÃ¡vel.");
+      setMensagem("Selecione um responsável.");
       return;
     }
 
@@ -66,7 +66,7 @@ export default function ResponsavelDemanda({
       .single();
 
     if (error) {
-      setMensagem("Erro ao atualizar responsÃ¡vel: " + error.message);
+      setMensagem("Erro ao atualizar responsável: " + error.message);
       return;
     }
 
@@ -76,15 +76,14 @@ export default function ResponsavelDemanda({
       acao: `${usuario.nome} atribuiu a demanda para ${usuarioSelecionado?.nome}`,
     });
 
-    setMensagem("ResponsÃ¡vel atualizado com sucesso!");
+    setMensagem("Responsável atualizado com sucesso!");
     router.refresh();
   }
 
   return (
     <div style={{ marginTop: "20px" }}>
       <p>
-        <strong>ResponsÃ¡vel atual:</strong>{" "}
-        {responsavelAtual || "NÃ£o definido"}
+        <strong>Responsável atual:</strong> {responsavelAtual || "Não definido"}
       </p>
 
       <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
@@ -94,7 +93,7 @@ export default function ResponsavelDemanda({
           style={campo}
           disabled={!podeAtribuir}
         >
-          <option value="">Selecione o responsÃ¡vel</option>
+          <option value="">Selecione o responsável</option>
 
           {usuarios.map((item) => (
             <option key={item.id} value={item.id}>
@@ -103,8 +102,13 @@ export default function ResponsavelDemanda({
           ))}
         </select>
 
-        <button type="button" onClick={atualizarResponsavel} style={botao} disabled={!podeAtribuir}>
-          Atualizar ResponsÃ¡vel
+        <button
+          type="button"
+          onClick={atualizarResponsavel}
+          style={botao}
+          disabled={!podeAtribuir}
+        >
+          Atualizar Responsável
         </button>
       </div>
 

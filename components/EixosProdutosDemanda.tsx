@@ -445,7 +445,7 @@ export default function EixosProdutosDemanda({
       <h3 style={{ marginTop: "30px" }}>3. Produtos produzidos</h3>
 
       <p style={descricao}>
-        Aqui vocÃª informa apenas o que realmente foi produzido nesta demanda.
+        Aqui você informa apenas o que realmente foi produzido nesta demanda.
       </p>
 
       <div style={linha}>
@@ -558,7 +558,7 @@ export default function EixosProdutosDemanda({
 
 const statusOpcoes: { valor: StatusProducao; label: string }[] = [
   { valor: "ANDAMENTO", label: "Andamento" },
-  { valor: "CONCLUIDO", label: "ConcluÃ­do" },
+  { valor: "CONCLUIDO", label: "Concluído" },
   { valor: "CANCELADO", label: "Cancelado" },
 ];
 

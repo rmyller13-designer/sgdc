@@ -23,7 +23,7 @@ export default function StatusDemanda({
     setMensagem("");
 
     if (!podeEditar || !usuario) {
-      setMensagem("Seu usuÃ¡rio nÃ£o tem permissÃ£o para alterar status.");
+      setMensagem("Seu usuário não tem permissão para alterar status.");
       return;
     }
 
@@ -72,13 +72,18 @@ export default function StatusDemanda({
           disabled={!podeEditar}
         >
           <option value="RECEBIDO">RECEBIDO</option>
-          <option value="EM_PRODUCAO">EM_PRODUCAO</option>
-          <option value="EM_APROVACAO">EM_APROVACAO</option>
-          <option value="CONCLUIDO">CONCLUIDO</option>
+          <option value="EM_PRODUCAO">EM_PRODUÇÃO</option>
+          <option value="EM_APROVACAO">EM_APROVAÇÃO</option>
+          <option value="CONCLUIDO">CONCLUÍDO</option>
           <option value="CANCELADO">CANCELADO</option>
         </select>
 
-        <button type="button" onClick={atualizarStatus} style={botao} disabled={!podeEditar}>
+        <button
+          type="button"
+          onClick={atualizarStatus}
+          style={botao}
+          disabled={!podeEditar}
+        >
           Atualizar
         </button>
       </div>

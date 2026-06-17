@@ -35,7 +35,7 @@ export default async function Relatorios({
   const total = demandas.length;
 
   function nomeResponsavel(demanda: DemandaRelatorio) {
-    return demanda.responsavel || demanda.cadastrado_por || "NÃ£o atribuÃ­do";
+    return demanda.responsavel || demanda.cadastrado_por || "Não atribuído";
   }
 
   const porStatus = demandas.reduce<Record<string, number>>((acc, demanda) => {
@@ -64,29 +64,41 @@ export default async function Relatorios({
 
   return (
     <div>
-      <h1>RelatÃ³rios</h1>
+      <h1>Relatórios</h1>
 
       <form style={form}>
         <div>
           <label>Data inicial</label>
-          <input type="date" name="inicio" defaultValue={params.inicio || ""} style={campo} />
+          <input
+            type="date"
+            name="inicio"
+            defaultValue={params.inicio || ""}
+            style={campo}
+          />
         </div>
 
         <div>
           <label>Data final</label>
-          <input type="date" name="fim" defaultValue={params.fim || ""} style={campo} />
+          <input
+            type="date"
+            name="fim"
+            defaultValue={params.fim || ""}
+            style={campo}
+          />
         </div>
 
-        <button type="submit" style={botao}>Filtrar</button>
+        <button type="submit" style={botao}>
+          Filtrar
+        </button>
       </form>
 
       <h2 style={{ marginTop: "30px" }}>Resumo</h2>
 
       <div style={grid}>
-        <Card titulo="Total no perÃ­odo" valor={total} />
+        <Card titulo="Total no período" valor={total} />
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por Status</h2>
+      <h2 style={{ marginTop: "30px" }}>Produção por Status</h2>
 
       <div style={grid}>
         {Object.entries(porStatus).map(([status, quantidade]) => (
@@ -94,7 +106,7 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por Produto</h2>
+      <h2 style={{ marginTop: "30px" }}>Produção por Produto</h2>
 
       <div style={grid}>
         {Object.entries(porProduto).map(([produto, quantidade]) => (
@@ -102,7 +114,7 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por ResponsÃ¡vel</h2>
+      <h2 style={{ marginTop: "30px" }}>Produção por Responsável</h2>
 
       <div style={grid}>
         {Object.entries(porResponsavel).map(([responsavel, quantidade]) => (
@@ -110,7 +122,7 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>ProduÃ§Ã£o por Setor</h2>
+      <h2 style={{ marginTop: "30px" }}>Produção por Setor</h2>
 
       <div style={grid}>
         {Object.entries(porSetor).map(([setor, quantidade]) => (
@@ -118,15 +130,15 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>Demandas do perÃ­odo</h2>
+      <h2 style={{ marginTop: "40px" }}>Demandas do período</h2>
 
       <table style={table}>
         <thead>
           <tr>
             <th style={th}>ID</th>
-            <th style={th}>TÃ­tulo</th>
+            <th style={th}>Título</th>
             <th style={th}>Produto</th>
-            <th style={th}>ResponsÃ¡vel</th>
+            <th style={th}>Responsável</th>
             <th style={th}>Setor</th>
             <th style={th}>Status</th>
             <th style={th}>Data</th>
@@ -138,7 +150,10 @@ export default async function Relatorios({
             <tr key={demanda.id}>
               <td style={td}>{demanda.id}</td>
               <td style={td}>
-                <a href={`/demandas/${demanda.id}`} style={{ color: "#93c5fd", textDecoration: "none" }}>
+                <a
+                  href={`/demandas/${demanda.id}`}
+                  style={{ color: "#93c5fd", textDecoration: "none" }}
+                >
                   {demanda.titulo}
                 </a>
               </td>

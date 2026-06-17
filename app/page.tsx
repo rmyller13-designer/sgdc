@@ -41,34 +41,45 @@ export default async function Dashboard() {
   const total = demandas?.length || 0;
 
   const recebidas = demandas?.filter((d) => d.status === "RECEBIDO").length || 0;
-  const emProducao = demandas?.filter((d) => d.status === "EM_PRODUCAO").length || 0;
-  const emAprovacao = demandas?.filter((d) => d.status === "EM_APROVACAO").length || 0;
-  const apParaPublicar = demandas?.filter((d) => d.status === "AP_PARA_PUBLICAR").length || 0;
-  const concluidas = demandas?.filter((d) => d.status === "CONCLUIDO").length || 0;
-  const canceladas = demandas?.filter((d) => d.status === "CANCELADO").length || 0;
+  const emProducao =
+    demandas?.filter((d) => d.status === "EM_PRODUCAO").length || 0;
+  const emAprovacao =
+    demandas?.filter((d) => d.status === "EM_APROVACAO").length || 0;
+  const apParaPublicar =
+    demandas?.filter((d) => d.status === "AP_PARA_PUBLICAR").length || 0;
+  const concluidas =
+    demandas?.filter((d) => d.status === "CONCLUIDO").length || 0;
+  const canceladas =
+    demandas?.filter((d) => d.status === "CANCELADO").length || 0;
 
   const prazos = calcularResumoPrazos(demandas || []);
 
   const porResponsavel =
-    (demandas as DemandaDashboard[] | null)?.reduce<Record<string, number>>((acc, demanda) => {
-      const nome = demanda.responsavel || "Não atribuído";
-      acc[nome] = (acc[nome] || 0) + 1;
-      return acc;
-    }, {}) || {};
+    (demandas as DemandaDashboard[] | null)?.reduce<Record<string, number>>(
+      (acc, demanda) => {
+        const nome = demanda.responsavel || "Não atribuído";
+        acc[nome] = (acc[nome] || 0) + 1;
+        return acc;
+      },
+      {}
+    ) || {};
 
   const porSetor =
-    (demandas as DemandaDashboard[] | null)?.reduce<Record<string, number>>((acc, demanda) => {
-      const setor = demanda.setor || "Sem setor";
-      acc[setor] = (acc[setor] || 0) + 1;
-      return acc;
-    }, {}) || {};
+    (demandas as DemandaDashboard[] | null)?.reduce<Record<string, number>>(
+      (acc, demanda) => {
+        const setor = demanda.setor || "Sem setor";
+        acc[setor] = (acc[setor] || 0) + 1;
+        return acc;
+      },
+      {}
+    ) || {};
 
   return (
     <div>
       <div style={logoWrap}>
         <Image
           src="/logo-sc.png"
-          alt="Logomarca da instituicao"
+          alt="Logomarca da instituição"
           width={220}
           height={220}
           priority
@@ -81,7 +92,8 @@ export default async function Dashboard() {
           <p style={eyebrow}>Painel Executivo</p>
           <h1 style={title}>Dashboard ASCOM STACASA</h1>
           <p style={subtitle}>
-            Visão geral das demandas, produção, prazos, canais e eixos da Comunicação.
+            Visão geral das demandas, produção, prazos, canais e eixos da
+            Comunicação.
           </p>
         </div>
 
@@ -100,19 +112,19 @@ export default async function Dashboard() {
         <Card titulo="Canceladas" valor={canceladas} />
       </div>
 
-      <h2 style={sectionTitle}>🚦 Controle de Prazos</h2>
+      <h2 style={sectionTitle}>Controle de Prazos</h2>
 
       <div style={gridResumo}>
-        <Card titulo="🔴 Atrasadas" valor={prazos.atrasadas} alerta />
-        <Card titulo="🟡 Vencem Hoje" valor={prazos.hoje} />
-        <Card titulo="🟠 Até 3 dias" valor={prazos.ateTresDias} />
-        <Card titulo="🟢 No Prazo" valor={prazos.noPrazo} />
-        <Card titulo="⚪ Sem Prazo" valor={prazos.semPrazo} />
+        <Card titulo="Atrasadas" valor={prazos.atrasadas} alerta />
+        <Card titulo="Vencem Hoje" valor={prazos.hoje} />
+        <Card titulo="Até 3 dias" valor={prazos.ateTresDias} />
+        <Card titulo="No Prazo" valor={prazos.noPrazo} />
+        <Card titulo="Sem Prazo" valor={prazos.semPrazo} />
       </div>
 
       <div style={layout}>
         <section style={painel}>
-          <h2 style={sectionTitle}>📦 Produtos mais produzidos</h2>
+          <h2 style={sectionTitle}>Produtos mais produzidos</h2>
 
           {produtos && produtos.length > 0 ? (
             produtos.map((item) => (
@@ -128,7 +140,7 @@ export default async function Dashboard() {
         </section>
 
         <section style={painel}>
-          <h2 style={sectionTitle}>📍 Canais mais utilizados</h2>
+          <h2 style={sectionTitle}>Canais mais utilizados</h2>
 
           {canais && canais.length > 0 ? (
             canais.map((item) => (
@@ -144,7 +156,7 @@ export default async function Dashboard() {
         </section>
 
         <section style={painel}>
-          <h2 style={sectionTitle}>📢 Eixos mais utilizados</h2>
+          <h2 style={sectionTitle}>Eixos mais utilizados</h2>
 
           {eixos && eixos.length > 0 ? (
             eixos.map((item) => (
@@ -162,26 +174,18 @@ export default async function Dashboard() {
 
       <div style={layoutDois}>
         <section style={painel}>
-          <h2 style={sectionTitle}>👤 Demandas por responsável</h2>
+          <h2 style={sectionTitle}>Demandas por responsável</h2>
 
           {Object.entries(porResponsavel).map(([nome, quantidade]) => (
-            <LinhaRanking
-              key={nome}
-              titulo={nome}
-              valor={quantidade as number}
-            />
+            <LinhaRanking key={nome} titulo={nome} valor={quantidade as number} />
           ))}
         </section>
 
         <section style={painel}>
-          <h2 style={sectionTitle}>🏢 Demandas por setor</h2>
+          <h2 style={sectionTitle}>Demandas por setor</h2>
 
           {Object.entries(porSetor).map(([setor, quantidade]) => (
-            <LinhaRanking
-              key={setor}
-              titulo={setor}
-              valor={quantidade as number}
-            />
+            <LinhaRanking key={setor} titulo={setor} valor={quantidade as number} />
           ))}
         </section>
       </div>
@@ -324,12 +328,14 @@ const card = {
 
 const cardDestaque = {
   ...card,
-  background: "linear-gradient(135deg, rgba(220,38,38,0.95), rgba(127,29,29,0.95))",
+  background:
+    "linear-gradient(135deg, rgba(220,38,38,0.95), rgba(127,29,29,0.95))",
 };
 
 const cardAlerta = {
   ...card,
-  background: "linear-gradient(135deg, rgba(127,29,29,0.98), rgba(239,68,68,0.75))",
+  background:
+    "linear-gradient(135deg, rgba(127,29,29,0.98), rgba(239,68,68,0.75))",
 };
 
 const cardTitulo = {
