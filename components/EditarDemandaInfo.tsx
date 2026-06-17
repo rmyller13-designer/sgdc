@@ -52,6 +52,26 @@ async function sincronizarPrioridades() {
   return resultado.data || [];
 }
 
+async function sincronizarBaseComunicacao() {
+  const response = await fetch("/api/comunicacao-base/sync", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    return {
+      produtos: [] as Opcao[],
+    };
+  }
+
+  const resultado = (await response.json()) as {
+    data?: { produtos?: Opcao[] };
+  };
+
+  return {
+    produtos: resultado.data?.produtos || [],
+  };
+}
+
 type DemandaRow = {
   titulo: string | null;
   descricao: string | null;
@@ -128,8 +148,16 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     setSetores(
       listaSetores.length > 0 ? listaSetores : await sincronizarSetores()
     );
+    const listaProdutos = (produtosData as Opcao[] | null) || [];
+    const baseComunicacao =
+      listaProdutos.length === 0 ? await sincronizarBaseComunicacao() : null;
+
     setUsuarios((usuariosData as Opcao[] | null) || []);
-    setProdutos((produtosData as Opcao[] | null) || []);
+    setProdutos(
+      baseComunicacao?.produtos?.length
+        ? baseComunicacao.produtos
+        : listaProdutos
+    );
     setPrioridades(
       listaPrioridades.length > 0
         ? listaPrioridades

@@ -45,6 +45,36 @@ type ProdutoSelecionadoSemStatusSupabase = Omit<
   "status_producao"
 >;
 
+type BaseComunicacaoSync = {
+  data?: {
+    eixos?: Eixo[];
+    canais?: Canal[];
+    produtos?: Produto[];
+  };
+};
+
+async function sincronizarBaseComunicacao() {
+  const response = await fetch("/api/comunicacao-base/sync", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    return {
+      eixos: [] as Eixo[],
+      canais: [] as Canal[],
+      produtos: [] as Produto[],
+    };
+  }
+
+  const resultado = (await response.json()) as BaseComunicacaoSync;
+
+  return {
+    eixos: resultado.data?.eixos || [],
+    canais: resultado.data?.canais || [],
+    produtos: resultado.data?.produtos || [],
+  };
+}
+
 export default function EixosProdutosDemanda({
   demandaId,
 }: {
@@ -69,19 +99,19 @@ export default function EixosProdutosDemanda({
     const { data: eixosData } = await supabase
       .from("eixos_comunicacao")
       .select("*")
-      .eq("ativo", true)
+      .or("ativo.is.null,ativo.eq.true")
       .order("nome");
 
     const { data: canaisData } = await supabase
       .from("canais_comunicacao")
       .select("*")
-      .eq("ativo", true)
+      .or("ativo.is.null,ativo.eq.true")
       .order("nome");
 
     const { data: produtosData } = await supabase
       .from("produtos")
       .select("id, nome")
-      .eq("ativo", true)
+      .or("ativo.is.null,ativo.eq.true")
       .order("nome");
 
     const { data: eixosMarcados } = await supabase
@@ -115,9 +145,23 @@ export default function EixosProdutosDemanda({
       produtosMarcadosLista = produtosSemStatus;
     }
 
-    setEixos(eixosData || []);
-    setCanais(canaisData || []);
-    setProdutos(produtosData || []);
+    const listaEixos = (eixosData || []) as Eixo[];
+    const listaCanais = (canaisData || []) as Canal[];
+    const listaProdutos = (produtosData || []) as Produto[];
+    const baseSincronizada =
+      listaEixos.length === 0 || listaCanais.length === 0 || listaProdutos.length === 0
+        ? await sincronizarBaseComunicacao()
+        : null;
+
+    setEixos(baseSincronizada?.eixos?.length ? baseSincronizada.eixos : listaEixos);
+    setCanais(
+      baseSincronizada?.canais?.length ? baseSincronizada.canais : listaCanais
+    );
+    setProdutos(
+      baseSincronizada?.produtos?.length
+        ? baseSincronizada.produtos
+        : listaProdutos
+    );
 
     setEixosSelecionados(eixosMarcados?.map((item) => item.eixo_id) || []);
     setCanaisSelecionados(canaisMarcados?.map((item) => item.canal_id) || []);
