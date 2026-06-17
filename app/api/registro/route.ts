@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     const acessoAtual = await buscarAcessoAtual(admin, usuarioId);
 
-    const createdUser = await criarOuAtualizarContaAuth({
+    let createdUser = await criarOuAtualizarContaAuth({
       admin,
       email,
       senha,
@@ -69,6 +69,28 @@ export async function POST(request: Request) {
       authUserIdAtual: acessoAtual?.auth_user_id || null,
       emailAtualUsuario: usuario.email?.trim().toLowerCase() || null,
     });
+
+    if (!createdUser.ok || !createdUser.user) {
+      const resetResultado = await resetarContaInternaQuebrada({
+        admin,
+        usuarioId,
+        emailNovo: email,
+        emailAtualUsuario: usuario.email?.trim().toLowerCase() || null,
+        authUserIdAtual: acessoAtual?.auth_user_id || null,
+      });
+
+      if (resetResultado.ok) {
+        createdUser = await criarOuAtualizarContaAuth({
+          admin,
+          email,
+          senha,
+          usuarioId,
+          nome: usuario.nome,
+          authUserIdAtual: null,
+          emailAtualUsuario: null,
+        });
+      }
+    }
 
     if (!createdUser.ok || !createdUser.user) {
       return NextResponse.json(
@@ -369,6 +391,56 @@ async function limparConflitosDeAcesso(
     .from("usuarios_acesso")
     .delete()
     .eq("auth_user_id", authUserId);
+}
+
+async function resetarContaInternaQuebrada(args: {
+  admin: ReturnType<typeof criarSupabaseAdmin>;
+  usuarioId: number;
+  emailNovo: string;
+  emailAtualUsuario: string | null;
+  authUserIdAtual: string | null;
+}) {
+  const { admin, usuarioId, emailNovo, emailAtualUsuario, authUserIdAtual } = args;
+  const candidatos = new Set<string>();
+
+  if (authUserIdAtual) {
+    candidatos.add(authUserIdAtual);
+  }
+
+  if (emailAtualUsuario) {
+    const usuarioAntigo = await buscarUsuarioAuthPorEmail(admin, emailAtualUsuario);
+    if (usuarioAntigo?.id) {
+      candidatos.add(usuarioAntigo.id);
+    }
+  }
+
+  if (emailNovo) {
+    const usuarioNovo = await buscarUsuarioAuthPorEmail(admin, emailNovo);
+    if (usuarioNovo?.id) {
+      const conflito = await buscarAcessoPorAuthUserId(admin, usuarioNovo.id);
+      if (!conflito || Number(conflito.usuario_comunicacao_id) === usuarioId) {
+        candidatos.add(usuarioNovo.id);
+      }
+    }
+  }
+
+  await admin.from("usuarios_acesso").delete().eq("usuario_comunicacao_id", usuarioId);
+
+  for (const authUserId of candidatos) {
+    await admin.from("usuarios_acesso").delete().eq("auth_user_id", authUserId);
+    await admin.auth.admin.deleteUser(authUserId);
+  }
+
+  const { error } = await admin
+    .from("usuarios_comunicacao")
+    .update({ email: null })
+    .eq("id", usuarioId);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, error: undefined };
 }
 
 function traduzirErroAuthAdmin(mensagem: string) {
