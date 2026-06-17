@@ -35,6 +35,19 @@ async function sincronizarSetores() {
   return resultado.data || [];
 }
 
+async function sincronizarPrioridades() {
+  const response = await fetch("/api/prioridades/sync", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    return [] as Opcao[];
+  }
+
+  const resultado = (await response.json()) as { data?: Opcao[] };
+  return resultado.data || [];
+}
+
 export default function NovaDemanda() {
   const router = useRouter();
   const { usuario } = useAuth();
@@ -70,11 +83,16 @@ export default function NovaDemanda() {
 
     const listaUsuarios = (usuariosData as Opcao[] | null) || [];
     const listaSetores = (setoresData as Opcao[] | null) || [];
+    const listaPrioridades = (prioridadesData as Opcao[] | null) || [];
     const setoresCarregados =
       listaSetores.length > 0 ? listaSetores : await sincronizarSetores();
+    const prioridadesCarregadas =
+      listaPrioridades.length > 0
+        ? listaPrioridades
+        : await sincronizarPrioridades();
 
     setSetores(setoresCarregados);
-    setPrioridades((prioridadesData as Opcao[] | null) || []);
+    setPrioridades(prioridadesCarregadas);
     setUsuarios(listaUsuarios);
 
     if (usuario && listaUsuarios.some((item) => item.id === usuario.id)) {

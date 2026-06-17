@@ -39,6 +39,19 @@ async function sincronizarSetores() {
   return resultado.data || [];
 }
 
+async function sincronizarPrioridades() {
+  const response = await fetch("/api/prioridades/sync", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    return [] as Opcao[];
+  }
+
+  const resultado = (await response.json()) as { data?: Opcao[] };
+  return resultado.data || [];
+}
+
 type DemandaRow = {
   titulo: string | null;
   descricao: string | null;
@@ -110,12 +123,17 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     }
 
     const listaSetores = (setoresData as Opcao[] | null) || [];
+    const listaPrioridades = (prioridadesData as Opcao[] | null) || [];
     setSetores(
       listaSetores.length > 0 ? listaSetores : await sincronizarSetores()
     );
     setUsuarios((usuariosData as Opcao[] | null) || []);
     setProdutos((produtosData as Opcao[] | null) || []);
-    setPrioridades((prioridadesData as Opcao[] | null) || []);
+    setPrioridades(
+      listaPrioridades.length > 0
+        ? listaPrioridades
+        : await sincronizarPrioridades()
+    );
   }, [demandaId]);
 
   useEffect(() => {
