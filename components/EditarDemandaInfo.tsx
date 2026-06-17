@@ -26,6 +26,19 @@ type Opcao = {
   nome: string;
 };
 
+async function sincronizarSetores() {
+  const response = await fetch("/api/setores/sync", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    return [] as Opcao[];
+  }
+
+  const resultado = (await response.json()) as { data?: Opcao[] };
+  return resultado.data || [];
+}
+
 type DemandaRow = {
   titulo: string | null;
   descricao: string | null;
@@ -96,7 +109,10 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
       setValoresSalvos(proximoForm);
     }
 
-    setSetores((setoresData as Opcao[] | null) || []);
+    const listaSetores = (setoresData as Opcao[] | null) || [];
+    setSetores(
+      listaSetores.length > 0 ? listaSetores : await sincronizarSetores()
+    );
     setUsuarios((usuariosData as Opcao[] | null) || []);
     setProdutos((produtosData as Opcao[] | null) || []);
     setPrioridades((prioridadesData as Opcao[] | null) || []);

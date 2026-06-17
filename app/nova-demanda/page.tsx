@@ -22,6 +22,19 @@ type Opcao = {
   ativo?: boolean | null;
 };
 
+async function sincronizarSetores() {
+  const response = await fetch("/api/setores/sync", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    return [] as Opcao[];
+  }
+
+  const resultado = (await response.json()) as { data?: Opcao[] };
+  return resultado.data || [];
+}
+
 export default function NovaDemanda() {
   const router = useRouter();
   const { usuario } = useAuth();
@@ -56,8 +69,11 @@ export default function NovaDemanda() {
       .order("nome");
 
     const listaUsuarios = (usuariosData as Opcao[] | null) || [];
+    const listaSetores = (setoresData as Opcao[] | null) || [];
+    const setoresCarregados =
+      listaSetores.length > 0 ? listaSetores : await sincronizarSetores();
 
-    setSetores((setoresData as Opcao[] | null) || []);
+    setSetores(setoresCarregados);
     setPrioridades((prioridadesData as Opcao[] | null) || []);
     setUsuarios(listaUsuarios);
 
