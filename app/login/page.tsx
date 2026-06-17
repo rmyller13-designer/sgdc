@@ -117,8 +117,6 @@ export default function LoginPage() {
           {carregando ? "Aguarde..." : "Entrar"}
         </button>
 
-        <p style={ajudaSenha}>Senha padrao: Ascon.2026</p>
-
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
       </section>
     </div>
@@ -216,13 +214,6 @@ const botao = {
   cursor: "pointer",
   fontWeight: 700,
   marginTop: "18px",
-};
-
-const ajudaSenha = {
-  color: "#bbf7d0",
-  marginTop: "14px",
-  marginBottom: 0,
-  fontSize: "13px",
 };
 
 const mensagemStyle = {

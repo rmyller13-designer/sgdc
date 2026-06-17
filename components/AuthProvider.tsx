@@ -32,7 +32,7 @@ type AuthContextValue = {
   recarregarUsuario: () => Promise<void>;
 };
 
-const SENHA_PADRAO = "Ascon.2026";
+const SENHA_PADRAO = "Ascom.2026";
 const STORAGE_KEY = "sgdc_usuario";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
