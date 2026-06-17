@@ -104,7 +104,8 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
           "titulo, descricao, setor_id, usuario_comunicacao_id, produto_id, prioridade_id, data_entrega, criado_em"
         )
         .eq("id", demandaId)
-        .single<DemandaRow>(),
+        .limit(1)
+        .maybeSingle<DemandaRow>(),
       supabase.from("setores").select("id, nome").order("nome"),
       supabase.from("usuarios_comunicacao").select("id, nome").order("nome"),
       supabase.from("produtos").select("id, nome").order("nome"),

@@ -40,7 +40,8 @@ export default async function DetalheDemanda({
     .from("demandas_completas")
     .select("*")
     .eq("id", demandaId)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   const { data: anexos } = await supabase
     .from("demanda_anexos")
