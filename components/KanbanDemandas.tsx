@@ -266,7 +266,10 @@ export default function KanbanDemandas({
                       )}
 
                       {demandasDaColuna.map((demanda, index) => {
-                        const prazo = calcularPrazo(demanda.data_entrega);
+                        const prazo = calcularPrazo(
+                          demanda.data_entrega,
+                          demanda.status
+                        );
 
                         return (
                           <Draggable
@@ -455,7 +458,23 @@ function formatarData(data: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-function calcularPrazo(dataEntrega?: string | null) {
+function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
+  if (status === "CONCLUIDO") {
+    return {
+      texto: "Concluida",
+      cor: "#22c55e",
+      tipo: "concluido",
+    };
+  }
+
+  if (status === "CANCELADO") {
+    return {
+      texto: "Cancelada",
+      cor: "#94a3b8",
+      tipo: "cancelado",
+    };
+  }
+
   if (!dataEntrega) {
     return {
       texto: "⚪ Sem prazo",

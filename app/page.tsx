@@ -141,6 +141,10 @@ function calcularResumoPrazos(demandas: DemandaDashboard[]) {
   hoje.setHours(0, 0, 0, 0);
 
   demandas.forEach((demanda) => {
+    if (demanda.status === "CONCLUIDO" || demanda.status === "CANCELADO") {
+      return;
+    }
+
     if (!demanda.data_entrega) {
       resumo.semPrazo += 1;
       return;
