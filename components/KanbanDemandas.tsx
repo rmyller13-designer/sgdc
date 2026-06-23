@@ -726,6 +726,7 @@ const cards = {
 
 const card = {
   position: "relative" as const,
+  flexShrink: 0,
   background: "#18181b",
   borderRadius: "14px",
   color: "white",
