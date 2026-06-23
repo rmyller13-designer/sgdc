@@ -265,6 +265,12 @@ export default function KanbanDemandas({
                           ...temaStatus.badge,
                         }}
                       >
+                        <span
+                          style={{
+                            ...statusDot,
+                            background: temaStatus.dot,
+                          }}
+                        />
                         {status.titulo}
                       </h2>
                       <span
@@ -632,6 +638,7 @@ function estiloStatus(status: string) {
         border: "1px solid rgba(82, 82, 91, 0.88)",
         color: "#fafafa",
       },
+      dot: "#e4e4e7",
       contador: {
         background: "rgba(63, 63, 70, 0.54)",
         border: "1px solid rgba(82, 82, 91, 0.78)",
@@ -651,6 +658,7 @@ function estiloStatus(status: string) {
         border: "1px solid rgba(167, 139, 250, 0.78)",
         color: "#ffffff",
       },
+      dot: "#f5f3ff",
       contador: {
         background: "rgba(88, 64, 205, 0.44)",
         border: "1px solid rgba(129, 140, 248, 0.55)",
@@ -670,6 +678,7 @@ function estiloStatus(status: string) {
         border: "1px solid rgba(232, 121, 249, 0.7)",
         color: "#ffffff",
       },
+      dot: "#fdf4ff",
       contador: {
         background: "rgba(168, 85, 247, 0.28)",
         border: "1px solid rgba(216, 180, 254, 0.42)",
@@ -689,6 +698,7 @@ function estiloStatus(status: string) {
         border: "1px solid rgba(252, 165, 165, 0.68)",
         color: "#ffffff",
       },
+      dot: "#fff1f2",
       contador: {
         background: "rgba(239, 68, 68, 0.22)",
         border: "1px solid rgba(248, 113, 113, 0.36)",
@@ -708,6 +718,7 @@ function estiloStatus(status: string) {
         border: "1px solid rgba(94, 234, 212, 0.7)",
         color: "#ffffff",
       },
+      dot: "#f0fdfa",
       contador: {
         background: "rgba(16, 185, 129, 0.22)",
         border: "1px solid rgba(74, 222, 128, 0.34)",
@@ -726,6 +737,7 @@ function estiloStatus(status: string) {
       border: "1px solid rgba(148, 163, 184, 0.58)",
       color: "#ffffff",
     },
+    dot: "#f8fafc",
     contador: {
       background: "rgba(71, 85, 105, 0.26)",
       border: "1px solid rgba(148, 163, 184, 0.3)",
@@ -831,13 +843,24 @@ const colunaHeader = {
 const colunaTitulo = {
   fontSize: "12px",
   margin: 0,
-  padding: "4px 8px",
+  padding: "4px 9px",
   borderRadius: "999px",
   textTransform: "uppercase" as const,
   letterSpacing: "0.03em",
   color: "#f4f4f5",
   border: "1px solid transparent",
   lineHeight: 1,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "6px",
+};
+
+const statusDot = {
+  width: "10px",
+  height: "10px",
+  minWidth: "10px",
+  borderRadius: "999px",
+  boxShadow: "0 0 0 2px rgba(255,255,255,0.9) inset",
 };
 
 const contador = {

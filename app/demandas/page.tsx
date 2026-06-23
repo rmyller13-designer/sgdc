@@ -51,19 +51,21 @@ export default async function Demandas() {
 
   return (
     <div style={pageShell}>
-      <h1>Demandas</h1>
+      <div style={kanbanSurface}>
+        <h1>Demandas</h1>
 
-      <p style={subtitulo}>
-        Visualizacao em Kanban por status. Arraste os cards para alterar o
-        status.
-      </p>
+        <p style={subtitulo}>
+          Visualizacao em Kanban por status. Arraste os cards para alterar o
+          status.
+        </p>
 
-      {error && (
-        <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
-      )}
+        {error && (
+          <pre style={{ color: "#fca5a5" }}>{JSON.stringify(error, null, 2)}</pre>
+        )}
 
-      <div style={boardShell}>
-        <KanbanDemandas demandas={demandasComPreview} />
+        <div style={boardShell}>
+          <KanbanDemandas demandas={demandasComPreview} />
+        </div>
       </div>
     </div>
   );
@@ -77,6 +79,19 @@ const pageShell = {
   overflow: "hidden" as const,
 };
 
+const kanbanSurface = {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column" as const,
+  padding: "18px",
+  borderRadius: "18px",
+  background:
+    "linear-gradient(180deg, rgba(10, 10, 12, 0.78), rgba(17, 17, 20, 0.9))",
+  border: "1px solid rgba(255, 255, 255, 0.06)",
+  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.22)",
+};
+
 const boardShell = {
   flex: 1,
   minHeight: 0,
@@ -84,7 +99,7 @@ const boardShell = {
 };
 
 const subtitulo = {
-  color: "#fecaca",
+  color: "#d4d4d8",
   marginTop: "6px",
   marginBottom: "18px",
 };
