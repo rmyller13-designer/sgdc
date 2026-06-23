@@ -779,18 +779,18 @@ const toolbar = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "10px",
+  gap: "8px",
   flexWrap: "wrap" as const,
-  marginBottom: "10px",
+  marginBottom: "8px",
 };
 
 const buscaWrap = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "8px",
-  minWidth: "220px",
-  padding: "0 12px",
-  height: "38px",
+  gap: "6px",
+  minWidth: "190px",
+  padding: "0 10px",
+  height: "32px",
   borderRadius: "999px",
   background: "rgba(24, 24, 27, 0.88)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -801,13 +801,13 @@ const controlesWrap = {
   alignItems: "center",
   justifyContent: "flex-end",
   flexWrap: "wrap" as const,
-  gap: "8px",
+  gap: "6px",
   flex: 1,
 };
 
 const toolbarIcon = {
   color: "#71717a",
-  fontSize: "11px",
+  fontSize: "10px",
   fontWeight: 700,
 };
 
@@ -816,16 +816,16 @@ const campoBuscaCompacto = {
   border: "none",
   color: "white",
   outline: "none",
-  width: "240px",
-  fontSize: "13px",
+  width: "180px",
+  fontSize: "12px",
 };
 
 const filtroChip = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "7px",
-  height: "38px",
-  padding: "0 12px",
+  gap: "6px",
+  height: "32px",
+  padding: "0 10px",
   borderRadius: "999px",
   background: "rgba(24, 24, 27, 0.88)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -833,7 +833,7 @@ const filtroChip = {
 
 const chipLabel = {
   color: "#a1a1aa",
-  fontSize: "12px",
+  fontSize: "11px",
   whiteSpace: "nowrap" as const,
 };
 
@@ -842,8 +842,9 @@ const selectCompacto = {
   border: "none",
   color: "white",
   outline: "none",
-  fontSize: "13px",
-  paddingRight: "8px",
+  fontSize: "12px",
+  paddingRight: "4px",
+  maxWidth: "120px",
 };
 
 const botaoLimpar = {
@@ -851,10 +852,10 @@ const botaoLimpar = {
   border: "1px solid rgba(255,255,255,0.08)",
   color: "#d4d4d8",
   borderRadius: "999px",
-  height: "38px",
-  padding: "0 14px",
+  height: "32px",
+  padding: "0 11px",
   cursor: "pointer",
-  fontSize: "12px",
+  fontSize: "11px",
 };
 
 const botaoLimparAtivo = {
