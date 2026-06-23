@@ -59,6 +59,12 @@ export default function KanbanDemandas({
   const prioridades = pegarUnicos(
     lista.map((d) => d.prioridade).filter(Boolean)
   );
+  const filtrosAtivos = [
+    filtroTexto,
+    filtroSetor,
+    filtroResponsavel,
+    filtroPrioridade,
+  ].filter(Boolean).length;
 
   const listaFiltrada = lista.filter((demanda) => {
     const texto = filtroTexto.toLowerCase();
@@ -186,57 +192,78 @@ export default function KanbanDemandas({
 
   return (
     <div style={raiz}>
-      <div style={filtrosBox}>
-        <input
-          type="text"
-          placeholder="Buscar por titulo, responsavel ou etiqueta..."
-          value={filtroTexto}
-          onChange={(e) => setFiltroTexto(e.target.value)}
-          style={campoFiltro}
-        />
+      <div style={toolbar}>
+        <div style={buscaWrap}>
+          <span style={toolbarIcon}>Q</span>
+          <input
+            type="text"
+            placeholder="Pesquisar"
+            value={filtroTexto}
+            onChange={(e) => setFiltroTexto(e.target.value)}
+            style={campoBuscaCompacto}
+          />
+        </div>
 
-        <select
-          value={filtroSetor}
-          onChange={(e) => setFiltroSetor(e.target.value)}
-          style={selectFiltro}
-        >
-          <option value="">Todos os setores</option>
-          {setores.map((setor) => (
-            <option key={setor} value={setor}>
-              {setor}
-            </option>
-          ))}
-        </select>
+        <div style={controlesWrap}>
+          <label style={filtroChip}>
+            <span style={chipLabel}>Setor</span>
+            <select
+              value={filtroSetor}
+              onChange={(e) => setFiltroSetor(e.target.value)}
+              style={selectCompacto}
+            >
+              <option value="">Todos</option>
+              {setores.map((setor) => (
+                <option key={setor} value={setor}>
+                  {setor}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <select
-          value={filtroResponsavel}
-          onChange={(e) => setFiltroResponsavel(e.target.value)}
-          style={selectFiltro}
-        >
-          <option value="">Todos os responsaveis</option>
-          {responsaveis.map((responsavel) => (
-            <option key={responsavel} value={responsavel}>
-              {responsavel}
-            </option>
-          ))}
-        </select>
+          <label style={filtroChip}>
+            <span style={chipLabel}>Responsavel</span>
+            <select
+              value={filtroResponsavel}
+              onChange={(e) => setFiltroResponsavel(e.target.value)}
+              style={selectCompacto}
+            >
+              <option value="">Todos</option>
+              {responsaveis.map((responsavel) => (
+                <option key={responsavel} value={responsavel}>
+                  {responsavel}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <select
-          value={filtroPrioridade}
-          onChange={(e) => setFiltroPrioridade(e.target.value)}
-          style={selectFiltro}
-        >
-          <option value="">Todas as prioridades</option>
-          {prioridades.map((prioridade) => (
-            <option key={prioridade} value={prioridade}>
-              {prioridade}
-            </option>
-          ))}
-        </select>
+          <label style={filtroChip}>
+            <span style={chipLabel}>Prioridade</span>
+            <select
+              value={filtroPrioridade}
+              onChange={(e) => setFiltroPrioridade(e.target.value)}
+              style={selectCompacto}
+            >
+              <option value="">Todas</option>
+              {prioridades.map((prioridade) => (
+                <option key={prioridade} value={prioridade}>
+                  {prioridade}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <button type="button" onClick={limparFiltros} style={botaoLimpar}>
-          Limpar
-        </button>
+          <button
+            type="button"
+            onClick={limparFiltros}
+            style={{
+              ...botaoLimpar,
+              ...(filtrosAtivos > 0 ? botaoLimparAtivo : null),
+            }}
+          >
+            Limpar{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
+          </button>
+        </div>
       </div>
       <div style={quadroArea}>
         <DragDropContext onDragEnd={aoArrastar}>
@@ -748,38 +775,92 @@ const raiz = {
   height: "100%",
 };
 
-const filtrosBox = {
-  display: "grid",
-  gridTemplateColumns:
-    "minmax(260px, 1.4fr) repeat(3, minmax(170px, 1fr)) auto",
-  gap: "10px",
-  marginBottom: "10px",
+const toolbar = {
+  display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+  marginBottom: "10px",
 };
 
-const campoFiltro = {
-  background: "rgba(15, 23, 42, 0.82)",
-  border: "1px solid rgba(252, 165, 165, 0.22)",
-  color: "white",
-  borderRadius: "10px",
-  padding: "11px 12px",
+const buscaWrap = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  minWidth: "220px",
+  padding: "0 12px",
+  height: "38px",
+  borderRadius: "999px",
+  background: "rgba(24, 24, 27, 0.88)",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const selectFiltro = {
-  background: "rgba(15, 23, 42, 0.82)",
-  border: "1px solid rgba(252, 165, 165, 0.22)",
+const controlesWrap = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  flexWrap: "wrap" as const,
+  gap: "8px",
+  flex: 1,
+};
+
+const toolbarIcon = {
+  color: "#71717a",
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const campoBuscaCompacto = {
+  background: "transparent",
+  border: "none",
   color: "white",
-  borderRadius: "10px",
-  padding: "11px 12px",
+  outline: "none",
+  width: "240px",
+  fontSize: "13px",
+};
+
+const filtroChip = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "7px",
+  height: "38px",
+  padding: "0 12px",
+  borderRadius: "999px",
+  background: "rgba(24, 24, 27, 0.88)",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const chipLabel = {
+  color: "#a1a1aa",
+  fontSize: "12px",
+  whiteSpace: "nowrap" as const,
+};
+
+const selectCompacto = {
+  background: "transparent",
+  border: "none",
+  color: "white",
+  outline: "none",
+  fontSize: "13px",
+  paddingRight: "8px",
 };
 
 const botaoLimpar = {
-  background: "rgba(127, 29, 29, 0.6)",
-  border: "1px solid rgba(252, 165, 165, 0.25)",
-  color: "#fee2e2",
-  borderRadius: "10px",
-  padding: "11px 14px",
+  background: "rgba(24, 24, 27, 0.82)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  color: "#d4d4d8",
+  borderRadius: "999px",
+  height: "38px",
+  padding: "0 14px",
   cursor: "pointer",
+  fontSize: "12px",
+};
+
+const botaoLimparAtivo = {
+  background: "rgba(127, 29, 29, 0.64)",
+  border: "1px solid rgba(248, 113, 113, 0.25)",
+  color: "#fee2e2",
 };
 
 const quadroArea = {
