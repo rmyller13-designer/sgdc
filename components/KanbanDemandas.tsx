@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DragDropContext,
@@ -45,15 +45,7 @@ export default function KanbanDemandas({
   const router = useRouter();
   const { usuario } = useAuth();
   const podeMover = podeEditarFluxo(usuario);
-  const quadroRef = useRef<HTMLDivElement | null>(null);
-  const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
-  const kanbanInnerRef = useRef<HTMLDivElement | null>(null);
-  const scrollEspelhoRef = useRef<HTMLDivElement | null>(null);
   const [lista, setLista] = useState(demandas || []);
-  const [scrollWidth, setScrollWidth] = useState(0);
-  const [clientWidth, setClientWidth] = useState(0);
-  const [barraFixa, setBarraFixa] = useState({ left: 0, width: 0 });
-
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroSetor, setFiltroSetor] = useState("");
   const [filtroResponsavel, setFiltroResponsavel] = useState("");
@@ -89,64 +81,6 @@ export default function KanbanDemandas({
 
     return passaTexto && passaSetor && passaResponsavel && passaPrioridade;
   });
-
-  useEffect(() => {
-    const container = kanbanScrollRef.current;
-    const inner = kanbanInnerRef.current;
-    const espelho = scrollEspelhoRef.current;
-    const quadro = quadroRef.current;
-
-    if (!container || !inner || !espelho || !quadro) {
-      return;
-    }
-
-    let sincronizandoOrigem = false;
-    let sincronizandoEspelho = false;
-
-    const atualizarMedidas = () => {
-      setScrollWidth(inner.scrollWidth);
-      setClientWidth(container.clientWidth);
-      const rect = quadro.getBoundingClientRect();
-      setBarraFixa({
-        left: rect.left,
-        width: rect.width,
-      });
-    };
-
-    const aoScrollContainer = () => {
-      if (!espelho || sincronizandoEspelho) return;
-      sincronizandoOrigem = true;
-      espelho.scrollLeft = container.scrollLeft;
-      sincronizandoOrigem = false;
-    };
-
-    const aoScrollEspelho = () => {
-      if (!container || sincronizandoOrigem) return;
-      sincronizandoEspelho = true;
-      container.scrollLeft = espelho.scrollLeft;
-      sincronizandoEspelho = false;
-    };
-
-    atualizarMedidas();
-
-    const resizeObserver = new ResizeObserver(() => {
-      atualizarMedidas();
-    });
-
-    resizeObserver.observe(container);
-    resizeObserver.observe(inner);
-
-    container.addEventListener("scroll", aoScrollContainer);
-    espelho.addEventListener("scroll", aoScrollEspelho);
-    window.addEventListener("resize", atualizarMedidas);
-
-    return () => {
-      resizeObserver.disconnect();
-      container.removeEventListener("scroll", aoScrollContainer);
-      espelho.removeEventListener("scroll", aoScrollEspelho);
-      window.removeEventListener("resize", atualizarMedidas);
-    };
-  }, [listaFiltrada.length]);
 
   function limparFiltros() {
     setFiltroTexto("");
@@ -251,7 +185,7 @@ export default function KanbanDemandas({
   }
 
   return (
-    <div>
+    <div style={raiz}>
       <div style={filtrosBox}>
         <input
           type="text"
@@ -309,249 +243,245 @@ export default function KanbanDemandas({
         Exibindo {listaFiltrada.length} de {lista.length} demandas
       </p>
 
-      <DragDropContext onDragEnd={aoArrastar}>
-        <div ref={quadroRef} style={quadroArea}>
-          <div className="kanban-scroll" style={kanbanScroll}>
-          <div ref={kanbanScrollRef} style={kanbanViewport}>
-            <div ref={kanbanInnerRef} style={kanban}>
-            {STATUS.map((status) => {
-              const demandasDaColuna = listaFiltrada.filter(
-                (demanda) => demanda.status === status.nome
-              );
+      <div style={quadroArea}>
+        <DragDropContext onDragEnd={aoArrastar}>
+          <div className="kanban-scroll" style={kanbanViewport}>
+            <div style={kanbanTrack}>
+              {STATUS.map((status) => {
+                const demandasDaColuna = listaFiltrada.filter(
+                  (demanda) => demanda.status === status.nome
+                );
 
-              return (
-                <section key={status.nome} style={coluna}>
-                  <div style={colunaHeader}>
-                    <h2 style={colunaTitulo}>{status.titulo}</h2>
-                    <span style={contador}>{demandasDaColuna.length}</span>
-                  </div>
+                return (
+                  <section key={status.nome} style={coluna}>
+                    <div style={colunaHeader}>
+                      <h2 style={colunaTitulo}>{status.titulo}</h2>
+                      <span style={contador}>{demandasDaColuna.length}</span>
+                    </div>
 
-                  <Droppable droppableId={status.nome}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        style={cards}
-                      >
-                        {demandasDaColuna.length === 0 && (
-                          <p style={vazio}>Nenhuma demanda</p>
-                        )}
+                    <Droppable droppableId={status.nome}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          style={cards}
+                        >
+                          {demandasDaColuna.length === 0 && (
+                            <p style={vazio}>Nenhuma demanda</p>
+                          )}
 
-                        {demandasDaColuna.map((demanda, index) => {
-                          const prazo = calcularPrazo(
-                            demanda.data_entrega,
-                            demanda.status
-                          );
-                          const responsavel =
-                            demanda.responsavel ||
-                            demanda.cadastrado_por ||
-                            "Sem responsavel";
-                          const etiqueta =
-                            demanda.etiqueta || demanda.setor || "Sem etiqueta";
-                          const anexosCount = demanda.anexos_count || 0;
+                          {demandasDaColuna.map((demanda, index) => {
+                            const prazo = calcularPrazo(
+                              demanda.data_entrega,
+                              demanda.status
+                            );
+                            const responsavel =
+                              demanda.responsavel ||
+                              demanda.cadastrado_por ||
+                              "Sem responsavel";
+                            const etiqueta =
+                              demanda.etiqueta || demanda.setor || "Sem etiqueta";
+                            const anexosCount = demanda.anexos_count || 0;
 
-                          return (
-                            <Draggable
-                              key={demanda.id}
-                              draggableId={String(demanda.id)}
-                              index={index}
-                              isDragDisabled={!podeMover}
-                            >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  style={{
-                                    ...card,
-                                    ...estiloCardPrazo(prazo.tipo),
-                                    opacity: snapshot.isDragging ? 0.86 : 1,
-                                    ...provided.draggableProps.style,
-                                  }}
-                                >
-                                  <div style={acoesTopo}>
-                                    <a
-                                      href={`/demandas/${demanda.id}`}
-                                      style={botaoAcao}
-                                      title="Abrir demanda"
-                                      onClick={(event) => event.stopPropagation()}
-                                    >
-                                      +
-                                    </a>
-
-                                    <button
-                                      type="button"
-                                      title="Acoes"
-                                      aria-label={`Acoes da demanda #${demanda.id}`}
-                                      onClick={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        alternarMenu(demanda.id);
-                                      }}
-                                      style={botaoAcao}
-                                    >
-                                      ...
-                                    </button>
-
-                                    {menuAbertoId === demanda.id && (
-                                      <div
-                                        style={menuAcoes}
+                            return (
+                              <Draggable
+                                key={demanda.id}
+                                draggableId={String(demanda.id)}
+                                index={index}
+                                isDragDisabled={!podeMover}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    style={{
+                                      ...card,
+                                      ...estiloCardPrazo(prazo.tipo),
+                                      opacity: snapshot.isDragging ? 0.9 : 1,
+                                      ...provided.draggableProps.style,
+                                    }}
+                                  >
+                                    <div style={acoesTopo}>
+                                      <a
+                                        href={`/demandas/${demanda.id}`}
+                                        style={botaoAcao}
+                                        title="Abrir demanda"
                                         onClick={(event) =>
                                           event.stopPropagation()
                                         }
                                       >
-                                        <a
-                                          href={`/demandas/${demanda.id}`}
-                                          style={itemMenu}
-                                        >
-                                          Abrir demanda
-                                        </a>
+                                        +
+                                      </a>
 
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.preventDefault();
-                                            event.stopPropagation();
-                                            void excluirDemanda(demanda);
-                                          }}
-                                          style={itemMenuBotao}
-                                          disabled={!podeMover}
-                                        >
-                                          Excluir demanda
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
+                                      <button
+                                        type="button"
+                                        title="Acoes"
+                                        aria-label={`Acoes da demanda #${demanda.id}`}
+                                        onClick={(event) => {
+                                          event.preventDefault();
+                                          event.stopPropagation();
+                                          alternarMenu(demanda.id);
+                                        }}
+                                        style={botaoAcao}
+                                      >
+                                        ...
+                                      </button>
 
-                                  <a
-                                    href={`/demandas/${demanda.id}`}
-                                    style={cardLink}
-                                    onClick={() => setMenuAbertoId(null)}
-                                  >
-                                    {demanda.preview_image_url ? (
-                                      <div style={previewWrap}>
-                                        <img
-                                          src={demanda.preview_image_url}
-                                          alt={
-                                            demanda.titulo ||
-                                            `Demanda ${demanda.id}`
+                                      {menuAbertoId === demanda.id && (
+                                        <div
+                                          style={menuAcoes}
+                                          onClick={(event) =>
+                                            event.stopPropagation()
                                           }
-                                          style={previewImage}
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div style={previewPlaceholder}>
-                                        <span style={previewPlaceholderText}>
-                                          {etiqueta}
-                                        </span>
-                                      </div>
-                                    )}
-
-                                    <div style={cardBody}>
-                                      <div style={cardHeaderClean}>
-                                        <span style={idBadge}>#{demanda.id}</span>
-                                        <span
-                                          style={{
-                                            ...prioridade,
-                                            ...estiloPrioridade(demanda.prioridade),
-                                          }}
                                         >
-                                          {demanda.prioridade || "NORMAL"}
-                                        </span>
-                                      </div>
+                                          <a
+                                            href={`/demandas/${demanda.id}`}
+                                            style={itemMenu}
+                                          >
+                                            Abrir demanda
+                                          </a>
 
-                                      <strong style={titulo}>
-                                        {demanda.titulo || "Sem titulo"}
-                                      </strong>
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.preventDefault();
+                                              event.stopPropagation();
+                                              void excluirDemanda(demanda);
+                                            }}
+                                            style={itemMenuBotao}
+                                            disabled={!podeMover}
+                                          >
+                                            Excluir demanda
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
 
-                                      <div style={linhaMeta}>
-                                        <span style={metaLabel}>Responsavel</span>
-                                        <strong style={metaValor}>
-                                          {responsavel}
-                                        </strong>
-                                      </div>
-
-                                      <div style={linhaMeta}>
-                                        <span style={metaLabel}>Data final</span>
-                                        <strong style={metaValor}>
-                                          {demanda.data_entrega
-                                            ? formatarData(demanda.data_entrega)
-                                            : "Sem prazo"}
-                                        </strong>
-                                      </div>
-
-                                      <div style={rodapeCard}>
-                                        <div style={rodapeMeta}>
-                                          <span style={metaChip}>
-                                            <span style={metaIcon}>#</span>
-                                            <span style={metaChipText}>
-                                              {etiqueta}
-                                            </span>
+                                    <a
+                                      href={`/demandas/${demanda.id}`}
+                                      style={cardLink}
+                                      onClick={() => setMenuAbertoId(null)}
+                                    >
+                                      {demanda.preview_image_url ? (
+                                        <div style={previewWrap}>
+                                          <img
+                                            src={demanda.preview_image_url}
+                                            alt={
+                                              demanda.titulo ||
+                                              `Demanda ${demanda.id}`
+                                            }
+                                            style={previewImage}
+                                          />
+                                        </div>
+                                      ) : (
+                                        <div style={previewPlaceholder}>
+                                          <span style={previewPlaceholderText}>
+                                            {etiqueta}
                                           </span>
+                                        </div>
+                                      )}
 
-                                          <span style={metaChip}>
-                                            <span style={metaIcon}>@</span>
-                                            <span style={metaChipText}>
-                                              {demanda.data_entrega
-                                                ? formatarData(
-                                                    demanda.data_entrega
-                                                  )
-                                                : "Sem prazo"}
-                                            </span>
+                                      <div style={cardBody}>
+                                        <div style={cardHeaderClean}>
+                                          <span style={idBadge}>
+                                            #{demanda.id}
                                           </span>
-
-                                          <span style={metaChip}>
-                                            <span style={metaIcon}>[]</span>
-                                            <span style={metaChipText}>
-                                              {anexosCount} anexo
-                                              {anexosCount === 1 ? "" : "s"}
-                                            </span>
+                                          <span
+                                            style={{
+                                              ...prioridade,
+                                              ...estiloPrioridade(
+                                                demanda.prioridade
+                                              ),
+                                            }}
+                                          >
+                                            {demanda.prioridade || "NORMAL"}
                                           </span>
                                         </div>
 
-                                        <span
-                                          style={{
-                                            ...prazoBadge,
-                                            color: prazo.cor,
-                                          }}
-                                        >
-                                          {prazo.texto}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </a>
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })}
+                                        <strong style={titulo}>
+                                          {demanda.titulo || "Sem titulo"}
+                                        </strong>
 
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </section>
-              );
-            })}
+                                        <div style={linhaMeta}>
+                                          <span style={metaLabel}>
+                                            Responsavel
+                                          </span>
+                                          <strong style={metaValor}>
+                                            {responsavel}
+                                          </strong>
+                                        </div>
+
+                                        <div style={linhaMeta}>
+                                          <span style={metaLabel}>Data final</span>
+                                          <strong style={metaValor}>
+                                            {demanda.data_entrega
+                                              ? formatarData(
+                                                  demanda.data_entrega
+                                                )
+                                              : "Sem prazo"}
+                                          </strong>
+                                        </div>
+
+                                        <div style={rodapeCard}>
+                                          <div style={rodapeMeta}>
+                                            <span style={metaChip}>
+                                              <span style={metaIcon}>#</span>
+                                              <span style={metaChipText}>
+                                                {etiqueta}
+                                              </span>
+                                            </span>
+
+                                            <span style={metaChip}>
+                                              <span style={metaIcon}>@</span>
+                                              <span style={metaChipText}>
+                                                {demanda.data_entrega
+                                                  ? formatarData(
+                                                      demanda.data_entrega
+                                                    )
+                                                  : "Sem prazo"}
+                                              </span>
+                                            </span>
+
+                                            <span style={metaChip}>
+                                              <span style={metaIcon}>[]</span>
+                                              <span style={metaChipText}>
+                                                {anexosCount} anexo
+                                                {anexosCount === 1
+                                                  ? ""
+                                                  : "s"}
+                                              </span>
+                                            </span>
+                                          </div>
+
+                                          <span
+                                            style={{
+                                              ...prazoBadge,
+                                              color: prazo.cor,
+                                            }}
+                                          >
+                                            {prazo.texto}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </a>
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </section>
+                );
+              })}
             </div>
           </div>
-
-          {scrollWidth > clientWidth && (
-            <div
-              ref={scrollEspelhoRef}
-              className="kanban-scrollbar-floating"
-              style={{
-                ...scrollbarEspelho,
-                left: `${barraFixa.left}px`,
-                width: `${barraFixa.width}px`,
-              }}
-            >
-              <div style={{ width: scrollWidth, height: 1 }} />
-            </div>
-          )}
-        </div>
-        </div>
-      </DragDropContext>
+        </DragDropContext>
+      </div>
     </div>
   );
 }
@@ -569,27 +499,15 @@ function formatarData(data: string) {
 
 function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
   if (status === "CONCLUIDO") {
-    return {
-      texto: "Concluida",
-      cor: "#22c55e",
-      tipo: "concluido",
-    };
+    return { texto: "Concluida", cor: "#22c55e", tipo: "concluido" };
   }
 
   if (status === "CANCELADO") {
-    return {
-      texto: "Cancelada",
-      cor: "#94a3b8",
-      tipo: "cancelado",
-    };
+    return { texto: "Cancelada", cor: "#94a3b8", tipo: "cancelado" };
   }
 
   if (!dataEntrega) {
-    return {
-      texto: "Sem prazo",
-      cor: "#94a3b8",
-      tipo: "sem_prazo",
-    };
+    return { texto: "Sem prazo", cor: "#94a3b8", tipo: "sem_prazo" };
   }
 
   const hoje = new Date();
@@ -612,11 +530,7 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
   }
 
   if (diff === 0) {
-    return {
-      texto: "Vence hoje",
-      cor: "#f59e0b",
-      tipo: "hoje",
-    };
+    return { texto: "Vence hoje", cor: "#f59e0b", tipo: "hoje" };
   }
 
   if (diff <= 3) {
@@ -636,27 +550,19 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
 function estiloCardPrazo(tipo: string) {
   if (tipo === "atrasado") {
-    return {
-      border: "1px solid rgba(239, 68, 68, 0.68)",
-    };
+    return { border: "1px solid rgba(239, 68, 68, 0.68)" };
   }
 
   if (tipo === "hoje") {
-    return {
-      border: "1px solid rgba(245, 158, 11, 0.68)",
-    };
+    return { border: "1px solid rgba(245, 158, 11, 0.68)" };
   }
 
   if (tipo === "proximo") {
-    return {
-      border: "1px solid rgba(251, 146, 60, 0.68)",
-    };
+    return { border: "1px solid rgba(251, 146, 60, 0.68)" };
   }
 
   if (tipo === "ok" || tipo === "concluido") {
-    return {
-      border: "1px solid rgba(34, 197, 94, 0.32)",
-    };
+    return { border: "1px solid rgba(34, 197, 94, 0.32)" };
   }
 
   return {};
@@ -695,6 +601,13 @@ function estiloPrioridade(prioridade?: string | null) {
     color: "#bfdbfe",
   };
 }
+
+const raiz = {
+  display: "flex",
+  flexDirection: "column" as const,
+  minHeight: 0,
+  height: "100%",
+};
 
 const filtrosBox = {
   display: "grid",
@@ -737,66 +650,49 @@ const resultadoFiltro = {
   marginBottom: "18px",
 };
 
-const kanbanScroll = {
-  width: "100%",
-  display: "grid",
-  gap: "10px",
-};
-
 const quadroArea = {
-  minHeight: "560px",
-  height: "calc(100vh - 290px)",
-  maxHeight: "78vh",
+  flex: 1,
+  width: "100%",
+  minHeight: 0,
+  overflow: "hidden" as const,
 };
 
 const kanbanViewport = {
-  overflowX: "auto" as const,
-  overflowY: "hidden" as const,
+  flex: 1,
   width: "100%",
-  height: "100%",
-  paddingBottom: "4px",
-};
-
-const kanban = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "16px",
-  minWidth: "max-content",
-  minHeight: "100%",
-};
-
-const scrollbarEspelho = {
-  position: "fixed" as const,
-  bottom: "12px",
   overflowX: "auto" as const,
   overflowY: "hidden" as const,
-  height: "18px",
-  background: "rgba(15, 23, 42, 0.92)",
-  borderRadius: "999px",
-  border: "1px solid rgba(255,255,255,0.06)",
-  boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
-  zIndex: 30,
+  minHeight: 0,
+  height: "100%",
+  paddingBottom: "10px",
+};
+
+const kanbanTrack = {
+  display: "flex",
+  alignItems: "stretch",
+  gap: "14px",
+  minWidth: "max-content",
+  height: "100%",
 };
 
 const coluna = {
+  flex: "0 0 272px",
+  background:
+    "linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(12, 18, 28, 0.88))",
+  border: "1px solid rgba(255,255,255,0.06)",
+  borderRadius: "14px",
+  padding: "10px",
   display: "flex",
   flexDirection: "column" as const,
-  flex: "0 0 300px",
-  background:
-    "linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(12, 18, 28, 0.92))",
-  border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: "16px",
-  padding: "12px",
   height: "100%",
-  boxShadow: "0 18px 34px rgba(0,0,0,0.22)",
 };
 
 const colunaHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "12px",
-  paddingBottom: "10px",
+  marginBottom: "10px",
+  paddingBottom: "8px",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
 };
 
@@ -818,12 +714,14 @@ const contador = {
 };
 
 const cards = {
+  flex: 1,
   display: "flex",
   flexDirection: "column" as const,
-  gap: "12px",
+  gap: "10px",
   minHeight: 0,
   overflowY: "auto" as const,
-  paddingRight: "4px",
+  overflowX: "hidden" as const,
+  paddingRight: "2px",
 };
 
 const card = {
@@ -832,7 +730,7 @@ const card = {
   borderRadius: "14px",
   color: "white",
   textDecoration: "none",
-  boxShadow: "0 10px 22px rgba(0,0,0,0.24)",
+  boxShadow: "0 8px 18px rgba(0,0,0,0.22)",
   cursor: "grab",
   overflow: "hidden",
 };
@@ -845,8 +743,8 @@ const cardLink = {
 
 const acoesTopo = {
   position: "absolute" as const,
-  top: "10px",
-  right: "10px",
+  top: "8px",
+  right: "8px",
   display: "flex",
   alignItems: "center",
   gap: "6px",
@@ -905,7 +803,7 @@ const itemMenuBotao = {
 
 const previewWrap = {
   width: "100%",
-  aspectRatio: "16 / 9",
+  height: "96px",
   background: "#0f172a",
   overflow: "hidden",
   borderBottom: "1px solid rgba(255,255,255,0.08)",
@@ -920,7 +818,7 @@ const previewImage = {
 
 const previewPlaceholder = {
   width: "100%",
-  aspectRatio: "16 / 9",
+  height: "96px",
   background:
     "linear-gradient(135deg, rgba(15,23,42,1), rgba(30,41,59,.96), rgba(17,24,39,1))",
   display: "grid",
@@ -932,22 +830,22 @@ const previewPlaceholder = {
 
 const previewPlaceholderText = {
   color: "#cbd5e1",
-  fontSize: "18px",
+  fontSize: "14px",
   fontWeight: 700,
   overflowWrap: "anywhere" as const,
 };
 
 const cardBody = {
-  padding: "14px",
+  padding: "11px",
   display: "grid",
-  gap: "12px",
+  gap: "8px",
 };
 
 const cardHeaderClean = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  gap: "10px",
+  gap: "8px",
 };
 
 const idBadge = {
@@ -958,41 +856,39 @@ const idBadge = {
 
 const prioridade = {
   borderRadius: "999px",
-  padding: "4px 9px",
-  fontSize: "11px",
+  padding: "4px 8px",
+  fontSize: "10px",
   fontWeight: 700,
 };
 
 const titulo = {
   display: "block",
-  fontSize: "20px",
-  lineHeight: "26px",
+  fontSize: "14px",
+  lineHeight: "19px",
   overflowWrap: "anywhere" as const,
 };
 
 const linhaMeta = {
   display: "grid",
-  gap: "3px",
+  gap: "2px",
 };
 
 const metaLabel = {
   color: "#71717a",
-  fontSize: "11px",
+  fontSize: "10px",
   textTransform: "uppercase" as const,
-  letterSpacing: "0.04em",
+  letterSpacing: "0.05em",
 };
 
 const metaValor = {
   color: "#f4f4f5",
-  fontSize: "14px",
+  fontSize: "12px",
 };
 
 const rodapeCard = {
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "flex-start",
-  gap: "10px",
-  paddingTop: "4px",
+  display: "grid",
+  gap: "8px",
+  paddingTop: "2px",
 };
 
 const rodapeMeta = {
@@ -1005,19 +901,19 @@ const rodapeMeta = {
 const metaChip = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "6px",
+  gap: "5px",
   background: "rgba(255,255,255,0.06)",
   border: "1px solid rgba(255,255,255,0.08)",
   color: "#e4e4e7",
   borderRadius: "999px",
-  padding: "5px 10px",
-  fontSize: "11px",
+  padding: "4px 8px",
+  fontSize: "10px",
   fontWeight: 700,
 };
 
 const metaIcon = {
-  fontSize: "11px",
-  lineHeight: "11px",
+  fontSize: "10px",
+  lineHeight: "10px",
   opacity: 0.82,
 };
 
@@ -1034,5 +930,5 @@ const vazio = {
   color: "#94a3b8",
   fontSize: "13px",
   textAlign: "center" as const,
-  marginTop: "30px",
+  margin: "28px 0 12px",
 };

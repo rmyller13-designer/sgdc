@@ -1,6 +1,6 @@
+import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import KanbanDemandas from "../../components/KanbanDemandas";
-import { connection } from "next/server";
 
 export default async function Demandas() {
   await connection();
@@ -17,11 +17,13 @@ export default async function Demandas() {
           .from("demanda_anexos")
           .select("demanda_id, url_arquivo, tipo_arquivo")
           .in("demanda_id", demandaIds)
-      : { data: [] as Array<{
-          demanda_id: number;
-          url_arquivo: string;
-          tipo_arquivo: string | null;
-        }> };
+      : {
+          data: [] as Array<{
+            demanda_id: number;
+            url_arquivo: string;
+            tipo_arquivo: string | null;
+          }>,
+        };
 
   const previewPorDemanda = new Map<number, string>();
   const anexosPorDemanda = new Map<number, number>();
@@ -48,27 +50,41 @@ export default async function Demandas() {
   }));
 
   return (
-    <div>
+    <div style={pageShell}>
       <h1>Demandas</h1>
 
       <p style={subtitulo}>
-        Visualização em Kanban por status. Arraste os cards para alterar o
+        Visualizacao em Kanban por status. Arraste os cards para alterar o
         status.
       </p>
 
       {error && (
-        <pre style={{ color: "red" }}>
-          {JSON.stringify(error, null, 2)}
-        </pre>
+        <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
       )}
 
-      <KanbanDemandas demandas={demandasComPreview} />
+      <div style={boardShell}>
+        <KanbanDemandas demandas={demandasComPreview} />
+      </div>
     </div>
   );
 }
 
+const pageShell = {
+  minHeight: "calc(100vh - 140px)",
+  height: "calc(100vh - 140px)",
+  display: "flex",
+  flexDirection: "column" as const,
+  overflow: "hidden" as const,
+};
+
+const boardShell = {
+  flex: 1,
+  minHeight: 0,
+  overflow: "hidden" as const,
+};
+
 const subtitulo = {
   color: "#fecaca",
   marginTop: "6px",
-  marginBottom: "24px",
+  marginBottom: "18px",
 };
