@@ -2,12 +2,13 @@
 
 import type { ReactNode } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -167,13 +168,41 @@ export default function RelatoriosQuantitativosClient({
         <Painel titulo="Evolução mensal">
           <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={evolucaoMensal}>
+              <AreaChart
+                data={evolucaoMensal}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="evolucaoMensalFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.42} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.12)" />
                 <XAxis dataKey="mes" stroke="#fecaca" />
-                <YAxis stroke="#fecaca" allowDecimals={false} />
+                <YAxis stroke="#fecaca" allowDecimals={false} width={34} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="demandas" stroke="#ef4444" strokeWidth={3} />
-              </LineChart>
+                <Area
+                  type="monotone"
+                  dataKey="demandas"
+                  stroke="#ef4444"
+                  strokeWidth={3}
+                  fill="url(#evolucaoMensalFill)"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="demandas"
+                  stroke="#fca5a5"
+                  strokeWidth={2}
+                  dot={{
+                    r: 4,
+                    fill: "#ef4444",
+                    stroke: "#fee2e2",
+                    strokeWidth: 2,
+                  }}
+                  activeDot={{ r: 6 }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </Painel>
