@@ -10,6 +10,43 @@ export default async function Demandas() {
     .select("*")
     .order("id", { ascending: false });
 
+  const demandaIds = (demandas || []).map((demanda) => demanda.id);
+  const { data: anexosDemanda } =
+    demandaIds.length > 0
+      ? await supabase
+          .from("demanda_anexos")
+          .select("demanda_id, url_arquivo, tipo_arquivo")
+          .in("demanda_id", demandaIds)
+      : { data: [] as Array<{
+          demanda_id: number;
+          url_arquivo: string;
+          tipo_arquivo: string | null;
+        }> };
+
+  const previewPorDemanda = new Map<number, string>();
+  const anexosPorDemanda = new Map<number, number>();
+
+  for (const anexo of anexosDemanda || []) {
+    anexosPorDemanda.set(
+      anexo.demanda_id,
+      (anexosPorDemanda.get(anexo.demanda_id) || 0) + 1
+    );
+
+    if (
+      anexo.tipo_arquivo?.startsWith("image/") &&
+      !previewPorDemanda.has(anexo.demanda_id)
+    ) {
+      previewPorDemanda.set(anexo.demanda_id, anexo.url_arquivo);
+    }
+  }
+
+  const demandasComPreview = (demandas || []).map((demanda) => ({
+    ...demanda,
+    preview_image_url: previewPorDemanda.get(demanda.id) || null,
+    etiqueta: demanda.setor || null,
+    anexos_count: anexosPorDemanda.get(demanda.id) || 0,
+  }));
+
   return (
     <div>
       <h1>Demandas</h1>
@@ -25,7 +62,7 @@ export default async function Demandas() {
         </pre>
       )}
 
-      <KanbanDemandas demandas={demandas || []} />
+      <KanbanDemandas demandas={demandasComPreview} />
     </div>
   );
 }

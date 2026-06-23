@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarDados } from "@/lib/auth";
+import { sanitizeRichText } from "@/lib/rich-text";
 import { supabase } from "@/lib/supabase";
+import RichTextContent from "@/components/RichTextContent";
+import RichTextEditor from "@/components/RichTextEditor";
 
 type CampoEditando =
   | "titulo"
@@ -186,13 +189,21 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     setSalvando(campo);
 
     if (!podeEditar || !usuario) {
-      setMensagem("Seu usuário não tem permissão para editar a demanda.");
+      setMensagem("Seu usuario nao tem permissao para editar a demanda.");
       setSalvando(null);
       return;
     }
 
     const valor = form[campo];
-    const valorBanco = campo.endsWith("_id") ? (valor ? Number(valor) : null) : valor || null;
+    let valorBanco: number | string | null;
+
+    if (campo === "descricao") {
+      valorBanco = sanitizeRichText(valor) || null;
+    } else if (campo.endsWith("_id")) {
+      valorBanco = valor ? Number(valor) : null;
+    } else {
+      valorBanco = valor || null;
+    }
 
     const { error } = await supabase
       .from("demandas")
@@ -222,14 +233,14 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     <div>
       <div style={sectionHeader}>
         <div>
-          <p style={eyebrow}>Dados da solicitação</p>
-          <h2 style={sectionTitle}>Informações principais</h2>
+          <p style={eyebrow}>Dados da solicitacao</p>
+          <h2 style={sectionTitle}>Informacoes principais</h2>
         </div>
       </div>
 
       <div style={grid}>
         <CampoTexto
-          label="Título"
+          label="Titulo"
           campo="titulo"
           valor={form.titulo}
           editando={editando}
@@ -241,8 +252,8 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
           onCancelar={cancelar}
         />
 
-        <CampoTextoArea
-          label="Descrição"
+        <CampoRichText
+          label="Descricao"
           campo="descricao"
           valor={form.descricao}
           editando={editando}
@@ -328,7 +339,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
           <strong style={valorStyle}>
             {form.criado_em
               ? new Date(form.criado_em).toLocaleString("pt-BR")
-              : "Não informado"}
+              : "Nao informado"}
           </strong>
         </div>
       </div>
@@ -374,13 +385,13 @@ function CampoTexto(props: CampoBaseProps) {
           <Botoes {...props} />
         </>
       ) : (
-        <strong style={valorStyle}>{props.valor || "Não informado"}</strong>
+        <strong style={valorStyle}>{props.valor || "Nao informado"}</strong>
       )}
     </div>
   );
 }
 
-function CampoTextoArea(props: CampoBaseProps) {
+function CampoRichText(props: CampoBaseProps) {
   const ativo = props.editando === props.campo;
 
   return (
@@ -395,18 +406,20 @@ function CampoTextoArea(props: CampoBaseProps) {
 
       {ativo ? (
         <>
-          <textarea
+          <RichTextEditor
             value={props.valor}
-            onChange={(e) => props.onChange(props.campo, e.target.value)}
-            rows={5}
-            style={{ ...campoStyle, resize: "vertical", lineHeight: "22px" }}
+            onChange={(value) => props.onChange(props.campo, value)}
+            placeholder="Descricao da demanda"
+            minHeight={160}
           />
           <Botoes {...props} />
         </>
       ) : (
-        <strong style={{ ...valorStyle, whiteSpace: "pre-wrap" }}>
-          {props.valor || "Não informado"}
-        </strong>
+        <RichTextContent
+          value={props.valor}
+          emptyText="Nao informado"
+          style={richTextViewStyle}
+        />
       )}
     </div>
   );
@@ -418,7 +431,9 @@ type CampoSelectProps = CampoBaseProps & {
 
 function CampoSelect(props: CampoSelectProps) {
   const ativo = props.editando === props.campo;
-  const itemAtual = props.opcoes.find((item) => String(item.id) === String(props.valor));
+  const itemAtual = props.opcoes.find(
+    (item) => String(item.id) === String(props.valor)
+  );
 
   return (
     <div style={infoBox}>
@@ -437,7 +452,7 @@ function CampoSelect(props: CampoSelectProps) {
             onChange={(e) => props.onChange(props.campo, e.target.value)}
             style={campoStyle}
           >
-            <option value="">Não informado</option>
+            <option value="">Nao informado</option>
             {props.opcoes.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.nome}
@@ -447,7 +462,7 @@ function CampoSelect(props: CampoSelectProps) {
           <Botoes {...props} />
         </>
       ) : (
-        <strong style={valorStyle}>{itemAtual?.nome || "Não informado"}</strong>
+        <strong style={valorStyle}>{itemAtual?.nome || "Nao informado"}</strong>
       )}
     </div>
   );
@@ -478,7 +493,7 @@ function CampoData(props: CampoBaseProps) {
         </>
       ) : (
         <strong style={valorStyle}>
-          {props.valor ? formatarData(props.valor) : "Não informada"}
+          {props.valor ? formatarData(props.valor) : "Nao informada"}
         </strong>
       )}
     </div>
@@ -502,7 +517,11 @@ function LinhaTitulo({
     <div style={linhaTitulo}>
       <span style={labelStyle}>{label}</span>
       {!ativo && podeEditar && (
-        <button type="button" onClick={() => setEditando(campo)} style={botaoEditar}>
+        <button
+          type="button"
+          onClick={() => setEditando(campo)}
+          style={botaoEditar}
+        >
           Editar
         </button>
       )}
@@ -565,8 +584,8 @@ function formatarData(data: string) {
 }
 
 const rotulos: Record<CampoEditando, string> = {
-  titulo: "Título",
-  descricao: "Descrição",
+  titulo: "Titulo",
+  descricao: "Descricao",
   setor_id: "Setor",
   usuario_comunicacao_id: "Solicitante",
   produto_id: "Produto inicial",
@@ -634,6 +653,13 @@ const valorStyle: CSSProperties = {
   overflowWrap: "anywhere",
 };
 
+const richTextViewStyle: CSSProperties = {
+  color: "#ffffff",
+  fontSize: "15px",
+  lineHeight: "22px",
+  overflowWrap: "anywhere",
+};
+
 const campoStyle: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -686,3 +712,4 @@ const mensagemStyle: CSSProperties = {
   color: "#fecaca",
   marginBottom: 0,
 };
+

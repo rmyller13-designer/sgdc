@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
@@ -6,7 +7,7 @@ import {
   DragDropContext,
   Droppable,
   Draggable,
-  DropResult,
+  type DropResult,
 } from "@hello-pangea/dnd";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarFluxo } from "@/lib/auth";
@@ -14,10 +15,10 @@ import { supabase } from "../lib/supabase";
 
 const STATUS = [
   { id: 1, nome: "RECEBIDO", titulo: "Recebido" },
-  { id: 2, nome: "EM_PRODUCAO", titulo: "Em Produção" },
-  { id: 3, nome: "EM_APROVACAO", titulo: "Em Aprovação" },
+  { id: 2, nome: "EM_PRODUCAO", titulo: "Em Producao" },
+  { id: 3, nome: "EM_APROVACAO", titulo: "Em Aprovacao" },
   { id: 4, nome: "AP_PARA_PUBLICAR", titulo: "AP. para Publicar" },
-  { id: 5, nome: "CONCLUIDO", titulo: "Concluído" },
+  { id: 5, nome: "CONCLUIDO", titulo: "Concluido" },
   { id: 6, nome: "CANCELADO", titulo: "Cancelado" },
 ];
 
@@ -31,9 +32,9 @@ type DemandaKanban = {
   prioridade?: string | null;
   status?: string | null;
   data_entrega?: string | null;
-  eixos?: string | null;
-  canais?: string | null;
-  producao?: string | null;
+  preview_image_url?: string | null;
+  etiqueta?: string | null;
+  anexos_count?: number | null;
 };
 
 export default function KanbanDemandas({
@@ -50,10 +51,11 @@ export default function KanbanDemandas({
   const [filtroSetor, setFiltroSetor] = useState("");
   const [filtroResponsavel, setFiltroResponsavel] = useState("");
   const [filtroPrioridade, setFiltroPrioridade] = useState("");
+  const [menuAbertoId, setMenuAbertoId] = useState<number | null>(null);
 
   const setores = pegarUnicos(lista.map((d) => d.setor).filter(Boolean));
   const responsaveis = pegarUnicos(
-    lista.map((d) => d.cadastrado_por).filter(Boolean)
+    lista.map((d) => d.responsavel || d.cadastrado_por).filter(Boolean)
   );
   const prioridades = pegarUnicos(
     lista.map((d) => d.prioridade).filter(Boolean)
@@ -67,16 +69,14 @@ export default function KanbanDemandas({
       demanda.titulo?.toLowerCase().includes(texto) ||
       demanda.descricao?.toLowerCase().includes(texto) ||
       demanda.setor?.toLowerCase().includes(texto) ||
+      demanda.responsavel?.toLowerCase().includes(texto) ||
       demanda.cadastrado_por?.toLowerCase().includes(texto) ||
-      demanda.eixos?.toLowerCase().includes(texto) ||
-      demanda.canais?.toLowerCase().includes(texto) ||
-      demanda.producao?.toLowerCase().includes(texto);
+      demanda.etiqueta?.toLowerCase().includes(texto);
 
     const passaSetor = !filtroSetor || demanda.setor === filtroSetor;
-
     const passaResponsavel =
-      !filtroResponsavel || demanda.cadastrado_por === filtroResponsavel;
-
+      !filtroResponsavel ||
+      (demanda.responsavel || demanda.cadastrado_por) === filtroResponsavel;
     const passaPrioridade =
       !filtroPrioridade || demanda.prioridade === filtroPrioridade;
 
@@ -90,9 +90,12 @@ export default function KanbanDemandas({
     setFiltroPrioridade("");
   }
 
+  function alternarMenu(demandaId: number) {
+    setMenuAbertoId((atual) => (atual === demandaId ? null : demandaId));
+  }
+
   async function aoArrastar(result: DropResult) {
     const { destination, draggableId } = result;
-
     if (!destination) return;
 
     const demandaId = Number(draggableId);
@@ -102,7 +105,7 @@ export default function KanbanDemandas({
     if (!novoStatus) return;
 
     if (!podeMover || !usuario) {
-      alert("Seu usuário não tem permissão para mover demandas.");
+      alert("Seu usuario nao tem permissao para mover demandas.");
       return;
     }
 
@@ -137,12 +140,12 @@ export default function KanbanDemandas({
 
   async function excluirDemanda(demanda: DemandaKanban) {
     if (!podeMover || !usuario) {
-      alert("Seu usuário não tem permissão para excluir demandas.");
+      alert("Seu usuario nao tem permissao para excluir demandas.");
       return;
     }
 
     const confirmar = window.confirm(
-      `Excluir a demanda #${demanda.id} - ${demanda.titulo || "Sem título"}?`
+      `Excluir a demanda #${demanda.id} - ${demanda.titulo || "Sem titulo"}?`
     );
 
     if (!confirmar) return;
@@ -178,6 +181,7 @@ export default function KanbanDemandas({
       return;
     }
 
+    setMenuAbertoId(null);
     router.refresh();
   }
 
@@ -186,7 +190,7 @@ export default function KanbanDemandas({
       <div style={filtrosBox}>
         <input
           type="text"
-          placeholder="Buscar por título, setor, eixo, canal ou produto..."
+          placeholder="Buscar por titulo, responsavel ou etiqueta..."
           value={filtroTexto}
           onChange={(e) => setFiltroTexto(e.target.value)}
           style={campoFiltro}
@@ -210,7 +214,7 @@ export default function KanbanDemandas({
           onChange={(e) => setFiltroResponsavel(e.target.value)}
           style={selectFiltro}
         >
-          <option value="">Todos os solicitantes</option>
+          <option value="">Todos os responsaveis</option>
           {responsaveis.map((responsavel) => (
             <option key={responsavel} value={responsavel}>
               {responsavel}
@@ -241,194 +245,228 @@ export default function KanbanDemandas({
       </p>
 
       <DragDropContext onDragEnd={aoArrastar}>
-        <div style={kanban}>
-          {STATUS.map((status) => {
-            const demandasDaColuna = listaFiltrada.filter(
-              (demanda) => demanda.status === status.nome
-            );
+        <div className="kanban-scroll" style={kanbanScroll}>
+          <div style={kanban}>
+            {STATUS.map((status) => {
+              const demandasDaColuna = listaFiltrada.filter(
+                (demanda) => demanda.status === status.nome
+              );
 
-            return (
-              <section key={status.nome} style={coluna}>
-                <div style={colunaHeader}>
-                  <h2 style={colunaTitulo}>{status.titulo}</h2>
-                  <span style={contador}>{demandasDaColuna.length}</span>
-                </div>
+              return (
+                <section key={status.nome} style={coluna}>
+                  <div style={colunaHeader}>
+                    <h2 style={colunaTitulo}>{status.titulo}</h2>
+                    <span style={contador}>{demandasDaColuna.length}</span>
+                  </div>
 
-                <Droppable droppableId={status.nome}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      style={cards}
-                    >
-                      {demandasDaColuna.length === 0 && (
-                        <p style={vazio}>Nenhuma demanda</p>
-                      )}
+                  <Droppable droppableId={status.nome}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        style={cards}
+                      >
+                        {demandasDaColuna.length === 0 && (
+                          <p style={vazio}>Nenhuma demanda</p>
+                        )}
 
-                      {demandasDaColuna.map((demanda, index) => {
-                        const prazo = calcularPrazo(
-                          demanda.data_entrega,
-                          demanda.status
-                        );
+                        {demandasDaColuna.map((demanda, index) => {
+                          const prazo = calcularPrazo(
+                            demanda.data_entrega,
+                            demanda.status
+                          );
+                          const responsavel =
+                            demanda.responsavel ||
+                            demanda.cadastrado_por ||
+                            "Sem responsavel";
+                          const etiqueta =
+                            demanda.etiqueta || demanda.setor || "Sem etiqueta";
+                          const anexosCount = demanda.anexos_count || 0;
 
-                        return (
-                          <Draggable
-                            key={demanda.id}
-                            draggableId={String(demanda.id)}
-                            index={index}
-                            isDragDisabled={!podeMover}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                style={{
-                                  ...card,
-                                  ...estiloCardPrazo(prazo.tipo),
-                                  opacity: snapshot.isDragging ? 0.85 : 1,
-                                  transform: snapshot.isDragging
-                                    ? "rotate(2deg)"
-                                    : undefined,
-                                  ...provided.draggableProps.style,
-                                }}
-                              >
-                                <button
-                                  type="button"
-                                  aria-label={`Excluir demanda #${demanda.id}`}
-                                  title="Excluir demanda"
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    void excluirDemanda(demanda);
+                          return (
+                            <Draggable
+                              key={demanda.id}
+                              draggableId={String(demanda.id)}
+                              index={index}
+                              isDragDisabled={!podeMover}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  style={{
+                                    ...card,
+                                    ...estiloCardPrazo(prazo.tipo),
+                                    opacity: snapshot.isDragging ? 0.86 : 1,
+                                    ...provided.draggableProps.style,
                                   }}
-                                  style={botaoExcluirCard}
-                                  disabled={!podeMover}
                                 >
-                                  ×
-                                </button>
-
-                                <a
-                                  href={`/demandas/${demanda.id}`}
-                                  style={cardLink}
-                                  onClick={(event) => event.stopPropagation()}
-                                >
-                                <div style={cardTopo}>
-                                  <span style={idBadge}>#{demanda.id}</span>
-                                  <span style={prioridade}>
-                                    {demanda.prioridade || "NORMAL"}
-                                  </span>
-                                </div>
-
-                                <strong style={titulo}>{demanda.titulo}</strong>
-
-                                <div style={info}>
-                                  <span>Setor</span>
-                                  <strong>
-                                    {demanda.setor || "Não informado"}
-                                  </strong>
-                                </div>
-
-                                <div style={info}>
-                                  <span>Solicitante</span>
-                                  <strong>
-                                    {demanda.cadastrado_por || "Não informado"}
-                                  </strong>
-                                </div>
-
-                                {demanda.data_entrega && (
-                                  <>
-                                    <div style={dataEntrega}>
-                                      📅 {formatarData(demanda.data_entrega)}
-                                    </div>
-
-                                    <div
-                                      style={{
-                                        ...prazoBadge,
-                                        color: prazo.cor,
-                                      }}
+                                  <div style={acoesTopo}>
+                                    <a
+                                      href={`/demandas/${demanda.id}`}
+                                      style={botaoAcao}
+                                      title="Abrir demanda"
+                                      onClick={(event) => event.stopPropagation()}
                                     >
-                                      {prazo.texto}
-                                    </div>
-                                  </>
-                                )}
+                                      +
+                                    </a>
 
-                                {!demanda.data_entrega && (
-                                  <div
-                                    style={{
-                                      ...prazoBadge,
-                                      color: prazo.cor,
-                                      marginTop: "12px",
-                                    }}
+                                    <button
+                                      type="button"
+                                      title="Acoes"
+                                      aria-label={`Acoes da demanda #${demanda.id}`}
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        alternarMenu(demanda.id);
+                                      }}
+                                      style={botaoAcao}
+                                    >
+                                      ...
+                                    </button>
+
+                                    {menuAbertoId === demanda.id && (
+                                      <div
+                                        style={menuAcoes}
+                                        onClick={(event) =>
+                                          event.stopPropagation()
+                                        }
+                                      >
+                                        <a
+                                          href={`/demandas/${demanda.id}`}
+                                          style={itemMenu}
+                                        >
+                                          Abrir demanda
+                                        </a>
+
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            void excluirDemanda(demanda);
+                                          }}
+                                          style={itemMenuBotao}
+                                          disabled={!podeMover}
+                                        >
+                                          Excluir demanda
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <a
+                                    href={`/demandas/${demanda.id}`}
+                                    style={cardLink}
+                                    onClick={() => setMenuAbertoId(null)}
                                   >
-                                    {prazo.texto}
-                                  </div>
-                                )}
+                                    {demanda.preview_image_url ? (
+                                      <div style={previewWrap}>
+                                        <img
+                                          src={demanda.preview_image_url}
+                                          alt={
+                                            demanda.titulo ||
+                                            `Demanda ${demanda.id}`
+                                          }
+                                          style={previewImage}
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div style={previewPlaceholder}>
+                                        <span style={previewPlaceholderText}>
+                                          {etiqueta}
+                                        </span>
+                                      </div>
+                                    )}
 
-                                {demanda.eixos && (
-                                  <div style={blocoExtra}>
-                                    <strong>📢 Eixos</strong>
+                                    <div style={cardBody}>
+                                      <div style={cardHeaderClean}>
+                                        <span style={idBadge}>#{demanda.id}</span>
+                                        <span
+                                          style={{
+                                            ...prioridade,
+                                            ...estiloPrioridade(demanda.prioridade),
+                                          }}
+                                        >
+                                          {demanda.prioridade || "NORMAL"}
+                                        </span>
+                                      </div>
 
-                                    <div style={tags}>
-                                      {quebrarLista(demanda.eixos).map(
-                                        (eixo) => (
-                                          <span key={eixo} style={tag}>
-                                            {eixo}
+                                      <strong style={titulo}>
+                                        {demanda.titulo || "Sem titulo"}
+                                      </strong>
+
+                                      <div style={linhaMeta}>
+                                        <span style={metaLabel}>Responsavel</span>
+                                        <strong style={metaValor}>
+                                          {responsavel}
+                                        </strong>
+                                      </div>
+
+                                      <div style={linhaMeta}>
+                                        <span style={metaLabel}>Data final</span>
+                                        <strong style={metaValor}>
+                                          {demanda.data_entrega
+                                            ? formatarData(demanda.data_entrega)
+                                            : "Sem prazo"}
+                                        </strong>
+                                      </div>
+
+                                      <div style={rodapeCard}>
+                                        <div style={rodapeMeta}>
+                                          <span style={metaChip}>
+                                            <span style={metaIcon}>#</span>
+                                            <span style={metaChipText}>
+                                              {etiqueta}
+                                            </span>
                                           </span>
-                                        )
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
 
-                                {demanda.canais && (
-                                  <div style={blocoExtra}>
-                                    <strong>📍 Canais</strong>
-
-                                    <div style={tags}>
-                                      {quebrarLista(demanda.canais).map(
-                                        (canal) => (
-                                          <span key={canal} style={tag}>
-                                            {canal}
+                                          <span style={metaChip}>
+                                            <span style={metaIcon}>@</span>
+                                            <span style={metaChipText}>
+                                              {demanda.data_entrega
+                                                ? formatarData(
+                                                    demanda.data_entrega
+                                                  )
+                                                : "Sem prazo"}
+                                            </span>
                                           </span>
-                                        )
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
 
-                                {demanda.producao && (
-                                  <div style={blocoExtra}>
-                                    <strong>📦 Produção</strong>
-
-                                    <div style={tags}>
-                                      {quebrarProducao(demanda.producao).map(
-                                        (produto) => (
-                                          <span
-                                            key={produto}
-                                            style={tagProducao}
-                                          >
-                                            {produto}
+                                          <span style={metaChip}>
+                                            <span style={metaIcon}>[]</span>
+                                            <span style={metaChipText}>
+                                              {anexosCount} anexo
+                                              {anexosCount === 1 ? "" : "s"}
+                                            </span>
                                           </span>
-                                        )
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                </a>
-                              </div>
-                            )}
-                          </Draggable>
-                        );
-                      })}
+                                        </div>
 
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </section>
-            );
-          })}
+                                        <span
+                                          style={{
+                                            ...prazoBadge,
+                                            color: prazo.cor,
+                                          }}
+                                        >
+                                          {prazo.texto}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </a>
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </section>
+              );
+            })}
+          </div>
         </div>
       </DragDropContext>
     </div>
@@ -436,21 +474,9 @@ export default function KanbanDemandas({
 }
 
 function pegarUnicos(lista: Array<string | null | undefined>) {
-  return Array.from(new Set(lista.filter((item): item is string => Boolean(item)))).sort();
-}
-
-function quebrarLista(valor: string) {
-  return valor
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function quebrarProducao(valor: string) {
-  return valor
-    .split("|")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return Array.from(
+    new Set(lista.filter((item): item is string => Boolean(item)))
+  ).sort();
 }
 
 function formatarData(data: string) {
@@ -477,7 +503,7 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
   if (!dataEntrega) {
     return {
-      texto: "⚪ Sem prazo",
+      texto: "Sem prazo",
       cor: "#94a3b8",
       tipo: "sem_prazo",
     };
@@ -496,7 +522,7 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
   if (diff < 0) {
     return {
-      texto: `🔴 Atrasado há ${Math.abs(diff)} dia(s)`,
+      texto: `Atrasado ha ${Math.abs(diff)} dia(s)`,
       cor: "#ef4444",
       tipo: "atrasado",
     };
@@ -504,7 +530,7 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
   if (diff === 0) {
     return {
-      texto: "🟡 Vence hoje",
+      texto: "Vence hoje",
       cor: "#f59e0b",
       tipo: "hoje",
     };
@@ -512,14 +538,14 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
   if (diff <= 3) {
     return {
-      texto: `🟠 Vence em ${diff} dia(s)`,
+      texto: `Vence em ${diff} dia(s)`,
       cor: "#fb923c",
       tipo: "proximo",
     };
   }
 
   return {
-    texto: `🟢 ${diff} dia(s) restantes`,
+    texto: `${diff} dia(s) restantes`,
     cor: "#22c55e",
     tipo: "ok",
   };
@@ -528,38 +554,69 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 function estiloCardPrazo(tipo: string) {
   if (tipo === "atrasado") {
     return {
-      border: "1px solid rgba(239, 68, 68, 0.85)",
-      boxShadow:
-        "0 0 0 1px rgba(239, 68, 68, 0.35), 0 12px 24px rgba(0,0,0,0.28)",
+      border: "1px solid rgba(239, 68, 68, 0.68)",
     };
   }
 
   if (tipo === "hoje") {
     return {
-      border: "1px solid rgba(245, 158, 11, 0.85)",
-      boxShadow:
-        "0 0 0 1px rgba(245, 158, 11, 0.28), 0 12px 24px rgba(0,0,0,0.28)",
+      border: "1px solid rgba(245, 158, 11, 0.68)",
     };
   }
 
   if (tipo === "proximo") {
     return {
-      border: "1px solid rgba(251, 146, 60, 0.85)",
+      border: "1px solid rgba(251, 146, 60, 0.68)",
     };
   }
 
-  if (tipo === "ok") {
+  if (tipo === "ok" || tipo === "concluido") {
     return {
-      border: "1px solid rgba(34, 197, 94, 0.45)",
+      border: "1px solid rgba(34, 197, 94, 0.32)",
     };
   }
 
   return {};
 }
 
+function estiloPrioridade(prioridade?: string | null) {
+  const valor = (prioridade || "NORMAL").toUpperCase();
+
+  if (valor === "ALTA" || valor === "URGENTE") {
+    return {
+      background: "rgba(239, 68, 68, 0.16)",
+      border: "1px solid rgba(248, 113, 113, 0.3)",
+      color: "#fecaca",
+    };
+  }
+
+  if (valor === "MEDIA") {
+    return {
+      background: "rgba(245, 158, 11, 0.16)",
+      border: "1px solid rgba(251, 191, 36, 0.28)",
+      color: "#fde68a",
+    };
+  }
+
+  if (valor === "BAIXA") {
+    return {
+      background: "rgba(34, 197, 94, 0.14)",
+      border: "1px solid rgba(74, 222, 128, 0.24)",
+      color: "#bbf7d0",
+    };
+  }
+
+  return {
+    background: "rgba(59, 130, 246, 0.16)",
+    border: "1px solid rgba(147, 197, 253, 0.18)",
+    color: "#bfdbfe",
+  };
+}
+
 const filtrosBox = {
   display: "grid",
-  gridTemplateColumns: "minmax(280px, 1.4fr) repeat(3, minmax(170px, 1fr)) auto",
+  gridTemplateColumns:
+    "minmax(260px, 1.4fr) repeat(3, minmax(170px, 1fr)) auto",
   gap: "10px",
   marginBottom: "10px",
   alignItems: "center",
@@ -597,44 +654,55 @@ const resultadoFiltro = {
   marginBottom: "18px",
 };
 
+const kanbanScroll = {
+  overflowX: "auto" as const,
+  overflowY: "hidden" as const,
+  width: "100%",
+  paddingBottom: "14px",
+};
+
 const kanban = {
   display: "grid",
-  gridTemplateColumns: "repeat(6, minmax(250px, 1fr))",
+  gridTemplateColumns: "repeat(6, minmax(270px, 1fr))",
   gap: "16px",
   alignItems: "start",
-  overflowX: "auto" as const,
-  paddingBottom: "20px",
+  minWidth: "max-content",
 };
 
 const coluna = {
-  background: "rgba(15, 23, 42, 0.72)",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
+  background:
+    "linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(12, 18, 28, 0.92))",
+  border: "1px solid rgba(255,255,255,0.06)",
   borderRadius: "16px",
-  padding: "14px",
+  padding: "12px",
   minHeight: "520px",
+  boxShadow: "0 18px 34px rgba(0,0,0,0.22)",
 };
 
 const colunaHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "14px",
+  marginBottom: "12px",
+  paddingBottom: "10px",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
 };
 
 const colunaTitulo = {
-  fontSize: "15px",
+  fontSize: "13px",
   margin: 0,
   textTransform: "uppercase" as const,
-  letterSpacing: "0.04em",
+  letterSpacing: "0.05em",
+  color: "#f4f4f5",
 };
 
 const contador = {
-  background: "rgba(239, 68, 68, 0.25)",
-  border: "1px solid rgba(254, 202, 202, 0.25)",
+  background: "rgba(124, 58, 237, 0.18)",
+  border: "1px solid rgba(196, 181, 253, 0.16)",
   borderRadius: "999px",
-  padding: "4px 10px",
+  padding: "3px 9px",
   fontSize: "12px",
-  color: "#fee2e2",
+  color: "#ddd6fe",
 };
 
 const cards = {
@@ -646,127 +714,206 @@ const cards = {
 
 const card = {
   position: "relative" as const,
-  background: "linear-gradient(180deg, #111827, #0f172a)",
-  border: "1px solid rgba(148, 163, 184, 0.25)",
+  background: "#18181b",
   borderRadius: "14px",
-  padding: "14px",
   color: "white",
   textDecoration: "none",
-  boxShadow: "0 10px 20px rgba(0,0,0,0.22)",
+  boxShadow: "0 10px 22px rgba(0,0,0,0.24)",
   cursor: "grab",
+  overflow: "hidden",
 };
 
 const cardLink = {
   display: "block",
   color: "white",
   textDecoration: "none",
-  paddingRight: "22px",
 };
 
-const botaoExcluirCard = {
+const acoesTopo = {
   position: "absolute" as const,
-  top: "9px",
-  right: "9px",
-  width: "24px",
-  height: "24px",
+  top: "10px",
+  right: "10px",
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  zIndex: 3,
+};
+
+const botaoAcao = {
+  width: "28px",
+  height: "28px",
   borderRadius: "999px",
-  border: "1px solid rgba(252, 165, 165, 0.32)",
-  background: "rgba(127, 29, 29, 0.84)",
-  color: "#fee2e2",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(17, 24, 39, 0.88)",
+  color: "#f8fafc",
   cursor: "pointer",
-  fontSize: "18px",
-  lineHeight: "20px",
+  fontSize: "12px",
+  lineHeight: "12px",
   fontWeight: 800,
   display: "grid",
   placeItems: "center",
-  zIndex: 2,
+  textDecoration: "none",
 };
 
-const cardTopo = {
+const menuAcoes = {
+  position: "absolute" as const,
+  top: "36px",
+  right: 0,
+  minWidth: "160px",
+  background: "rgba(17, 24, 39, 0.98)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "10px",
+  boxShadow: "0 16px 30px rgba(0,0,0,0.3)",
+  padding: "6px",
+  display: "grid",
+  gap: "4px",
+};
+
+const itemMenu = {
+  color: "#f8fafc",
+  textDecoration: "none",
+  fontSize: "13px",
+  padding: "9px 10px",
+  borderRadius: "8px",
+  background: "transparent",
+};
+
+const itemMenuBotao = {
+  background: "transparent",
+  border: "none",
+  color: "#fecaca",
+  textAlign: "left" as const,
+  fontSize: "13px",
+  padding: "9px 10px",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const previewWrap = {
+  width: "100%",
+  aspectRatio: "16 / 9",
+  background: "#0f172a",
+  overflow: "hidden",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+};
+
+const previewImage = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover" as const,
+  display: "block",
+};
+
+const previewPlaceholder = {
+  width: "100%",
+  aspectRatio: "16 / 9",
+  background:
+    "linear-gradient(135deg, rgba(15,23,42,1), rgba(30,41,59,.96), rgba(17,24,39,1))",
+  display: "grid",
+  placeItems: "center",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  padding: "16px",
+  textAlign: "center" as const,
+};
+
+const previewPlaceholderText = {
+  color: "#cbd5e1",
+  fontSize: "18px",
+  fontWeight: 700,
+  overflowWrap: "anywhere" as const,
+};
+
+const cardBody = {
+  padding: "14px",
+  display: "grid",
+  gap: "12px",
+};
+
+const cardHeaderClean = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "10px",
+  gap: "10px",
 };
 
 const idBadge = {
-  color: "#fecaca",
+  color: "#94a3b8",
   fontSize: "12px",
-  fontWeight: "bold",
+  fontWeight: 700,
 };
 
 const prioridade = {
-  background: "rgba(37, 99, 235, 0.25)",
-  border: "1px solid rgba(147, 197, 253, 0.25)",
   borderRadius: "999px",
-  padding: "3px 8px",
+  padding: "4px 9px",
   fontSize: "11px",
-  color: "#bfdbfe",
+  fontWeight: 700,
 };
 
 const titulo = {
   display: "block",
-  fontSize: "15px",
-  lineHeight: "20px",
-  marginBottom: "14px",
+  fontSize: "20px",
+  lineHeight: "26px",
+  overflowWrap: "anywhere" as const,
 };
 
-const info = {
+const linhaMeta = {
+  display: "grid",
+  gap: "3px",
+};
+
+const metaLabel = {
+  color: "#71717a",
+  fontSize: "11px",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+};
+
+const metaValor = {
+  color: "#f4f4f5",
+  fontSize: "14px",
+};
+
+const rodapeCard = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "3px",
-  color: "#94a3b8",
-  fontSize: "12px",
-  marginTop: "8px",
+  alignItems: "flex-start",
+  gap: "10px",
+  paddingTop: "4px",
 };
 
-const dataEntrega = {
-  marginTop: "12px",
-  fontSize: "12px",
-  color: "#fecaca",
-  borderTop: "1px solid rgba(148, 163, 184, 0.18)",
-  paddingTop: "10px",
+const rodapeMeta = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const metaChip = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "6px",
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  color: "#e4e4e7",
+  borderRadius: "999px",
+  padding: "5px 10px",
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const metaIcon = {
+  fontSize: "11px",
+  lineHeight: "11px",
+  opacity: 0.82,
+};
+
+const metaChipText = {
+  overflowWrap: "anywhere" as const,
 };
 
 const prazoBadge = {
-  marginTop: "8px",
   fontSize: "12px",
-  fontWeight: "bold",
-};
-
-const blocoExtra = {
-  marginTop: "10px",
-  paddingTop: "10px",
-  borderTop: "1px solid rgba(148, 163, 184, 0.18)",
-  color: "#cbd5e1",
-  fontSize: "12px",
-};
-
-const tags = {
-  display: "flex",
-  flexWrap: "wrap" as const,
-  gap: "6px",
-  marginTop: "8px",
-};
-
-const tag = {
-  background: "rgba(37, 99, 235, 0.18)",
-  border: "1px solid rgba(147, 197, 253, 0.22)",
-  color: "#bfdbfe",
-  borderRadius: "999px",
-  padding: "4px 8px",
-  fontSize: "11px",
-  lineHeight: "14px",
-};
-
-const tagProducao = {
-  background: "rgba(22, 101, 52, 0.22)",
-  border: "1px solid rgba(134, 239, 172, 0.22)",
-  color: "#bbf7d0",
-  borderRadius: "999px",
-  padding: "4px 8px",
-  fontSize: "11px",
-  lineHeight: "14px",
+  fontWeight: 700,
 };
 
 const vazio = {
@@ -775,3 +922,4 @@ const vazio = {
   textAlign: "center" as const,
   marginTop: "30px",
 };
+

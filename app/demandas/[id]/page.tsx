@@ -13,6 +13,7 @@ import UploadAnexo from "@/components/UploadAnexo";
 import ExcluirAnexo from "@/components/ExcluirAnexo";
 import EditarDemandaInfo from "@/components/EditarDemandaInfo";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
+import RichTextContent from "@/components/RichTextContent";
 
 type Anexo = {
   id: number;
@@ -33,7 +34,7 @@ export default async function DetalheDemanda({
   const demandaId = Number(id);
 
   if (Number.isNaN(demandaId)) {
-    return <p style={{ color: "red" }}>ID da demanda inválido.</p>;
+    return <p style={{ color: "red" }}>ID da demanda invalido.</p>;
   }
 
   const { data: demanda, error } = await supabase
@@ -53,7 +54,7 @@ export default async function DetalheDemanda({
   }
 
   if (!demanda) {
-    return <p style={{ color: "red" }}>Demanda não encontrada.</p>;
+    return <p style={{ color: "red" }}>Demanda nao encontrada.</p>;
   }
 
   const anexosLista = (anexos || []) as Anexo[];
@@ -89,9 +90,11 @@ export default async function DetalheDemanda({
 
             <h1 style={tituloPrincipal}>{demanda.titulo}</h1>
 
-            <p style={descricaoTopo}>
-              {demanda.descricao || "Sem descrição informada."}
-            </p>
+            <RichTextContent
+              value={demanda.descricao}
+              emptyText="Sem descricao informada."
+              style={descricaoTopo}
+            />
           </div>
 
           <div style={painelResumo}>
@@ -101,13 +104,13 @@ export default async function DetalheDemanda({
             </div>
 
             <div style={campoResumo}>
-              <span>Responsável</span>
-              <strong>{demanda.responsavel || "Não definido"}</strong>
+              <span>Responsavel</span>
+              <strong>{demanda.responsavel || "Nao definido"}</strong>
             </div>
 
             <div style={campoResumo}>
               <span>Prioridade</span>
-              <strong>{demanda.prioridade || "Não informada"}</strong>
+              <strong>{demanda.prioridade || "Nao informada"}</strong>
             </div>
 
             <div style={campoResumo}>
@@ -115,7 +118,7 @@ export default async function DetalheDemanda({
               <strong>
                 {demanda.data_entrega
                   ? formatarData(demanda.data_entrega)
-                  : "Não informada"}
+                  : "Nao informada"}
               </strong>
               <GoogleTaskButton
                 demanda={googleTaskDemanda}
@@ -228,10 +231,10 @@ export default async function DetalheDemanda({
 function formatarStatus(status: string) {
   const nomes: Record<string, string> = {
     RECEBIDO: "Recebido",
-    EM_PRODUCAO: "Em Produção",
-    EM_APROVACAO: "Em Aprovação",
+    EM_PRODUCAO: "Em Producao",
+    EM_APROVACAO: "Em Aprovacao",
     AP_PARA_PUBLICAR: "AP. para Publicar",
-    CONCLUIDO: "Concluído",
+    CONCLUIDO: "Concluido",
     CANCELADO: "Cancelado",
   };
 
@@ -335,7 +338,6 @@ const descricaoTopo: CSSProperties = {
   maxWidth: "900px",
   lineHeight: "24px",
   margin: 0,
-  whiteSpace: "pre-wrap",
 };
 
 const painelResumo: CSSProperties = {
@@ -459,3 +461,4 @@ const sideCard: CSSProperties = {
   padding: "16px",
   marginBottom: "14px",
 };
+
