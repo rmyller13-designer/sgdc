@@ -238,11 +238,6 @@ export default function KanbanDemandas({
           Limpar
         </button>
       </div>
-
-      <p style={resultadoFiltro}>
-        Exibindo {listaFiltrada.length} de {lista.length} demandas
-      </p>
-
       <div style={quadroArea}>
         <DragDropContext onDragEnd={aoArrastar}>
           <div className="kanban-scroll" style={kanbanViewport}>
@@ -785,13 +780,6 @@ const botaoLimpar = {
   borderRadius: "10px",
   padding: "11px 14px",
   cursor: "pointer",
-};
-
-const resultadoFiltro = {
-  color: "#fecaca",
-  fontSize: "13px",
-  marginTop: 0,
-  marginBottom: "18px",
 };
 
 const quadroArea = {

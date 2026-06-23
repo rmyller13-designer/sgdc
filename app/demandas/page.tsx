@@ -54,11 +54,6 @@ export default async function Demandas() {
       <div style={kanbanSurface}>
         <h1>Demandas</h1>
 
-        <p style={subtitulo}>
-          Visualizacao em Kanban por status. Arraste os cards para alterar o
-          status.
-        </p>
-
         {error && (
           <pre style={{ color: "#fca5a5" }}>{JSON.stringify(error, null, 2)}</pre>
         )}
@@ -84,7 +79,7 @@ const kanbanSurface = {
   minHeight: 0,
   display: "flex",
   flexDirection: "column" as const,
-  padding: "18px",
+  padding: "14px 16px 16px",
   borderRadius: "18px",
   background:
     "linear-gradient(180deg, rgba(10, 10, 12, 0.78), rgba(17, 17, 20, 0.9))",
@@ -96,10 +91,4 @@ const boardShell = {
   flex: 1,
   minHeight: 0,
   overflow: "hidden" as const,
-};
-
-const subtitulo = {
-  color: "#d4d4d8",
-  marginTop: "6px",
-  marginBottom: "18px",
 };
