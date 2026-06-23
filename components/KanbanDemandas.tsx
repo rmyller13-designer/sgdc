@@ -45,12 +45,14 @@ export default function KanbanDemandas({
   const router = useRouter();
   const { usuario } = useAuth();
   const podeMover = podeEditarFluxo(usuario);
+  const quadroRef = useRef<HTMLDivElement | null>(null);
   const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
   const kanbanInnerRef = useRef<HTMLDivElement | null>(null);
   const scrollEspelhoRef = useRef<HTMLDivElement | null>(null);
   const [lista, setLista] = useState(demandas || []);
   const [scrollWidth, setScrollWidth] = useState(0);
   const [clientWidth, setClientWidth] = useState(0);
+  const [barraFixa, setBarraFixa] = useState({ left: 0, width: 0 });
 
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroSetor, setFiltroSetor] = useState("");
@@ -92,8 +94,9 @@ export default function KanbanDemandas({
     const container = kanbanScrollRef.current;
     const inner = kanbanInnerRef.current;
     const espelho = scrollEspelhoRef.current;
+    const quadro = quadroRef.current;
 
-    if (!container || !inner || !espelho) {
+    if (!container || !inner || !espelho || !quadro) {
       return;
     }
 
@@ -103,6 +106,11 @@ export default function KanbanDemandas({
     const atualizarMedidas = () => {
       setScrollWidth(inner.scrollWidth);
       setClientWidth(container.clientWidth);
+      const rect = quadro.getBoundingClientRect();
+      setBarraFixa({
+        left: rect.left,
+        width: rect.width,
+      });
     };
 
     const aoScrollContainer = () => {
@@ -302,7 +310,7 @@ export default function KanbanDemandas({
       </p>
 
       <DragDropContext onDragEnd={aoArrastar}>
-        <div style={quadroArea}>
+        <div ref={quadroRef} style={quadroArea}>
           <div className="kanban-scroll" style={kanbanScroll}>
           <div ref={kanbanScrollRef} style={kanbanViewport}>
             <div ref={kanbanInnerRef} style={kanban}>
@@ -532,7 +540,11 @@ export default function KanbanDemandas({
             <div
               ref={scrollEspelhoRef}
               className="kanban-scrollbar-floating"
-              style={scrollbarEspelho}
+              style={{
+                ...scrollbarEspelho,
+                left: `${barraFixa.left}px`,
+                width: `${barraFixa.width}px`,
+              }}
             >
               <div style={{ width: scrollWidth, height: 1 }} />
             </div>
@@ -754,16 +766,16 @@ const kanban = {
 };
 
 const scrollbarEspelho = {
-  position: "sticky" as const,
-  bottom: 0,
+  position: "fixed" as const,
+  bottom: "12px",
   overflowX: "auto" as const,
   overflowY: "hidden" as const,
-  width: "100%",
   height: "18px",
   background: "rgba(15, 23, 42, 0.92)",
   borderRadius: "999px",
   border: "1px solid rgba(255,255,255,0.06)",
-  zIndex: 4,
+  boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+  zIndex: 30,
 };
 
 const coluna = {
