@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DragDropContext,
@@ -45,7 +45,12 @@ export default function KanbanDemandas({
   const router = useRouter();
   const { usuario } = useAuth();
   const podeMover = podeEditarFluxo(usuario);
+  const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
+  const kanbanInnerRef = useRef<HTMLDivElement | null>(null);
+  const scrollEspelhoRef = useRef<HTMLDivElement | null>(null);
   const [lista, setLista] = useState(demandas || []);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const [clientWidth, setClientWidth] = useState(0);
 
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroSetor, setFiltroSetor] = useState("");
@@ -82,6 +87,58 @@ export default function KanbanDemandas({
 
     return passaTexto && passaSetor && passaResponsavel && passaPrioridade;
   });
+
+  useEffect(() => {
+    const container = kanbanScrollRef.current;
+    const inner = kanbanInnerRef.current;
+    const espelho = scrollEspelhoRef.current;
+
+    if (!container || !inner || !espelho) {
+      return;
+    }
+
+    let sincronizandoOrigem = false;
+    let sincronizandoEspelho = false;
+
+    const atualizarMedidas = () => {
+      setScrollWidth(inner.scrollWidth);
+      setClientWidth(container.clientWidth);
+    };
+
+    const aoScrollContainer = () => {
+      if (!espelho || sincronizandoEspelho) return;
+      sincronizandoOrigem = true;
+      espelho.scrollLeft = container.scrollLeft;
+      sincronizandoOrigem = false;
+    };
+
+    const aoScrollEspelho = () => {
+      if (!container || sincronizandoOrigem) return;
+      sincronizandoEspelho = true;
+      container.scrollLeft = espelho.scrollLeft;
+      sincronizandoEspelho = false;
+    };
+
+    atualizarMedidas();
+
+    const resizeObserver = new ResizeObserver(() => {
+      atualizarMedidas();
+    });
+
+    resizeObserver.observe(container);
+    resizeObserver.observe(inner);
+
+    container.addEventListener("scroll", aoScrollContainer);
+    espelho.addEventListener("scroll", aoScrollEspelho);
+    window.addEventListener("resize", atualizarMedidas);
+
+    return () => {
+      resizeObserver.disconnect();
+      container.removeEventListener("scroll", aoScrollContainer);
+      espelho.removeEventListener("scroll", aoScrollEspelho);
+      window.removeEventListener("resize", atualizarMedidas);
+    };
+  }, [listaFiltrada.length]);
 
   function limparFiltros() {
     setFiltroTexto("");
@@ -246,7 +303,8 @@ export default function KanbanDemandas({
 
       <DragDropContext onDragEnd={aoArrastar}>
         <div className="kanban-scroll" style={kanbanScroll}>
-          <div style={kanban}>
+          <div ref={kanbanScrollRef} style={kanbanViewport}>
+            <div ref={kanbanInnerRef} style={kanban}>
             {STATUS.map((status) => {
               const demandasDaColuna = listaFiltrada.filter(
                 (demanda) => demanda.status === status.nome
@@ -466,7 +524,18 @@ export default function KanbanDemandas({
                 </section>
               );
             })}
+            </div>
           </div>
+
+          {scrollWidth > clientWidth && (
+            <div
+              ref={scrollEspelhoRef}
+              className="kanban-scrollbar-floating"
+              style={scrollbarEspelho}
+            >
+              <div style={{ width: scrollWidth, height: 1 }} />
+            </div>
+          )}
         </div>
       </DragDropContext>
     </div>
@@ -655,10 +724,16 @@ const resultadoFiltro = {
 };
 
 const kanbanScroll = {
+  width: "100%",
+  display: "grid",
+  gap: "10px",
+};
+
+const kanbanViewport = {
   overflowX: "auto" as const,
   overflowY: "hidden" as const,
   width: "100%",
-  paddingBottom: "14px",
+  paddingBottom: "4px",
 };
 
 const kanban = {
@@ -666,6 +741,19 @@ const kanban = {
   alignItems: "flex-start",
   gap: "16px",
   minWidth: "max-content",
+};
+
+const scrollbarEspelho = {
+  position: "sticky" as const,
+  bottom: 0,
+  overflowX: "auto" as const,
+  overflowY: "hidden" as const,
+  width: "100%",
+  height: "18px",
+  background: "rgba(15, 23, 42, 0.92)",
+  borderRadius: "999px",
+  border: "1px solid rgba(255,255,255,0.06)",
+  zIndex: 4,
 };
 
 const coluna = {
