@@ -67,11 +67,14 @@ export default async function Demandas() {
 }
 
 const pageShell = {
-  minHeight: "calc(100vh - 140px)",
-  height: "calc(100vh - 140px)",
+  minHeight: "calc(100vh - 124px)",
+  height: "calc(100vh - 124px)",
   display: "flex",
   flexDirection: "column" as const,
   overflow: "hidden" as const,
+  width: "calc(100% + 24px)",
+  marginLeft: "-12px",
+  marginRight: "-12px",
 };
 
 const kanbanSurface = {
@@ -79,8 +82,8 @@ const kanbanSurface = {
   minHeight: 0,
   display: "flex",
   flexDirection: "column" as const,
-  padding: "14px 16px 16px",
-  borderRadius: "18px",
+  padding: "12px 12px 14px",
+  borderRadius: "16px",
   background:
     "linear-gradient(180deg, rgba(10, 10, 12, 0.78), rgba(17, 17, 20, 0.9))",
   border: "1px solid rgba(255, 255, 255, 0.06)",
