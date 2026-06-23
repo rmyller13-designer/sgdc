@@ -212,9 +212,11 @@ export default function KanbanDemandas({
               onChange={(e) => setFiltroSetor(e.target.value)}
               style={selectCompacto}
             >
-              <option value="">Todos</option>
+              <option value="" style={optionCompacto}>
+                Todos
+              </option>
               {setores.map((setor) => (
-                <option key={setor} value={setor}>
+                <option key={setor} value={setor} style={optionCompacto}>
                   {setor}
                 </option>
               ))}
@@ -228,9 +230,15 @@ export default function KanbanDemandas({
               onChange={(e) => setFiltroResponsavel(e.target.value)}
               style={selectCompacto}
             >
-              <option value="">Todos</option>
+              <option value="" style={optionCompacto}>
+                Todos
+              </option>
               {responsaveis.map((responsavel) => (
-                <option key={responsavel} value={responsavel}>
+                <option
+                  key={responsavel}
+                  value={responsavel}
+                  style={optionCompacto}
+                >
                   {responsavel}
                 </option>
               ))}
@@ -244,9 +252,15 @@ export default function KanbanDemandas({
               onChange={(e) => setFiltroPrioridade(e.target.value)}
               style={selectCompacto}
             >
-              <option value="">Todas</option>
+              <option value="" style={optionCompacto}>
+                Todas
+              </option>
               {prioridades.map((prioridade) => (
-                <option key={prioridade} value={prioridade}>
+                <option
+                  key={prioridade}
+                  value={prioridade}
+                  style={optionCompacto}
+                >
                   {prioridade}
                 </option>
               ))}
@@ -845,6 +859,11 @@ const selectCompacto = {
   fontSize: "12px",
   paddingRight: "4px",
   maxWidth: "120px",
+};
+
+const optionCompacto = {
+  background: "#18181b",
+  color: "#ffffff",
 };
 
 const botaoLimpar = {

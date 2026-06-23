@@ -335,18 +335,6 @@ export default function NovaDemanda() {
 
   return (
     <div style={page}>
-      <div style={hero}>
-        <div>
-          <p style={eyebrow}>Solicitacao</p>
-          <h1 style={tituloPagina}>Nova Demanda</h1>
-          <p style={textoAjuda}>
-            Cadastre as informacoes principais em um unico fluxo. Depois, ao abrir a
-            demanda, voce podera complementar com eixos, destinos e produtos
-            produzidos.
-          </p>
-        </div>
-      </div>
-
       <div style={shell}>
         <form
           style={formCard}
@@ -570,13 +558,7 @@ function CampoBloco({
 
 const page = {
   display: "grid",
-  gap: "22px",
-};
-
-const hero = {
-  maxWidth: "980px",
-  margin: "0 auto",
-  width: "100%",
+  gap: "0",
 };
 
 const shell = {
@@ -705,27 +687,6 @@ const botao = {
   borderRadius: "10px",
   cursor: "pointer",
   fontWeight: "bold",
-};
-
-const eyebrow = {
-  margin: 0,
-  color: "#fca5a5",
-  fontSize: "12px",
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  letterSpacing: "0.08em",
-};
-
-const tituloPagina = {
-  margin: "6px 0 10px",
-  fontSize: "clamp(30px, 5vw, 36px)",
-};
-
-const textoAjuda = {
-  color: "#94a3b8",
-  maxWidth: "760px",
-  margin: 0,
-  lineHeight: "26px",
 };
 
 const aviso = {
