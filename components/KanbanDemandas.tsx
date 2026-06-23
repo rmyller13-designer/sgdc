@@ -302,7 +302,8 @@ export default function KanbanDemandas({
       </p>
 
       <DragDropContext onDragEnd={aoArrastar}>
-        <div className="kanban-scroll" style={kanbanScroll}>
+        <div style={quadroArea}>
+          <div className="kanban-scroll" style={kanbanScroll}>
           <div ref={kanbanScrollRef} style={kanbanViewport}>
             <div ref={kanbanInnerRef} style={kanban}>
             {STATUS.map((status) => {
@@ -537,6 +538,7 @@ export default function KanbanDemandas({
             </div>
           )}
         </div>
+        </div>
       </DragDropContext>
     </div>
   );
@@ -729,10 +731,17 @@ const kanbanScroll = {
   gap: "10px",
 };
 
+const quadroArea = {
+  minHeight: "560px",
+  height: "calc(100vh - 290px)",
+  maxHeight: "78vh",
+};
+
 const kanbanViewport = {
   overflowX: "auto" as const,
   overflowY: "hidden" as const,
   width: "100%",
+  height: "100%",
   paddingBottom: "4px",
 };
 
@@ -741,6 +750,7 @@ const kanban = {
   alignItems: "flex-start",
   gap: "16px",
   minWidth: "max-content",
+  minHeight: "100%",
 };
 
 const scrollbarEspelho = {
@@ -757,13 +767,15 @@ const scrollbarEspelho = {
 };
 
 const coluna = {
+  display: "flex",
+  flexDirection: "column" as const,
   flex: "0 0 300px",
   background:
     "linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(12, 18, 28, 0.92))",
   border: "1px solid rgba(255,255,255,0.06)",
   borderRadius: "16px",
   padding: "12px",
-  minHeight: "520px",
+  height: "100%",
   boxShadow: "0 18px 34px rgba(0,0,0,0.22)",
 };
 
@@ -797,7 +809,9 @@ const cards = {
   display: "flex",
   flexDirection: "column" as const,
   gap: "12px",
-  minHeight: "460px",
+  minHeight: 0,
+  overflowY: "auto" as const,
+  paddingRight: "4px",
 };
 
 const card = {
