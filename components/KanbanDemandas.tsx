@@ -403,24 +403,24 @@ export default function KanbanDemandas({
                                           {demanda.titulo || "Sem titulo"}
                                         </strong>
 
-                                        <div style={linhaMeta}>
-                                          <span style={metaLabel}>
-                                            Responsavel
+                                        <div style={resumoLinha}>
+                                          <span style={resumoItem}>
+                                            <span style={resumoIcon}>o</span>
+                                            <strong style={metaValor}>
+                                              {responsavel}
+                                            </strong>
                                           </span>
-                                          <strong style={metaValor}>
-                                            {responsavel}
-                                          </strong>
-                                        </div>
 
-                                        <div style={linhaMeta}>
-                                          <span style={metaLabel}>Data final</span>
-                                          <strong style={metaValor}>
-                                            {demanda.data_entrega
-                                              ? formatarData(
-                                                  demanda.data_entrega
-                                                )
-                                              : "Sem prazo"}
-                                          </strong>
+                                          <span style={resumoItem}>
+                                            <span style={resumoIcon}>@</span>
+                                            <span style={resumoTexto}>
+                                              {demanda.data_entrega
+                                                ? formatarData(
+                                                    demanda.data_entrega
+                                                  )
+                                                : "Sem prazo"}
+                                            </span>
+                                          </span>
                                         </div>
 
                                         <div style={rodapeCard}>
@@ -670,18 +670,18 @@ const kanbanViewport = {
 const kanbanTrack = {
   display: "flex",
   alignItems: "stretch",
-  gap: "14px",
+  gap: "12px",
   minWidth: "max-content",
   height: "100%",
 };
 
 const coluna = {
-  flex: "0 0 272px",
+  flex: "0 0 248px",
   background:
     "linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(12, 18, 28, 0.88))",
   border: "1px solid rgba(255,255,255,0.06)",
   borderRadius: "14px",
-  padding: "10px",
+  padding: "9px",
   display: "flex",
   flexDirection: "column" as const,
   height: "100%",
@@ -691,13 +691,13 @@ const colunaHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "10px",
-  paddingBottom: "8px",
+  marginBottom: "8px",
+  paddingBottom: "7px",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
 };
 
 const colunaTitulo = {
-  fontSize: "13px",
+  fontSize: "12px",
   margin: 0,
   textTransform: "uppercase" as const,
   letterSpacing: "0.05em",
@@ -717,7 +717,7 @@ const cards = {
   flex: 1,
   display: "flex",
   flexDirection: "column" as const,
-  gap: "10px",
+  gap: "8px",
   minHeight: 0,
   overflowY: "auto" as const,
   overflowX: "hidden" as const,
@@ -728,10 +728,10 @@ const card = {
   position: "relative" as const,
   flexShrink: 0,
   background: "#18181b",
-  borderRadius: "14px",
+  borderRadius: "12px",
   color: "white",
   textDecoration: "none",
-  boxShadow: "0 8px 18px rgba(0,0,0,0.22)",
+  boxShadow: "0 6px 14px rgba(0,0,0,0.2)",
   cursor: "grab",
   overflow: "hidden",
 };
@@ -744,17 +744,17 @@ const cardLink = {
 
 const acoesTopo = {
   position: "absolute" as const,
-  top: "8px",
-  right: "8px",
+  top: "7px",
+  right: "7px",
   display: "flex",
   alignItems: "center",
-  gap: "6px",
+  gap: "5px",
   zIndex: 3,
 };
 
 const botaoAcao = {
-  width: "28px",
-  height: "28px",
+  width: "26px",
+  height: "26px",
   borderRadius: "999px",
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(17, 24, 39, 0.88)",
@@ -804,7 +804,7 @@ const itemMenuBotao = {
 
 const previewWrap = {
   width: "100%",
-  height: "96px",
+  height: "74px",
   background: "#0f172a",
   overflow: "hidden",
   borderBottom: "1px solid rgba(255,255,255,0.08)",
@@ -819,7 +819,7 @@ const previewImage = {
 
 const previewPlaceholder = {
   width: "100%",
-  height: "96px",
+  height: "74px",
   background:
     "linear-gradient(135deg, rgba(15,23,42,1), rgba(30,41,59,.96), rgba(17,24,39,1))",
   display: "grid",
@@ -831,15 +831,15 @@ const previewPlaceholder = {
 
 const previewPlaceholderText = {
   color: "#cbd5e1",
-  fontSize: "14px",
+  fontSize: "12px",
   fontWeight: 700,
   overflowWrap: "anywhere" as const,
 };
 
 const cardBody = {
-  padding: "11px",
+  padding: "9px 10px 10px",
   display: "grid",
-  gap: "8px",
+  gap: "7px",
 };
 
 const cardHeaderClean = {
@@ -851,45 +851,64 @@ const cardHeaderClean = {
 
 const idBadge = {
   color: "#94a3b8",
-  fontSize: "12px",
+  fontSize: "11px",
   fontWeight: 700,
 };
 
 const prioridade = {
   borderRadius: "999px",
-  padding: "4px 8px",
-  fontSize: "10px",
+  padding: "3px 8px",
+  fontSize: "9px",
   fontWeight: 700,
 };
 
 const titulo = {
-  display: "block",
-  fontSize: "14px",
-  lineHeight: "19px",
+  display: "-webkit-box",
+  WebkitBoxOrient: "vertical" as const,
+  WebkitLineClamp: 2,
+  overflow: "hidden",
+  fontSize: "13px",
+  lineHeight: "18px",
   overflowWrap: "anywhere" as const,
 };
 
-const linhaMeta = {
-  display: "grid",
-  gap: "2px",
+const resumoLinha = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "8px",
+  flexWrap: "wrap" as const,
 };
 
-const metaLabel = {
+const resumoItem = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "5px",
+  minWidth: 0,
+};
+
+const resumoIcon = {
   color: "#71717a",
   fontSize: "10px",
-  textTransform: "uppercase" as const,
-  letterSpacing: "0.05em",
+  lineHeight: "10px",
+  flexShrink: 0,
+};
+
+const resumoTexto = {
+  color: "#cbd5e1",
+  fontSize: "11px",
+  fontWeight: 600,
 };
 
 const metaValor = {
   color: "#f4f4f5",
-  fontSize: "12px",
+  fontSize: "11px",
 };
 
 const rodapeCard = {
   display: "grid",
-  gap: "8px",
-  paddingTop: "2px",
+  gap: "6px",
+  paddingTop: "1px",
 };
 
 const rodapeMeta = {
@@ -902,13 +921,13 @@ const rodapeMeta = {
 const metaChip = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "5px",
+  gap: "4px",
   background: "rgba(255,255,255,0.06)",
   border: "1px solid rgba(255,255,255,0.08)",
   color: "#e4e4e7",
   borderRadius: "999px",
-  padding: "4px 8px",
-  fontSize: "10px",
+  padding: "3px 7px",
+  fontSize: "9px",
   fontWeight: 700,
 };
 
@@ -923,7 +942,7 @@ const metaChipText = {
 };
 
 const prazoBadge = {
-  fontSize: "12px",
+  fontSize: "11px",
   fontWeight: 700,
 };
 
