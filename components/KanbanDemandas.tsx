@@ -662,14 +662,14 @@ const kanbanScroll = {
 };
 
 const kanban = {
-  display: "grid",
-  gridTemplateColumns: "repeat(6, minmax(270px, 1fr))",
+  display: "flex",
+  alignItems: "flex-start",
   gap: "16px",
-  alignItems: "start",
   minWidth: "max-content",
 };
 
 const coluna = {
+  flex: "0 0 300px",
   background:
     "linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(12, 18, 28, 0.92))",
   border: "1px solid rgba(255,255,255,0.06)",
@@ -922,4 +922,3 @@ const vazio = {
   textAlign: "center" as const,
   marginTop: "30px",
 };
-
