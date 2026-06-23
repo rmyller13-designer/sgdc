@@ -251,12 +251,30 @@ export default function KanbanDemandas({
                 const demandasDaColuna = listaFiltrada.filter(
                   (demanda) => demanda.status === status.nome
                 );
+                const temaStatus = estiloStatus(status.nome);
 
                 return (
-                  <section key={status.nome} style={coluna}>
+                  <section
+                    key={status.nome}
+                    style={{ ...coluna, ...temaStatus.coluna }}
+                  >
                     <div style={colunaHeader}>
-                      <h2 style={colunaTitulo}>{status.titulo}</h2>
-                      <span style={contador}>{demandasDaColuna.length}</span>
+                      <h2
+                        style={{
+                          ...colunaTitulo,
+                          ...temaStatus.badge,
+                        }}
+                      >
+                        {status.titulo}
+                      </h2>
+                      <span
+                        style={{
+                          ...contador,
+                          ...temaStatus.contador,
+                        }}
+                      >
+                        {demandasDaColuna.length}
+                      </span>
                     </div>
 
                     <Droppable droppableId={status.nome}>
@@ -602,6 +620,120 @@ function estiloPrioridade(prioridade?: string | null) {
   };
 }
 
+function estiloStatus(status: string) {
+  if (status === "RECEBIDO") {
+    return {
+      coluna: {
+        background:
+          "linear-gradient(180deg, rgba(24, 24, 27, 0.95), rgba(20, 20, 24, 0.96))",
+      },
+      badge: {
+        background: "rgba(63, 63, 70, 0.72)",
+        border: "1px solid rgba(82, 82, 91, 0.88)",
+        color: "#fafafa",
+      },
+      contador: {
+        background: "rgba(63, 63, 70, 0.54)",
+        border: "1px solid rgba(82, 82, 91, 0.78)",
+        color: "#f4f4f5",
+      },
+    };
+  }
+
+  if (status === "EM_PRODUCAO") {
+    return {
+      coluna: {
+        background:
+          "linear-gradient(180deg, rgba(26, 22, 44, 0.96), rgba(20, 18, 34, 0.98))",
+      },
+      badge: {
+        background: "rgba(99, 70, 236, 0.92)",
+        border: "1px solid rgba(167, 139, 250, 0.78)",
+        color: "#ffffff",
+      },
+      contador: {
+        background: "rgba(88, 64, 205, 0.44)",
+        border: "1px solid rgba(129, 140, 248, 0.55)",
+        color: "#ddd6fe",
+      },
+    };
+  }
+
+  if (status === "EM_APROVACAO") {
+    return {
+      coluna: {
+        background:
+          "linear-gradient(180deg, rgba(43, 23, 50, 0.96), rgba(31, 19, 38, 0.98))",
+      },
+      badge: {
+        background: "rgba(205, 70, 214, 0.92)",
+        border: "1px solid rgba(232, 121, 249, 0.7)",
+        color: "#ffffff",
+      },
+      contador: {
+        background: "rgba(168, 85, 247, 0.28)",
+        border: "1px solid rgba(216, 180, 254, 0.42)",
+        color: "#f5d0fe",
+      },
+    };
+  }
+
+  if (status === "AP_PARA_PUBLICAR") {
+    return {
+      coluna: {
+        background:
+          "linear-gradient(180deg, rgba(31, 22, 23, 0.96), rgba(28, 18, 20, 0.98))",
+      },
+      badge: {
+        background: "rgba(239, 68, 68, 0.92)",
+        border: "1px solid rgba(252, 165, 165, 0.68)",
+        color: "#ffffff",
+      },
+      contador: {
+        background: "rgba(239, 68, 68, 0.22)",
+        border: "1px solid rgba(248, 113, 113, 0.36)",
+        color: "#fecaca",
+      },
+    };
+  }
+
+  if (status === "CONCLUIDO") {
+    return {
+      coluna: {
+        background:
+          "linear-gradient(180deg, rgba(16, 36, 28, 0.96), rgba(15, 28, 24, 0.98))",
+      },
+      badge: {
+        background: "rgba(20, 184, 166, 0.9)",
+        border: "1px solid rgba(94, 234, 212, 0.7)",
+        color: "#ffffff",
+      },
+      contador: {
+        background: "rgba(16, 185, 129, 0.22)",
+        border: "1px solid rgba(74, 222, 128, 0.34)",
+        color: "#bbf7d0",
+      },
+    };
+  }
+
+  return {
+    coluna: {
+      background:
+        "linear-gradient(180deg, rgba(31, 22, 23, 0.96), rgba(25, 18, 19, 0.98))",
+    },
+    badge: {
+      background: "rgba(100, 116, 139, 0.84)",
+      border: "1px solid rgba(148, 163, 184, 0.58)",
+      color: "#ffffff",
+    },
+    contador: {
+      background: "rgba(71, 85, 105, 0.26)",
+      border: "1px solid rgba(148, 163, 184, 0.3)",
+      color: "#cbd5e1",
+    },
+  };
+}
+
 const raiz = {
   display: "flex",
   flexDirection: "column" as const,
@@ -699,18 +831,27 @@ const colunaHeader = {
 const colunaTitulo = {
   fontSize: "12px",
   margin: 0,
+  padding: "4px 8px",
+  borderRadius: "999px",
   textTransform: "uppercase" as const,
-  letterSpacing: "0.05em",
+  letterSpacing: "0.03em",
   color: "#f4f4f5",
+  border: "1px solid transparent",
+  lineHeight: 1,
 };
 
 const contador = {
   background: "rgba(124, 58, 237, 0.18)",
   border: "1px solid rgba(196, 181, 253, 0.16)",
   borderRadius: "999px",
-  padding: "3px 9px",
+  minWidth: "26px",
+  height: "24px",
+  padding: "0 8px",
   fontSize: "12px",
   color: "#ddd6fe",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const cards = {
