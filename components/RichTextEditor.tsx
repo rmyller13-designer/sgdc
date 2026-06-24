@@ -30,6 +30,7 @@ export default function RichTextEditor({
   minHeight = 180,
 }: Props) {
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const ultimoHtmlRef = useRef("");
   const [focused, setFocused] = useState(false);
 
   const htmlNormalizado = useMemo(() => sanitizeRichText(value), [value]);
@@ -38,36 +39,41 @@ export default function RichTextEditor({
     const editor = editorRef.current;
     if (!editor) return;
 
-    // Enquanto o usuário está digitando/formatando, o DOM do editor já é a
-    // fonte da verdade. Evitamos reescrever o HTML nessa fase para não perder
-    // seleção, cursor ou formatação recém-aplicada.
-    if (focused) return;
-
-    if (editor.innerHTML !== htmlNormalizado) {
+    if (ultimoHtmlRef.current !== htmlNormalizado) {
       editor.innerHTML = htmlNormalizado;
+      ultimoHtmlRef.current = htmlNormalizado;
     }
-  }, [focused, htmlNormalizado]);
+  }, [htmlNormalizado]);
+
+  function propagarMudanca() {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const htmlAtual = sanitizeRichText(editor.innerHTML || "");
+    ultimoHtmlRef.current = htmlAtual;
+    onChange(htmlAtual);
+  }
 
   function executar(comando: Action) {
     editorRef.current?.focus();
     document.execCommand(comando, false);
-    onChange(editorRef.current?.innerHTML || "");
+    propagarMudanca();
   }
 
   function limparFormatacao() {
     editorRef.current?.focus();
     document.execCommand("removeFormat", false);
-    onChange(editorRef.current?.innerHTML || "");
+    propagarMudanca();
   }
 
   function aoColar(event: React.ClipboardEvent<HTMLDivElement>) {
     event.preventDefault();
     const texto = event.clipboardData.getData("text/plain");
     document.execCommand("insertText", false, texto);
-    onChange(editorRef.current?.innerHTML || "");
+    propagarMudanca();
   }
 
-  const vazio = !sanitizeRichText(value).trim();
+  const vazio = !htmlNormalizado.trim();
 
   return (
     <div style={wrapper}>
@@ -89,9 +95,9 @@ export default function RichTextEditor({
           onFocus={() => setFocused(true)}
           onBlur={() => {
             setFocused(false);
-            onChange(editorRef.current?.innerHTML || "");
+            propagarMudanca();
           }}
-          onInput={() => onChange(editorRef.current?.innerHTML || "")}
+          onInput={propagarMudanca}
           onPaste={aoColar}
           style={{ ...editorStyle, minHeight }}
         />
