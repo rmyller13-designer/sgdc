@@ -38,10 +38,15 @@ export default function RichTextEditor({
     const editor = editorRef.current;
     if (!editor) return;
 
+    // Enquanto o usuário está digitando/formatando, o DOM do editor já é a
+    // fonte da verdade. Evitamos reescrever o HTML nessa fase para não perder
+    // seleção, cursor ou formatação recém-aplicada.
+    if (focused) return;
+
     if (editor.innerHTML !== htmlNormalizado) {
       editor.innerHTML = htmlNormalizado;
     }
-  }, [htmlNormalizado]);
+  }, [focused, htmlNormalizado]);
 
   function executar(comando: Action) {
     editorRef.current?.focus();
@@ -103,7 +108,16 @@ function ToolbarButton({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} style={toolbarButton}>
+    <button
+      type="button"
+      onMouseDown={(event) => {
+        // Impede que o botão roube o foco do contentEditable e preserve a
+        // seleção atual antes de aplicar negrito/itálico/lista.
+        event.preventDefault();
+      }}
+      onClick={onClick}
+      style={toolbarButton}
+    >
       {label}
     </button>
   );
@@ -159,4 +173,3 @@ const placeholderStyle: CSSProperties = {
   color: "#94a3b8",
   pointerEvents: "none",
 };
-
