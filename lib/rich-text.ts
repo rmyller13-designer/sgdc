@@ -12,6 +12,40 @@ const ALLOWED_TAGS = new Set([
   "a",
 ]);
 
+function normalizarHtmlDoEditor(input: string) {
+  return (
+    input
+      // O contentEditable costuma gerar <div> para novas linhas.
+      .replace(/<div\b[^>]*>/gi, "<p>")
+      .replace(/<\/div>/gi, "</p>")
+      // Converte estilos inline comuns do navegador para tags semânticas.
+      .replace(
+        /<span\b([^>]*)style=(["'])(.*?)\2([^>]*)>([\s\S]*?)<\/span>/gi,
+        (_match, _antes, _aspas, style: string, _depois, content: string) => {
+          let resultado = content;
+
+          if (/font-weight\s*:\s*(bold|[5-9]00)/i.test(style)) {
+            resultado = `<strong>${resultado}</strong>`;
+          }
+
+          if (/font-style\s*:\s*italic/i.test(style)) {
+            resultado = `<em>${resultado}</em>`;
+          }
+
+          if (
+            /text-decoration(?:-line)?\s*:\s*[^;]*underline/i.test(style)
+          ) {
+            resultado = `<u>${resultado}</u>`;
+          }
+
+          return resultado;
+        }
+      )
+      .replace(/<font\b[^>]*>/gi, "")
+      .replace(/<\/font>/gi, "")
+  );
+}
+
 function decodeBasicEntities(value: string) {
   return value
     .replace(/&nbsp;/gi, " ")
@@ -25,7 +59,7 @@ function decodeBasicEntities(value: string) {
 export function sanitizeRichText(input: string | null | undefined) {
   if (!input) return "";
 
-  let html = input
+  let html = normalizarHtmlDoEditor(input)
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
     .replace(/\son\w+=(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
@@ -89,4 +123,3 @@ export function stripRichText(input: string | null | undefined) {
       .replace(/<[^>]+>/g, "")
   ).replace(/\n{3,}/g, "\n\n");
 }
-
