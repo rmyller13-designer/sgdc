@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import RichTextEditor from "@/components/RichTextEditor";
+import RichTextEditor, {
+  type RichTextEditorHandle,
+} from "@/components/RichTextEditor";
 import {
   autorizarGoogleTasks,
   criarTarefaGoogle,
@@ -55,6 +57,7 @@ export default function NovaDemanda() {
   const router = useRouter();
   const { usuario } = useAuth();
   const inputArquivosRef = useRef<HTMLInputElement | null>(null);
+  const descricaoEditorRef = useRef<RichTextEditorHandle | null>(null);
   const [setores, setSetores] = useState<Opcao[]>([]);
   const [prioridades, setPrioridades] = useState<Opcao[]>([]);
   const [usuarios, setUsuarios] = useState<Opcao[]>([]);
@@ -184,7 +187,8 @@ export default function NovaDemanda() {
         }
       }
 
-      const descricaoSanitizada = sanitizeRichText(descricao);
+      const descricaoAtual = descricaoEditorRef.current?.getHtml() || descricao;
+      const descricaoSanitizada = sanitizeRichText(descricaoAtual);
       let googleAccessToken: string | undefined;
 
       if (incluirGoogleAgenda) {
@@ -472,6 +476,7 @@ export default function NovaDemanda() {
 
           <CampoBloco label="Descrição" fullWidth>
             <RichTextEditor
+              ref={descricaoEditorRef}
               value={descricao}
               onChange={setDescricao}
               placeholder="Descreva a necessidade, contexto, objetivo, público e observações importantes"

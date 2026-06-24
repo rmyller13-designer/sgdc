@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  forwardRef,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -16,6 +18,11 @@ type Props = {
   minHeight?: number;
 };
 
+export type RichTextEditorHandle = {
+  getHtml: () => string;
+  focus: () => void;
+};
+
 type Action =
   | "bold"
   | "italic"
@@ -23,12 +30,12 @@ type Action =
   | "insertUnorderedList"
   | "insertOrderedList";
 
-export default function RichTextEditor({
+const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(function RichTextEditor({
   value,
   onChange,
   placeholder = "Digite aqui...",
   minHeight = 180,
-}: Props) {
+}: Props, ref) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const ultimoHtmlRef = useRef("");
   const [focused, setFocused] = useState(false);
@@ -53,6 +60,19 @@ export default function RichTextEditor({
     ultimoHtmlRef.current = htmlAtual;
     onChange(htmlAtual);
   }
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getHtml() {
+        return sanitizeRichText(editorRef.current?.innerHTML || "");
+      },
+      focus() {
+        editorRef.current?.focus();
+      },
+    }),
+    []
+  );
 
   function executar(comando: Action) {
     editorRef.current?.focus();
@@ -104,7 +124,9 @@ export default function RichTextEditor({
       </div>
     </div>
   );
-}
+});
+
+export default RichTextEditor;
 
 function ToolbarButton({
   label,

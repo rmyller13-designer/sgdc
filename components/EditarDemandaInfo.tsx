@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarDados } from "@/lib/auth";
 import { sanitizeRichText } from "@/lib/rich-text";
 import { supabase } from "@/lib/supabase";
 import RichTextContent from "@/components/RichTextContent";
-import RichTextEditor from "@/components/RichTextEditor";
+import RichTextEditor, {
+  type RichTextEditorHandle,
+} from "@/components/RichTextEditor";
 
 type CampoEditando =
   | "titulo"
@@ -109,6 +111,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
   const [usuarios, setUsuarios] = useState<Opcao[]>([]);
   const [produtos, setProdutos] = useState<Opcao[]>([]);
   const [prioridades, setPrioridades] = useState<Opcao[]>([]);
+  const descricaoEditorRef = useRef<RichTextEditorHandle | null>(null);
 
   const [form, setForm] = useState<DemandaForm>(formInicial);
   const [valoresSalvos, setValoresSalvos] = useState<DemandaForm>(formInicial);
@@ -194,7 +197,10 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
       return;
     }
 
-    const valor = form[campo];
+    const valor =
+      campo === "descricao"
+        ? descricaoEditorRef.current?.getHtml() || form[campo]
+        : form[campo];
     let valorBanco: number | string | null;
 
     if (campo === "descricao") {
@@ -256,6 +262,9 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
           label="Descrição"
           campo="descricao"
           valor={form.descricao}
+          onEditorReady={(editor) => {
+            descricaoEditorRef.current = editor;
+          }}
           editando={editando}
           salvando={salvando}
           setEditando={setEditando}
@@ -382,7 +391,12 @@ function CampoTexto(props: CampoBaseProps) {
             onChange={(e) => props.onChange(props.campo, e.target.value)}
             style={campoStyle}
           />
-          <Botoes {...props} />
+          <Botoes
+            campo={props.campo}
+            salvando={props.salvando}
+            onSalvar={props.onSalvar}
+            onCancelar={props.onCancelar}
+          />
         </>
       ) : (
         <strong style={valorStyle}>{props.valor || "Não informado"}</strong>
@@ -391,32 +405,52 @@ function CampoTexto(props: CampoBaseProps) {
   );
 }
 
-function CampoRichText(props: CampoBaseProps) {
-  const ativo = props.editando === props.campo;
+function CampoRichText({
+  label,
+  campo,
+  valor,
+  editando,
+  salvando,
+  setEditando,
+  podeEditar,
+  onChange,
+  onSalvar,
+  onCancelar,
+  onEditorReady,
+}: CampoBaseProps & {
+  onEditorReady?: (editor: RichTextEditorHandle | null) => void;
+}) {
+  const ativo = editando === campo;
 
   return (
     <div style={{ ...infoBox, gridColumn: "1 / -1" }}>
       <LinhaTitulo
-        label={props.label}
-        campo={props.campo}
-        setEditando={props.setEditando}
+        label={label}
+        campo={campo}
+        setEditando={setEditando}
         ativo={ativo}
-        podeEditar={props.podeEditar}
+        podeEditar={podeEditar}
       />
 
       {ativo ? (
         <>
           <RichTextEditor
-            value={props.valor}
-            onChange={(value) => props.onChange(props.campo, value)}
+            ref={onEditorReady}
+            value={valor}
+            onChange={(proximoValor) => onChange(campo, proximoValor)}
             placeholder="Descrição da demanda"
             minHeight={160}
           />
-          <Botoes {...props} />
+          <Botoes
+            campo={campo}
+            salvando={salvando}
+            onSalvar={onSalvar}
+            onCancelar={onCancelar}
+          />
         </>
       ) : (
         <RichTextContent
-          value={props.valor}
+          value={valor}
           emptyText="Não informado"
           style={richTextViewStyle}
         />
