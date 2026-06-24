@@ -14,6 +14,10 @@ import ExcluirAnexo from "@/components/ExcluirAnexo";
 import EditarDemandaInfo from "@/components/EditarDemandaInfo";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import RichTextContent from "@/components/RichTextContent";
+import {
+  corrigirTextoExibicao,
+  formatarTituloHumano,
+} from "@/lib/display-text";
 
 type Anexo = {
   id: number;
@@ -34,7 +38,7 @@ export default async function DetalheDemanda({
   const demandaId = Number(id);
 
   if (Number.isNaN(demandaId)) {
-    return <p style={{ color: "red" }}>ID da demanda invalido.</p>;
+    return <p style={{ color: "red" }}>ID da demanda inválido.</p>;
   }
 
   const { data: demanda, error } = await supabase
@@ -54,7 +58,7 @@ export default async function DetalheDemanda({
   }
 
   if (!demanda) {
-    return <p style={{ color: "red" }}>Demanda nao encontrada.</p>;
+    return <p style={{ color: "red" }}>Demanda não encontrada.</p>;
   }
 
   const anexosLista = (anexos || []) as Anexo[];
@@ -92,7 +96,7 @@ export default async function DetalheDemanda({
 
             <RichTextContent
               value={demanda.descricao}
-              emptyText="Sem descricao informada."
+              emptyText="Sem descrição informada."
               style={descricaoTopo}
             />
           </div>
@@ -104,13 +108,13 @@ export default async function DetalheDemanda({
             </div>
 
             <div style={campoResumo}>
-              <span>Responsavel</span>
-              <strong>{demanda.responsavel || "Nao definido"}</strong>
+              <span>Responsável</span>
+              <strong>{corrigirTextoExibicao(demanda.responsavel) || "Não definido"}</strong>
             </div>
 
             <div style={campoResumo}>
               <span>Prioridade</span>
-              <strong>{demanda.prioridade || "Nao informada"}</strong>
+                <strong>{formatarTituloHumano(demanda.prioridade) || "Não informada"}</strong>
             </div>
 
             <div style={campoResumo}>
@@ -118,7 +122,7 @@ export default async function DetalheDemanda({
               <strong>
                 {demanda.data_entrega
                   ? formatarData(demanda.data_entrega)
-                  : "Nao informada"}
+                  : "Não informada"}
               </strong>
               <GoogleTaskButton
                 demanda={googleTaskDemanda}
@@ -182,7 +186,7 @@ export default async function DetalheDemanda({
                       rel="noreferrer"
                       style={anexoLink}
                     >
-                      Anexo: {anexo.nome_arquivo}
+                      Anexo: {corrigirTextoExibicao(anexo.nome_arquivo)}
                     </a>
 
                     {anexo.tipo_arquivo?.startsWith("image/") && (
@@ -231,14 +235,14 @@ export default async function DetalheDemanda({
 function formatarStatus(status: string) {
   const nomes: Record<string, string> = {
     RECEBIDO: "Recebido",
-    EM_PRODUCAO: "Em Producao",
-    EM_APROVACAO: "Em Aprovacao",
+    EM_PRODUCAO: "Em Produção",
+    EM_APROVACAO: "Em Aprovação",
     AP_PARA_PUBLICAR: "AP. para Publicar",
-    CONCLUIDO: "Concluido",
+    CONCLUIDO: "Concluído",
     CANCELADO: "Cancelado",
   };
 
-  return nomes[status] || status;
+  return nomes[status] || corrigirTextoExibicao(status);
 }
 
 function formatarData(data: string) {
@@ -461,4 +465,3 @@ const sideCard: CSSProperties = {
   padding: "16px",
   marginBottom: "14px",
 };
-

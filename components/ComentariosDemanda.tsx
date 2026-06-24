@@ -73,12 +73,12 @@ export default function ComentariosDemanda({
     setMensagem("");
 
     if (!texto.trim() && arquivos.length === 0) {
-      setMensagem("Digite um comentario ou selecione um anexo.");
+      setMensagem("Digite um comentário ou selecione um anexo.");
       return;
     }
 
     if (!usuario) {
-      setMensagem("Faca login para comentar.");
+      setMensagem("Faça login para comentar.");
       return;
     }
 
@@ -103,7 +103,7 @@ export default function ComentariosDemanda({
       .single();
 
     if (error || !comentarioCriado) {
-      setMensagem("Erro ao enviar comentario: " + (error?.message || ""));
+      setMensagem("Erro ao enviar comentário: " + (error?.message || ""));
       setEnviando(false);
       return;
     }
@@ -120,7 +120,7 @@ export default function ComentariosDemanda({
         .upload(caminhoArquivo, arquivo);
 
       if (erroUpload) {
-        setMensagem("Comentario salvo, mas houve erro no anexo: " + erroUpload.message);
+        setMensagem("Comentário salvo, mas houve erro no anexo: " + erroUpload.message);
         continue;
       }
 
@@ -141,7 +141,7 @@ export default function ComentariosDemanda({
         });
 
       if (erroAnexo) {
-        setMensagem("Anexo enviado, mas nao foi vinculado ao comentario.");
+        setMensagem("Anexo enviado, mas não foi vinculado ao comentário.");
       }
     }
 
@@ -150,8 +150,8 @@ export default function ComentariosDemanda({
       usuario_id: usuario.id,
       acao:
         arquivos.length > 0
-          ? `${usuario.nome} adicionou comentario com ${arquivos.length} anexo(s)`
-          : `${usuario.nome} adicionou um comentario`,
+          ? `${usuario.nome} adicionou comentário com ${arquivos.length} anexo(s)`
+          : `${usuario.nome} adicionou um comentário`,
     });
 
     setTexto("");
@@ -167,12 +167,12 @@ export default function ComentariosDemanda({
 
   return (
     <div>
-      <h2 style={titulo}>Comentarios</h2>
+      <h2 style={titulo}>Comentários</h2>
 
       <textarea
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        placeholder="Digite um comentario..."
+        placeholder="Digite um comentário..."
         style={campoTexto}
       />
 
@@ -215,7 +215,7 @@ export default function ComentariosDemanda({
       )}
 
       <p style={regraUpload}>
-        Anexos ate {LIMITE_UPLOAD_MB} MB, organizados na pasta da demanda.
+        Anexos até {LIMITE_UPLOAD_MB} MB, organizados na pasta da demanda.
       </p>
 
       {mensagem && <p style={mensagemStyle}>{mensagem}</p>}

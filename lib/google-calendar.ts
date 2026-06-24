@@ -108,7 +108,7 @@ function criarGoogleTaskPayload(demanda: GoogleCalendarDemanda): GoogleTaskPaylo
     demanda.setor ? `Setor: ${demanda.setor}` : null,
     demanda.status ? `Status: ${demanda.status}` : null,
     demanda.prioridade ? `Prioridade: ${demanda.prioridade}` : null,
-    demanda.responsavel ? `Responsavel: ${demanda.responsavel}` : null,
+    demanda.responsavel ? `Responsável: ${demanda.responsavel}` : null,
   ]
     .filter(Boolean)
     .join("\n");
@@ -132,9 +132,13 @@ function carregarGoogleIdentity() {
 
     if (scriptExistente) {
       scriptExistente.addEventListener("load", () => resolve(), { once: true });
-      scriptExistente.addEventListener("error", () => reject(new Error("Erro ao carregar o Google Identity.")), {
-        once: true,
-      });
+      scriptExistente.addEventListener(
+        "error",
+        () => reject(new Error("Erro ao carregar o Google Identity.")),
+        {
+          once: true,
+        }
+      );
       return;
     }
 
@@ -155,17 +159,18 @@ function obterAccessToken(clientId: string) {
       scope: "https://www.googleapis.com/auth/tasks",
       callback: (response) => {
         if (response.error || !response.access_token) {
-          reject(new Error("Autorizacao do Google Agenda cancelada ou negada."));
+          reject(new Error("Autorização do Google Agenda cancelada ou negada."));
           return;
         }
 
         resolve(response.access_token);
       },
-      error_callback: () => reject(new Error("Nao foi possivel autorizar o Google Agenda.")),
+      error_callback: () =>
+        reject(new Error("Não foi possível autorizar o Google Agenda.")),
     });
 
     if (!tokenClient) {
-      reject(new Error("Google Identity nao carregou corretamente."));
+      reject(new Error("Google Identity não carregou corretamente."));
       return;
     }
 

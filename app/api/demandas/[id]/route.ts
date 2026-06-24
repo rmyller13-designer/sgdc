@@ -21,7 +21,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!Number.isInteger(demandaId) || demandaId <= 0) {
     return NextResponse.json(
-      { error: "ID da demanda invalido." },
+      { error: "ID da demanda inválido." },
       { status: 400 }
     );
   }
@@ -32,7 +32,7 @@ export async function DELETE(request: Request, { params }: Params) {
     body = (await request.json()) as DeleteBody;
   } catch {
     return NextResponse.json(
-      { error: "Informe o usuario que solicitou a exclusao." },
+      { error: "Informe o usuário que solicitou a exclusão." },
       { status: 400 }
     );
   }
@@ -41,7 +41,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!nomeUsuario) {
     return NextResponse.json(
-      { error: "Usuario invalido para excluir demanda." },
+      { error: "Usuário inválido para excluir demanda." },
       { status: 401 }
     );
   }
@@ -52,7 +52,7 @@ export async function DELETE(request: Request, { params }: Params) {
     supabase = criarSupabaseAdmin();
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro de configuracao." },
+        { error: error instanceof Error ? error.message : "Erro de configuração." },
       { status: 500 }
     );
   }
@@ -67,7 +67,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!podeEditarFluxo(usuarioSessao)) {
     return NextResponse.json(
-      { error: "Seu usuario nao tem permissao para excluir demandas." },
+      { error: "Seu usuário não tem permissão para excluir demandas." },
       { status: 403 }
     );
   }
@@ -84,7 +84,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!demanda) {
     return NextResponse.json(
-      { error: "Demanda nao encontrada." },
+      { error: "Demanda não encontrada." },
       { status: 404 }
     );
   }
@@ -106,7 +106,7 @@ export async function DELETE(request: Request, { params }: Params) {
       {
         error:
           error?.message ||
-          "A demanda nao foi encontrada ou nao pode ser excluida.",
+          "A demanda não foi encontrada ou não pode ser excluída.",
       },
       { status: error ? 500 : 404 }
     );

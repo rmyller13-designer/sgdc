@@ -97,7 +97,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         setCarregando(false);
         return {
           ok: false,
-          mensagem: "Usuario nao encontrado ou inativo.",
+          mensagem: "Usuário não encontrado ou inativo.",
         };
       }
 

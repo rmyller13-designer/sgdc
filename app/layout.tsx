@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ASCOM STACASA",
-  description: "Sistema de Gestao de Demandas da Comunicacao",
+  description: "Sistema de Gestão de Demandas da Comunicação",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
 
                 <div>
                   <strong style={brandTitle}>ASCOM STACASA</strong>
-                  <p style={brandSubtitle}>Gestao da Comunicacao</p>
+                  <p style={brandSubtitle}>Gestão da Comunicação</p>
                 </div>
               </Link>
 
@@ -34,8 +34,8 @@ export default function RootLayout({
                 <Link href="/" style={linkStyle}>Dashboard</Link>
                 <Link href="/nova-demanda" style={linkStyle}>Nova Demanda</Link>
                 <Link href="/demandas" style={linkStyle}>Demandas</Link>
-                <Link href="/calendario-editorial" style={linkStyle}>Calendario</Link>
-                <Link href="/relatorios" style={linkStyle}>Relatorios</Link>
+                <Link href="/calendario-editorial" style={linkStyle}>Calendário</Link>
+                <Link href="/relatorios" style={linkStyle}>Relatórios</Link>
                 <Link href="/relatorios-quantitativos" style={linkStyle}>Indicadores</Link>
               </nav>
 

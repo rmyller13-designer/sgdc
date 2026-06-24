@@ -12,13 +12,18 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import { podeEditarFluxo } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
+import {
+  corrigirTextoExibicao,
+  formatarSetorExibicao,
+  formatarTituloHumano,
+} from "@/lib/display-text";
 
 const STATUS = [
   { id: 1, nome: "RECEBIDO", titulo: "Recebido" },
-  { id: 2, nome: "EM_PRODUCAO", titulo: "Em Producao" },
-  { id: 3, nome: "EM_APROVACAO", titulo: "Em Aprovacao" },
+  { id: 2, nome: "EM_PRODUCAO", titulo: "Em Produção" },
+  { id: 3, nome: "EM_APROVACAO", titulo: "Em Aprovação" },
   { id: 4, nome: "AP_PARA_PUBLICAR", titulo: "AP. para Publicar" },
-  { id: 5, nome: "CONCLUIDO", titulo: "Concluido" },
+  { id: 5, nome: "CONCLUIDO", titulo: "Concluído" },
   { id: 6, nome: "CANCELADO", titulo: "Cancelado" },
 ];
 
@@ -71,12 +76,12 @@ export default function KanbanDemandas({
 
     const passaTexto =
       !texto ||
-      demanda.titulo?.toLowerCase().includes(texto) ||
-      demanda.descricao?.toLowerCase().includes(texto) ||
-      demanda.setor?.toLowerCase().includes(texto) ||
-      demanda.responsavel?.toLowerCase().includes(texto) ||
-      demanda.cadastrado_por?.toLowerCase().includes(texto) ||
-      demanda.etiqueta?.toLowerCase().includes(texto);
+      corrigirTextoExibicao(demanda.titulo)?.toLowerCase().includes(texto) ||
+      corrigirTextoExibicao(demanda.descricao)?.toLowerCase().includes(texto) ||
+      corrigirTextoExibicao(demanda.setor)?.toLowerCase().includes(texto) ||
+      corrigirTextoExibicao(demanda.responsavel)?.toLowerCase().includes(texto) ||
+      corrigirTextoExibicao(demanda.cadastrado_por)?.toLowerCase().includes(texto) ||
+      corrigirTextoExibicao(demanda.etiqueta)?.toLowerCase().includes(texto);
 
     const passaSetor = !filtroSetor || demanda.setor === filtroSetor;
     const passaResponsavel =
@@ -110,7 +115,7 @@ export default function KanbanDemandas({
     if (!novoStatus) return;
 
     if (!podeMover || !usuario) {
-      alert("Seu usuario nao tem permissao para mover demandas.");
+      alert("Seu usuário não tem permissão para mover demandas.");
       return;
     }
 
@@ -145,12 +150,12 @@ export default function KanbanDemandas({
 
   async function excluirDemanda(demanda: DemandaKanban) {
     if (!podeMover || !usuario) {
-      alert("Seu usuario nao tem permissao para excluir demandas.");
+      alert("Seu usuário não tem permissão para excluir demandas.");
       return;
     }
 
     const confirmar = window.confirm(
-      `Excluir a demanda #${demanda.id} - ${demanda.titulo || "Sem titulo"}?`
+      `Excluir a demanda #${demanda.id} - ${corrigirTextoExibicao(demanda.titulo) || "Sem título"}?`
     );
 
     if (!confirmar) return;
@@ -180,8 +185,8 @@ export default function KanbanDemandas({
     if (!response.ok) {
       setLista(listaAnterior);
       alert(
-        "Erro ao excluir demanda: " +
-          (resultado?.error || "Nao foi possivel excluir a demanda.")
+          "Erro ao excluir demanda: " +
+          (resultado?.error || "Não foi possível excluir a demanda.")
       );
       return;
     }
@@ -215,16 +220,16 @@ export default function KanbanDemandas({
               <option value="" style={optionCompacto}>
                 Todos
               </option>
-              {setores.map((setor) => (
-                <option key={setor} value={setor} style={optionCompacto}>
-                  {setor}
-                </option>
-              ))}
+                  {setores.map((setor) => (
+                    <option key={setor} value={setor} style={optionCompacto}>
+                      {formatarSetorExibicao(setor)}
+                    </option>
+                  ))}
             </select>
           </label>
 
           <label style={filtroChip}>
-            <span style={chipLabel}>Responsavel</span>
+            <span style={chipLabel}>Responsável</span>
             <select
               value={filtroResponsavel}
               onChange={(e) => setFiltroResponsavel(e.target.value)}
@@ -233,15 +238,15 @@ export default function KanbanDemandas({
               <option value="" style={optionCompacto}>
                 Todos
               </option>
-              {responsaveis.map((responsavel) => (
-                <option
-                  key={responsavel}
-                  value={responsavel}
-                  style={optionCompacto}
-                >
-                  {responsavel}
-                </option>
-              ))}
+                  {responsaveis.map((responsavel) => (
+                    <option
+                      key={responsavel}
+                      value={responsavel}
+                      style={optionCompacto}
+                    >
+                      {corrigirTextoExibicao(responsavel)}
+                    </option>
+                  ))}
             </select>
           </label>
 
@@ -338,9 +343,11 @@ export default function KanbanDemandas({
                             const responsavel =
                               demanda.responsavel ||
                               demanda.cadastrado_por ||
-                              "Sem responsavel";
+                              "Sem responsável";
                             const etiqueta =
-                              demanda.etiqueta || demanda.setor || "Sem etiqueta";
+                              corrigirTextoExibicao(demanda.etiqueta) ||
+                              formatarSetorExibicao(demanda.setor) ||
+                              "Sem etiqueta";
                             const anexosCount = demanda.anexos_count || 0;
 
                             return (
@@ -376,8 +383,8 @@ export default function KanbanDemandas({
 
                                       <button
                                         type="button"
-                                        title="Acoes"
-                                        aria-label={`Acoes da demanda #${demanda.id}`}
+                                        title="Ações"
+                                        aria-label={`Ações da demanda #${demanda.id}`}
                                         onClick={(event) => {
                                           event.preventDefault();
                                           event.stopPropagation();
@@ -455,19 +462,19 @@ export default function KanbanDemandas({
                                               ),
                                             }}
                                           >
-                                            {demanda.prioridade || "NORMAL"}
+                                            {formatarTituloHumano(demanda.prioridade || "NORMAL")}
                                           </span>
                                         </div>
 
                                         <strong style={titulo}>
-                                          {demanda.titulo || "Sem titulo"}
+                                          {corrigirTextoExibicao(demanda.titulo) || "Sem título"}
                                         </strong>
 
                                         <div style={resumoLinha}>
                                           <span style={resumoItem}>
                                             <span style={resumoIcon}>o</span>
                                             <strong style={metaValor}>
-                                              {responsavel}
+                                              {corrigirTextoExibicao(responsavel)}
                                             </strong>
                                           </span>
 
@@ -559,7 +566,7 @@ function formatarData(data: string) {
 
 function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
   if (status === "CONCLUIDO") {
-    return { texto: "Concluida", cor: "#22c55e", tipo: "concluido" };
+    return { texto: "Concluída", cor: "#22c55e", tipo: "concluido" };
   }
 
   if (status === "CANCELADO") {
@@ -583,7 +590,7 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
   if (diff < 0) {
     return {
-      texto: `Atrasado ha ${Math.abs(diff)} dia(s)`,
+      texto: `Atrasado há ${Math.abs(diff)} dia(s)`,
       cor: "#ef4444",
       tipo: "atrasado",
     };

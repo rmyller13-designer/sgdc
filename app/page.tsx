@@ -1,6 +1,13 @@
 import { connection } from "next/server";
 import DashboardClient from "@/components/DashboardClient";
 import { supabase } from "../lib/supabase";
+import {
+  corrigirTextoExibicao,
+  formatarCanalExibicao,
+  formatarEixoExibicao,
+  formatarProdutoExibicao,
+  formatarSetorExibicao,
+} from "@/lib/display-text";
 
 type DemandaDashboard = {
   status: string | null;
@@ -49,13 +56,13 @@ export default async function Dashboard() {
   const prazos = calcularResumoPrazos(listaDemandas);
 
   const porResponsavel = listaDemandas.reduce<Record<string, number>>((acc, demanda) => {
-    const nome = demanda.responsavel || "Não atribuído";
+    const nome = corrigirTextoExibicao(demanda.responsavel) || "Não atribuído";
     acc[nome] = (acc[nome] || 0) + 1;
     return acc;
   }, {});
 
   const porSetor = listaDemandas.reduce<Record<string, number>>((acc, demanda) => {
-    const setor = demanda.setor || "Sem setor";
+    const setor = formatarSetorExibicao(demanda.setor);
     acc[setor] = (acc[setor] || 0) + 1;
     return acc;
   }, {});
@@ -93,15 +100,32 @@ function mapearRanking(
   campo: string
 ) {
   return lista.map((item) => ({
-    titulo: String(item[campo] || "Não informado"),
+    titulo: formatarValorDashboard(campo, item[campo]),
     valor: Number(item.quantidade || 0),
   }));
+}
+
+function formatarValorDashboard(
+  campo: string,
+  valor: string | number | null | undefined
+) {
+  const texto = typeof valor === "string" ? valor : valor == null ? "" : String(valor);
+
+  if (!texto) {
+    return "Não informado";
+  }
+
+  if (campo === "produto") return formatarProdutoExibicao(texto);
+  if (campo === "canal") return formatarCanalExibicao(texto);
+  if (campo === "eixo") return formatarEixoExibicao(texto);
+
+  return corrigirTextoExibicao(texto);
 }
 
 function ordenarItens(mapa: Record<string, number>) {
   return Object.entries(mapa)
     .map(([titulo, valor]) => ({ titulo, valor }))
-    .sort((a, b) => b.valor - a.valor || a.titulo.localeCompare(b.titulo));
+    .sort((a, b) => b.valor - a.valor || a.titulo.localeCompare(b.titulo, "pt-BR"));
 }
 
 function agruparEvolucaoMensal(demandas: DemandaDashboard[]) {

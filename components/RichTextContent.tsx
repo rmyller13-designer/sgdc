@@ -4,7 +4,7 @@ import { sanitizeRichText, stripRichText } from "@/lib/rich-text";
 export default function RichTextContent({
   value,
   style,
-  emptyText = "Nao informado",
+  emptyText = "Não informado",
 }: {
   value: string | null | undefined;
   style?: CSSProperties;
@@ -18,4 +18,3 @@ export default function RichTextContent({
 
   return <div style={style} dangerouslySetInnerHTML={{ __html: html }} />;
 }
-

@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
     if (!usuario || usuario.ativo === false || !usuarioEstaAutorizado(usuario.nome)) {
       return NextResponse.json(
-        { error: "Usuario nao encontrado ou sem autorizacao." },
+        { error: "Usuário não encontrado ou sem autorização." },
         { status: 404 }
       );
     }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeAtribuirResponsavel } from "@/lib/auth";
 import { supabase } from "../lib/supabase";
+import { corrigirTextoExibicao } from "@/lib/display-text";
 
 type UsuarioResponsavel = {
   id: number;
@@ -83,7 +84,8 @@ export default function ResponsavelDemanda({
   return (
     <div style={{ marginTop: "20px" }}>
       <p>
-        <strong>Responsável atual:</strong> {responsavelAtual || "Não definido"}
+        <strong>Responsável atual:</strong>{" "}
+        {corrigirTextoExibicao(responsavelAtual) || "Não definido"}
       </p>
 
       <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
@@ -97,7 +99,7 @@ export default function ResponsavelDemanda({
 
           {usuarios.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.nome} - {item.funcao}
+              {corrigirTextoExibicao(item.nome)} - {corrigirTextoExibicao(item.funcao)}
             </option>
           ))}
         </select>

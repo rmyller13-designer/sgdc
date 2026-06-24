@@ -213,7 +213,7 @@ export default function EixosProdutosDemanda({
       if (error || count === 0) {
         setMensagem(
           "Erro ao remover eixo: " +
-            (error?.message || "Eixo nao encontrado ou sem permissao.")
+            (error?.message || "Eixo não encontrado ou sem permissão.")
         );
         return;
       }
@@ -273,7 +273,7 @@ export default function EixosProdutosDemanda({
       if (error || count === 0) {
         setMensagem(
           "Erro ao remover destino: " +
-            (error?.message || "Destino nao encontrado ou sem permissao.")
+            (error?.message || "Destino não encontrado ou sem permissão.")
         );
         return;
       }
@@ -429,7 +429,7 @@ export default function EixosProdutosDemanda({
     if (error || count === 0) {
       setMensagem(
         "Erro ao remover produto: " +
-          (error?.message || "Produto nao encontrado ou sem permissao.")
+          (error?.message || "Produto não encontrado ou sem permissão.")
       );
       return;
     }

@@ -130,7 +130,7 @@ export default function CalendarioEditorialClient({
     if (pegarDataEditorial(demandaAtual) === novaDataEntrega) return;
 
     if (!podeMover || !usuario) {
-      alert("Seu usuario nao tem permissao para mover itens no calendario.");
+      alert("Seu usuário não tem permissão para mover itens no calendário.");
       return;
     }
 
@@ -162,7 +162,7 @@ export default function CalendarioEditorialClient({
     await supabase.from("historico_demanda").insert({
       demanda_id: demandaId,
       usuario_id: usuario.id,
-      acao: `${usuario.nome} moveu a demanda no calendario para ${formatarData(
+      acao: `${usuario.nome} moveu a demanda no calendário para ${formatarData(
         novaDataEntrega
       )}`,
     });
@@ -190,7 +190,7 @@ export default function CalendarioEditorialClient({
             onClick={() => setVisualizacao("mes")}
             style={visualizacao === "mes" ? abaAtiva : aba}
           >
-            Mes
+            Mês
           </button>
           <button
             type="button"
@@ -213,7 +213,7 @@ export default function CalendarioEditorialClient({
         <input
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
-          placeholder="Buscar por titulo, produto, setor..."
+          placeholder="Buscar por título, produto, setor..."
           style={campoBusca}
         />
 
@@ -224,7 +224,7 @@ export default function CalendarioEditorialClient({
           onChange={setStatus}
         />
         <FiltroSelect
-          label="Responsavel"
+          label="Responsável"
           value={responsavel}
           options={opcoesResponsavel}
           onChange={setResponsavel}
@@ -238,13 +238,13 @@ export default function CalendarioEditorialClient({
       </section>
 
       <section style={resumo}>
-        <ResumoCard titulo="Itens no calendario" valor={demandasFiltradas.length} />
+        <ResumoCard titulo="Itens no calendário" valor={demandasFiltradas.length} />
         <ResumoCard
           titulo="Sem data de entrega"
           valor={demandasFiltradas.filter((demanda) => !demanda.data_entrega).length}
         />
         <ResumoCard
-          titulo="Em producao"
+          titulo="Em produção"
           valor={
             demandasFiltradas.filter(
               (demanda) => demanda.status === "EM_PRODUCAO"
@@ -252,7 +252,7 @@ export default function CalendarioEditorialClient({
           }
         />
         <ResumoCard
-          titulo="Concluidas"
+          titulo="Concluídas"
           valor={
             demandasFiltradas.filter((demanda) => demanda.status === "CONCLUIDO")
               .length
@@ -467,7 +467,7 @@ function DemandaCard({
           {formatarLabel(status)} - {demanda.produto || "Sem produto"}
         </span>
         <span style={cardFooter}>
-          {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
+          {demanda.responsavel || demanda.cadastrado_por || "Sem responsável"}
         </span>
       </Link>
       <GoogleTaskButton demanda={googleTaskDemanda} style={googleAgendaCardLink}>
@@ -508,7 +508,7 @@ function ListaDemandas({ demandas }: { demandas: DemandaCalendario[] }) {
                 <span style={pill}>{formatarLabel(demanda.status || "Sem status")}</span>
                 <span style={textoFraco}>{demanda.setor || "Sem setor"}</span>
                 <span style={textoFraco}>
-                  {demanda.responsavel || demanda.cadastrado_por || "Sem responsavel"}
+                  {demanda.responsavel || demanda.cadastrado_por || "Sem responsável"}
                 </span>
               </Link>
 

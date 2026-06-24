@@ -189,7 +189,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     setSalvando(campo);
 
     if (!podeEditar || !usuario) {
-      setMensagem("Seu usuario nao tem permissao para editar a demanda.");
+      setMensagem("Seu usuário não tem permissão para editar a demanda.");
       setSalvando(null);
       return;
     }
@@ -233,14 +233,14 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
     <div>
       <div style={sectionHeader}>
         <div>
-          <p style={eyebrow}>Dados da solicitacao</p>
-          <h2 style={sectionTitle}>Informacoes principais</h2>
+          <p style={eyebrow}>Dados da solicitação</p>
+          <h2 style={sectionTitle}>Informações principais</h2>
         </div>
       </div>
 
       <div style={grid}>
         <CampoTexto
-          label="Titulo"
+          label="Título"
           campo="titulo"
           valor={form.titulo}
           editando={editando}
@@ -253,7 +253,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
         />
 
         <CampoRichText
-          label="Descricao"
+          label="Descrição"
           campo="descricao"
           valor={form.descricao}
           editando={editando}
@@ -339,7 +339,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
           <strong style={valorStyle}>
             {form.criado_em
               ? new Date(form.criado_em).toLocaleString("pt-BR")
-              : "Nao informado"}
+              : "Não informado"}
           </strong>
         </div>
       </div>
@@ -385,7 +385,7 @@ function CampoTexto(props: CampoBaseProps) {
           <Botoes {...props} />
         </>
       ) : (
-        <strong style={valorStyle}>{props.valor || "Nao informado"}</strong>
+        <strong style={valorStyle}>{props.valor || "Não informado"}</strong>
       )}
     </div>
   );
@@ -409,7 +409,7 @@ function CampoRichText(props: CampoBaseProps) {
           <RichTextEditor
             value={props.valor}
             onChange={(value) => props.onChange(props.campo, value)}
-            placeholder="Descricao da demanda"
+            placeholder="Descrição da demanda"
             minHeight={160}
           />
           <Botoes {...props} />
@@ -417,7 +417,7 @@ function CampoRichText(props: CampoBaseProps) {
       ) : (
         <RichTextContent
           value={props.valor}
-          emptyText="Nao informado"
+          emptyText="Não informado"
           style={richTextViewStyle}
         />
       )}
@@ -452,7 +452,7 @@ function CampoSelect(props: CampoSelectProps) {
             onChange={(e) => props.onChange(props.campo, e.target.value)}
             style={campoStyle}
           >
-            <option value="">Nao informado</option>
+            <option value="">Não informado</option>
             {props.opcoes.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.nome}
@@ -462,7 +462,7 @@ function CampoSelect(props: CampoSelectProps) {
           <Botoes {...props} />
         </>
       ) : (
-        <strong style={valorStyle}>{itemAtual?.nome || "Nao informado"}</strong>
+        <strong style={valorStyle}>{itemAtual?.nome || "Não informado"}</strong>
       )}
     </div>
   );
@@ -493,7 +493,7 @@ function CampoData(props: CampoBaseProps) {
         </>
       ) : (
         <strong style={valorStyle}>
-          {props.valor ? formatarData(props.valor) : "Nao informada"}
+          {props.valor ? formatarData(props.valor) : "Não informada"}
         </strong>
       )}
     </div>
@@ -584,8 +584,8 @@ function formatarData(data: string) {
 }
 
 const rotulos: Record<CampoEditando, string> = {
-  titulo: "Titulo",
-  descricao: "Descricao",
+  titulo: "Título",
+  descricao: "Descrição",
   setor_id: "Setor",
   usuario_comunicacao_id: "Solicitante",
   produto_id: "Produto inicial",
@@ -712,4 +712,3 @@ const mensagemStyle: CSSProperties = {
   color: "#fecaca",
   marginBottom: 0,
 };
-

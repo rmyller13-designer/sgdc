@@ -34,7 +34,7 @@ export default function HistoricoDemanda({
 
   return (
     <div>
-      <h2 style={titulo}>Historico</h2>
+      <h2 style={titulo}>Histórico</h2>
 
       {historico.length === 0 ? (
         <p style={vazio}>Nenhum registro ainda.</p>
@@ -74,7 +74,7 @@ function classificarAcao(acao: string) {
   const texto = acao.toLowerCase();
 
   if (texto.includes("coment")) {
-    return { titulo: "Comentario", sigla: "C", cor: "#3b82f6" };
+    return { titulo: "Comentário", sigla: "C", cor: "#3b82f6" };
   }
 
   if (texto.includes("anex")) {
@@ -90,7 +90,7 @@ function classificarAcao(acao: string) {
   }
 
   if (texto.includes("editou")) {
-    return { titulo: "Edicao", sigla: "E", cor: "#eab308" };
+    return { titulo: "Edição", sigla: "E", cor: "#eab308" };
   }
 
   return { titulo: "Atividade", sigla: "H", cor: "#ef4444" };

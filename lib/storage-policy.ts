@@ -57,7 +57,7 @@ export function validarArquivoUpload(arquivo: File) {
   const extensaoPermitida = EXTENSOES_UPLOAD_PERMITIDAS.includes(extensao);
 
   if (!tipoPermitido && !extensaoPermitida) {
-    return `Tipo de arquivo nao permitido: ${arquivo.name}.`;
+    return `Tipo de arquivo não permitido: ${arquivo.name}.`;
   }
 
   return null;

@@ -55,9 +55,9 @@ export default async function CalendarioEditorialPage({
       <div style={hero}>
         <div>
           <p style={eyebrow}>Planejamento editorial</p>
-          <h1 style={titulo}>Calendario editorial</h1>
+          <h1 style={titulo}>Calendário editorial</h1>
           <p style={subtitulo}>
-            Organize entregas, publicacoes e producao em uma visao mensal,
+            Organize entregas, publicações e produção em uma visão mensal,
             semanal ou em lista.
           </p>
         </div>

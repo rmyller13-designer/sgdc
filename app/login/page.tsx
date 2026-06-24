@@ -31,7 +31,7 @@ export default function LoginPage() {
         .order("nome");
 
       if (error) {
-        setMensagem(`Erro ao carregar usuarios: ${error.message}`);
+        setMensagem(`Erro ao carregar usuários: ${error.message}`);
       } else {
         setUsuarios(prepararUsuariosLogin((data as UsuarioLogin[] | null) || []));
       }
@@ -46,7 +46,7 @@ export default function LoginPage() {
     setMensagem("");
 
     if (!usuarioId) {
-      setMensagem("Selecione o usuario.");
+      setMensagem("Selecione o usuário.");
       return;
     }
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
     setCarregando(false);
 
     if (!resultado.ok) {
-      setMensagem(resultado.mensagem || "Nao foi possivel entrar.");
+      setMensagem(resultado.mensagem || "Não foi possível entrar.");
       return;
     }
 
@@ -75,10 +75,10 @@ export default function LoginPage() {
         <p style={eyebrow}>Acesso ASCOM STACASA</p>
         <h1 style={titulo}>Entrar</h1>
         <p style={descricao}>
-          Selecione seu usuario e informe a senha padrao do sistema.
+          Selecione seu usuário e informe a senha padrão do sistema.
         </p>
 
-        <label style={label}>Usuario</label>
+        <label style={label}>Usuário</label>
         <select
           value={usuarioId}
           onChange={(event) => setUsuarioId(event.target.value)}
@@ -141,8 +141,8 @@ function opcaoInicialUsuarios(
   carregandoUsuarios: boolean,
   totalUsuarios: number
 ) {
-  if (carregandoUsuarios) return "Carregando usuarios...";
-  if (totalUsuarios === 0) return "Nenhum usuario disponivel";
+  if (carregandoUsuarios) return "Carregando usuários...";
+  if (totalUsuarios === 0) return "Nenhum usuário disponível";
   return "Selecione";
 }
 

@@ -15,6 +15,7 @@ import {
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../../lib/supabase";
+import { corrigirTextoExibicao, formatarTituloHumano } from "@/lib/display-text";
 
 type Opcao = {
   id: number;
@@ -158,12 +159,12 @@ export default function NovaDemanda() {
 
     try {
       if (!titulo.trim() || !setorId || !prioridadeId || !usuarioId) {
-        setMensagem("Preencha os campos obrigatorios.");
+        setMensagem("Preencha os campos obrigatórios.");
         return;
       }
 
       if (!usuario) {
-        setMensagem("Faca login para salvar uma demanda.");
+        setMensagem("Faça login para salvar uma demanda.");
         return;
       }
 
@@ -193,7 +194,7 @@ export default function NovaDemanda() {
           setMensagem(
             error instanceof Error
               ? error.message
-              : "Nao foi possivel autorizar o Google Agenda."
+              : "Não foi possível autorizar o Google Agenda."
           );
           return;
         }
@@ -346,7 +347,7 @@ export default function NovaDemanda() {
           <div style={cabecalhoForm}>
             <div>
               <p style={secaoMini}>Briefing inicial</p>
-              <h2 style={secaoTitulo}>Informacoes da demanda</h2>
+              <h2 style={secaoTitulo}>Informações da demanda</h2>
             </div>
             <div style={statusBox}>
               <span style={statusLabel}>Status inicial</span>
@@ -355,7 +356,7 @@ export default function NovaDemanda() {
           </div>
 
           <div style={gridCampos}>
-            <CampoBloco label="Titulo da Demanda">
+            <CampoBloco label="Título da Demanda">
               <input
                 type="text"
                 placeholder="Ex.: Campanha institucional de julho"
@@ -375,7 +376,7 @@ export default function NovaDemanda() {
 
                 {usuarios.map((usuarioItem) => (
                   <option key={usuarioItem.id} value={usuarioItem.id}>
-                    {usuarioItem.nome} - {usuarioItem.funcao}
+                    {corrigirTextoExibicao(usuarioItem.nome)} - {corrigirTextoExibicao(usuarioItem.funcao)}
                   </option>
                 ))}
               </select>
@@ -391,7 +392,7 @@ export default function NovaDemanda() {
 
                 {setores.map((setor) => (
                   <option key={setor.id} value={setor.id}>
-                    {setor.nome}
+                    {corrigirTextoExibicao(setor.nome)}
                   </option>
                 ))}
               </select>
@@ -407,7 +408,7 @@ export default function NovaDemanda() {
 
                 {prioridades.map((prioridade) => (
                   <option key={prioridade.id} value={prioridade.id}>
-                    {prioridade.nome}
+                    {formatarTituloHumano(prioridade.nome)}
                   </option>
                 ))}
               </select>
@@ -463,17 +464,17 @@ export default function NovaDemanda() {
                   Arraste arquivos aqui ou clique para selecionar
                 </span>
                 <span style={dropzoneText}>
-                  Voce pode anexar varios arquivos de uma vez.
+                  Você pode anexar vários arquivos de uma vez.
                 </span>
               </button>
             </CampoBloco>
           </div>
 
-          <CampoBloco label="Descricao" fullWidth>
+          <CampoBloco label="Descrição" fullWidth>
             <RichTextEditor
               value={descricao}
               onChange={setDescricao}
-              placeholder="Descreva a necessidade, contexto, objetivo, publico e observacoes importantes"
+              placeholder="Descreva a necessidade, contexto, objetivo, público e observações importantes"
             />
           </CampoBloco>
 
@@ -484,7 +485,7 @@ export default function NovaDemanda() {
               onChange={(e) => setIncluirGoogleAgenda(e.target.checked)}
               style={checkbox}
             />
-            <span>Tambem criar tarefa no Google Agenda</span>
+            <span>Também criar tarefa no Google Agenda</span>
           </label>
 
           {arquivos.length > 0 && (
@@ -521,7 +522,7 @@ export default function NovaDemanda() {
 
           <div style={rodapeForm}>
             <div style={aviso}>
-              Eixos, destinos e produtos produzidos serao definidos apos a criacao da
+              Eixos, destinos e produtos produzidos serão definidos após a criação da
               demanda.
             </div>
 

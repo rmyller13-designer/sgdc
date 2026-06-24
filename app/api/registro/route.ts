@@ -17,14 +17,14 @@ export async function POST(request: Request) {
 
     if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
       return NextResponse.json(
-        { error: "Selecione o usuario que sera vinculado." },
+        { error: "Selecione o usuário que será vinculado." },
         { status: 400 }
       );
     }
 
     if (!email) {
       return NextResponse.json(
-        { error: "Digite um email." },
+        { error: "Digite um e-mail." },
         { status: 400 }
       );
     }
@@ -46,14 +46,14 @@ export async function POST(request: Request) {
 
     if (usuarioError || !usuario || usuario.ativo === false) {
       return NextResponse.json(
-        { error: "Usuario nao encontrado ou inativo." },
+        { error: "Usuário não encontrado ou inativo." },
         { status: 404 }
       );
     }
 
     if (!usuarioEstaAutorizado(usuario.nome)) {
       return NextResponse.json(
-        { error: "Usuario sem autorizacao para acessar o sistema." },
+        { error: "Usuário sem autorização para acessar o sistema." },
         { status: 403 }
       );
     }
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       Number(acessoExistente.usuario_comunicacao_id) !== usuarioId
     ) {
       return NextResponse.json(
-        { error: "Este email ja esta vinculado a outro usuario interno." },
+        { error: "Este e-mail já está vinculado a outro usuário interno." },
         { status: 409 }
       );
     }
@@ -218,7 +218,7 @@ async function criarOuAtualizarContaAuth(args: {
       return {
         ok: false,
         user: null,
-        error: "Este email ja esta vinculado a outro usuario interno.",
+        error: "Este e-mail já está vinculado a outro usuário interno.",
       };
     }
 
@@ -256,7 +256,7 @@ async function criarOuAtualizarContaAuth(args: {
         return {
           ok: false,
           user: null,
-          error: "Este email ja esta vinculado a outro usuario interno.",
+          error: "Este e-mail já está vinculado a outro usuário interno.",
         };
       }
 
@@ -447,15 +447,15 @@ function traduzirErroAuthAdmin(mensagem: string) {
   const texto = mensagem.toLowerCase();
 
   if (texto.includes("already been registered")) {
-    return "Este email ja esta cadastrado.";
+    return "Este e-mail já está cadastrado.";
   }
 
   if (texto.includes("database error creating new user")) {
-    return "Ja existe um cadastro parcial para este email no Auth. Tente novamente para reativar a conta ou use outro email.";
+    return "Já existe um cadastro parcial para este e-mail no Auth. Tente novamente para reativar a conta ou use outro e-mail.";
   }
 
   if (texto.includes("password")) {
-    return "A senha informada nao atende aos requisitos minimos.";
+    return "A senha informada não atende aos requisitos mínimos.";
   }
 
   return mensagem;

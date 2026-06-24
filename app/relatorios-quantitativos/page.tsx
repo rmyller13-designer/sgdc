@@ -1,6 +1,14 @@
 import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import RelatoriosQuantitativosClient from "../../components/RelatoriosQuantitativosClient";
+import {
+  corrigirTextoExibicao,
+  formatarCanalExibicao,
+  formatarEixoExibicao,
+  formatarProdutoExibicao,
+  formatarSetorExibicao,
+  formatarStatusExibicao,
+} from "@/lib/display-text";
 
 type SearchParams = {
   inicio?: string;
@@ -106,7 +114,7 @@ export default async function RelatoriosQuantitativos({
   const setores = agruparContagem(demandas, (item) => item.setor);
   const responsaveis = agruparContagem(
     demandas,
-    (item) => item.responsavel || "Nao atribuido"
+    (item) => corrigirTextoExibicao(item.responsavel) || "Não atribuído"
   );
   const evolucaoMensal = agruparEvolucaoMensal(demandas, periodo);
 
@@ -149,9 +157,9 @@ function resolverPeriodo(params: SearchParams) {
 function pegarNome(
   valor: { nome: string | null } | { nome: string | null }[] | null
 ) {
-  if (!valor) return "Nao informado";
-  if (Array.isArray(valor)) return valor[0]?.nome || "Nao informado";
-  return valor.nome || "Nao informado";
+  if (!valor) return "Não informado";
+  if (Array.isArray(valor)) return valor[0]?.nome || "Não informado";
+  return valor.nome || "Não informado";
 }
 
 function agruparSoma<T>(
@@ -162,7 +170,7 @@ function agruparSoma<T>(
   const mapa: Record<string, number> = {};
 
   lista.forEach((item) => {
-    const titulo = getTitulo(item) || "Nao informado";
+    const titulo = getTitulo(item) || "Não informado";
     mapa[titulo] = (mapa[titulo] || 0) + getValor(item);
   });
 
@@ -176,7 +184,7 @@ function agruparContagem<T>(
   const mapa: Record<string, number> = {};
 
   lista.forEach((item) => {
-    const titulo = getTitulo(item) || "Nao informado";
+    const titulo = getTitulo(item) || "Não informado";
     mapa[titulo] = (mapa[titulo] || 0) + 1;
   });
 
@@ -185,8 +193,44 @@ function agruparContagem<T>(
 
 function ordenarItens(mapa: Record<string, number>) {
   return Object.entries(mapa)
-    .map(([titulo, valor]) => ({ titulo, valor }))
-    .sort((a, b) => b.valor - a.valor || a.titulo.localeCompare(b.titulo));
+    .map(([titulo, valor]) => ({
+      titulo: formatarTituloRelatorio(titulo),
+      valor,
+    }))
+    .sort((a, b) => b.valor - a.valor || a.titulo.localeCompare(b.titulo, "pt-BR"));
+}
+
+function formatarTituloRelatorio(valor: string) {
+  const texto = corrigirTextoExibicao(valor);
+
+  if (!texto) return "Não informado";
+  if (texto === "Sem setor") return texto;
+  if (texto === "Não atribuído") return texto;
+
+  if (texto in {
+    RECEBIDO: true,
+    EM_PRODUCAO: true,
+    EM_APROVACAO: true,
+    AP_PARA_PUBLICAR: true,
+    CONCLUIDO: true,
+    CANCELADO: true,
+  }) {
+    return formatarStatusExibicao(texto);
+  }
+
+  const produto = formatarProdutoExibicao(texto);
+  if (produto !== texto.replace(/_/g, " ")) return produto;
+
+  const canal = formatarCanalExibicao(texto);
+  if (canal !== texto.replace(/_/g, " ")) return canal;
+
+  const eixo = formatarEixoExibicao(texto);
+  if (eixo !== texto.replace(/_/g, " ")) return eixo;
+
+  const setor = formatarSetorExibicao(texto);
+  if (setor !== texto.replace(/_/g, " ")) return setor;
+
+  return texto;
 }
 
 function agruparEvolucaoMensal(

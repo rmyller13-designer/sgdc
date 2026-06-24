@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { corrigirTextoExibicao } from "@/lib/display-text";
 
 type Item = {
   titulo: string;
@@ -43,7 +44,7 @@ export default function DashboardClient(props: {
       <div style={logoWrap}>
         <Image
           src="/logo-sc.png"
-          alt="Logomarca da instituicao"
+          alt="Logomarca da instituição"
           width={220}
           height={220}
           priority
@@ -56,7 +57,7 @@ export default function DashboardClient(props: {
           <p style={eyebrow}>Painel Executivo</p>
           <h1 style={title}>Dashboard ASCOM STACASA</h1>
           <p style={subtitle}>
-            Visao geral das demandas, producao, prazos, canais e eixos da comunicacao.
+            Visão geral das demandas, produção, prazos, canais e eixos da comunicação.
           </p>
         </div>
 
@@ -68,10 +69,10 @@ export default function DashboardClient(props: {
       <div style={gridResumo}>
         <Card titulo="Total de Demandas" valor={props.total} destaque />
         <Card titulo="Recebidas" valor={props.recebidas} />
-        <Card titulo="Em Producao" valor={props.emProducao} />
-        <Card titulo="Em Aprovacao" valor={props.emAprovacao} />
+        <Card titulo="Em Produção" valor={props.emProducao} />
+        <Card titulo="Em Aprovação" valor={props.emAprovacao} />
         <Card titulo="AP. para Publicar" valor={props.apParaPublicar} />
-        <Card titulo="Concluidas" valor={props.concluidas} />
+        <Card titulo="Concluídas" valor={props.concluidas} />
         <Card titulo="Canceladas" valor={props.canceladas} />
       </div>
 
@@ -88,7 +89,7 @@ export default function DashboardClient(props: {
           <div style={prazosGrid}>
             <Card titulo="Atrasadas" valor={props.prazos.atrasadas} alerta />
             <Card titulo="Vencem Hoje" valor={props.prazos.hoje} />
-            <Card titulo="Ate 3 dias" valor={props.prazos.ateTresDias} />
+            <Card titulo="Até 3 dias" valor={props.prazos.ateTresDias} />
             <Card titulo="No Prazo" valor={props.prazos.noPrazo} />
             <Card titulo="Sem Prazo" valor={props.prazos.semPrazo} />
           </div>
@@ -106,7 +107,7 @@ export default function DashboardClient(props: {
           <FloatingBars dados={props.eixos} cor="#3b82f6" />
         </Painel>
 
-        <Painel titulo="Demandas por responsavel">
+        <Painel titulo="Demandas por responsável">
           <FloatingBars dados={props.responsaveis} cor="#a855f7" />
         </Painel>
 
@@ -232,7 +233,7 @@ function StatusDonut({ dados }: { dados: Item[] }) {
                 background: cores[index % cores.length],
               }}
             />
-            <span style={legendLabel}>{item.titulo}</span>
+            <span style={legendLabel}>{corrigirTextoExibicao(item.titulo)}</span>
             <strong>{item.valor}</strong>
           </div>
         ))}
@@ -258,10 +259,10 @@ function FloatingBars({ dados, cor }: { dados: Item[]; cor: string }) {
           <div
             key={item.titulo}
             style={floatingCard}
-            title={`${item.titulo}: ${item.valor}`}
+            title={`${corrigirTextoExibicao(item.titulo)}: ${item.valor}`}
           >
             <div style={floatingHeader}>
-              <span style={floatingTitle}>{item.titulo}</span>
+              <span style={floatingTitle}>{corrigirTextoExibicao(item.titulo)}</span>
               <strong style={floatingValue}>{item.valor}</strong>
             </div>
 

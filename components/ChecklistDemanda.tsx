@@ -208,7 +208,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     if (error || count === 0) {
       setMensagem(
         "Erro ao remover item: " +
-          (error?.message || "Item nao encontrado ou sem permissao.")
+          (error?.message || "Item não encontrado ou sem permissão.")
       );
       return;
     }
