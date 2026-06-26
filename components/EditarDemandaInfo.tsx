@@ -217,7 +217,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
       .eq("id", demandaId);
 
     if (error) {
-      setMensagem(`Erro ao salvar: ${error.message}`);
+      setMensagem("Nao foi possivel salvar as alteracoes agora.");
       setSalvando(null);
       return;
     }

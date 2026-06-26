@@ -46,7 +46,7 @@ export default function StatusDemanda({
       .single();
 
     if (error) {
-      setMensagem("Erro ao atualizar status: " + error.message);
+      setMensagem("Nao foi possivel atualizar o status agora.");
       return;
     }
 

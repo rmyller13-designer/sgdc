@@ -1,3 +1,4 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl =
@@ -7,7 +8,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export function criarSupabaseAdmin() {
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
-      "Configure SUPABASE_SERVICE_ROLE_KEY na Vercel para excluir demandas."
+      "As configuracoes internas do Supabase ainda nao foram concluidas."
     );
   }
 

@@ -31,13 +31,27 @@ export default function RootLayout({
               </Link>
 
               <nav style={nav}>
-                <Link href="/" style={linkStyle}>Dashboard</Link>
-                <Link href="/nova-demanda" style={linkStyle}>Nova Demanda</Link>
-                <Link href="/demandas" style={linkStyle}>Demandas</Link>
-                <Link href="/calendario-editorial" style={linkStyle}>Calendário</Link>
-                <Link href="/relatorios" style={linkStyle}>Relatórios</Link>
-                <Link href="/relatorios-quantitativos" style={linkStyle}>Indicadores</Link>
-                <Link href="/configuracoes" style={linkStyle}>ConfiguraÃ§Ãµes</Link>
+                <Link href="/" style={linkStyle}>
+                  Dashboard
+                </Link>
+                <Link href="/nova-demanda" style={linkStyle}>
+                  Nova Demanda
+                </Link>
+                <Link href="/demandas" style={linkStyle}>
+                  Demandas
+                </Link>
+                <Link href="/calendario-editorial" style={linkStyle}>
+                  Calendário
+                </Link>
+                <Link href="/relatorios" style={linkStyle}>
+                  Relatórios
+                </Link>
+                <Link href="/relatorios-quantitativos" style={linkStyle}>
+                  Indicadores
+                </Link>
+                <Link href="/configuracoes" style={linkStyle}>
+                  Configurações
+                </Link>
               </nav>
 
               <div style={rightSpace}>

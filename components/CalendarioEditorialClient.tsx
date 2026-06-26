@@ -155,7 +155,7 @@ export default function CalendarioEditorialClient({
             : demanda
         )
       );
-      alert("Erro ao atualizar data de entrega: " + error.message);
+      alert("Nao foi possivel atualizar a data de entrega agora.");
       return;
     }
 

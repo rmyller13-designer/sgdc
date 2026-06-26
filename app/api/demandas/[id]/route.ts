@@ -21,7 +21,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!Number.isInteger(demandaId) || demandaId <= 0) {
     return NextResponse.json(
-      { error: "ID da demanda inválido." },
+      { error: "ID da demanda invalido." },
       { status: 400 }
     );
   }
@@ -32,7 +32,7 @@ export async function DELETE(request: Request, { params }: Params) {
     body = (await request.json()) as DeleteBody;
   } catch {
     return NextResponse.json(
-      { error: "Informe o usuário que solicitou a exclusão." },
+      { error: "Informe o usuario que solicitou a exclusao." },
       { status: 400 }
     );
   }
@@ -41,7 +41,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!nomeUsuario) {
     return NextResponse.json(
-      { error: "Usuário inválido para excluir demanda." },
+      { error: "Usuario invalido para excluir demanda." },
       { status: 401 }
     );
   }
@@ -50,9 +50,9 @@ export async function DELETE(request: Request, { params }: Params) {
 
   try {
     supabase = criarSupabaseAdmin();
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Erro de configuração." },
+      { error: "As configuracoes internas para exclusao ainda nao foram concluidas." },
       { status: 500 }
     );
   }
@@ -67,7 +67,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   if (!podeEditarFluxo(usuarioSessao)) {
     return NextResponse.json(
-      { error: "Seu usuário não tem permissão para excluir demandas." },
+      { error: "Seu usuario nao tem permissao para excluir demandas." },
       { status: 403 }
     );
   }
@@ -79,12 +79,15 @@ export async function DELETE(request: Request, { params }: Params) {
     .maybeSingle();
 
   if (demandaError) {
-    return NextResponse.json({ error: demandaError.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Nao foi possivel localizar a demanda agora." },
+      { status: 500 }
+    );
   }
 
   if (!demanda) {
     return NextResponse.json(
-      { error: "Demanda não encontrada." },
+      { error: "Demanda nao encontrada." },
       { status: 404 }
     );
   }
@@ -93,7 +96,10 @@ export async function DELETE(request: Request, { params }: Params) {
   const erroDependencias = await excluirDependencias(supabase, demandaId);
 
   if (erroDependencias) {
-    return NextResponse.json({ error: erroDependencias }, { status: 500 });
+    return NextResponse.json(
+      { error: "Nao foi possivel remover os registros vinculados da demanda." },
+      { status: 500 }
+    );
   }
 
   const { count, error } = await supabase
@@ -104,9 +110,9 @@ export async function DELETE(request: Request, { params }: Params) {
   if (error || count === 0) {
     return NextResponse.json(
       {
-        error:
-          error?.message ||
-          "A demanda não foi encontrada ou não pode ser excluída.",
+        error: error
+          ? "Nao foi possivel excluir a demanda agora."
+          : "A demanda nao foi encontrada ou nao pode ser excluida.",
       },
       { status: error ? 500 : 404 }
     );
@@ -165,7 +171,7 @@ async function excluirDependencias(
       .eq("demanda_id", demandaId);
 
     if (error && !tabelaAusente(error)) {
-      return error.message;
+      return "Erro ao excluir dependencias da demanda.";
     }
   }
 

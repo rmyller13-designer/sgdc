@@ -63,7 +63,7 @@ export default async function CalendarioEditorialPage({
         </div>
       </div>
 
-      {error && <pre style={erro}>{JSON.stringify(error, null, 2)}</pre>}
+      {error && <p style={erro}>Nao foi possivel carregar o calendario agora.</p>}
 
       <CalendarioEditorialClient mesAtual={mesAtual} demandas={demandas} />
     </div>

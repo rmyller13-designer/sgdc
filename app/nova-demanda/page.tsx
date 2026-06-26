@@ -197,7 +197,7 @@ export default function NovaDemanda() {
         } catch (error) {
           setMensagem(
             error instanceof Error
-              ? error.message
+              ? "Nao foi possivel autorizar o Google Agenda."
               : "Não foi possível autorizar o Google Agenda."
           );
           return;
@@ -230,7 +230,7 @@ export default function NovaDemanda() {
         .single();
 
       if (erroDemanda) {
-        setMensagem("Erro ao salvar demanda: " + erroDemanda.message);
+        setMensagem("Nao foi possivel salvar a demanda agora.");
         return;
       }
 
@@ -252,7 +252,7 @@ export default function NovaDemanda() {
 
         if (erroUpload) {
           setMensagem(
-            "Demanda salva, mas erro ao enviar anexo: " + erroUpload.message
+            "Demanda salva, mas nao foi possivel enviar um dos anexos."
           );
           return;
         }
@@ -274,7 +274,7 @@ export default function NovaDemanda() {
 
         if (erroAnexo) {
           setMensagem(
-            "Arquivo enviado, mas erro ao salvar anexo: " + erroAnexo.message
+            "Arquivo enviado, mas nao foi possivel registrar o anexo."
           );
           return;
         }
@@ -298,10 +298,9 @@ export default function NovaDemanda() {
 
         try {
           await criarTarefaGoogle(demandaGoogle, googleAccessToken);
-        } catch (error) {
+        } catch {
           setMensagem(
-            "Demanda salva, mas erro ao criar tarefa no Google Agenda: " +
-              (error instanceof Error ? error.message : "")
+            "Demanda salva, mas nao foi possivel criar a tarefa no Google Agenda."
           );
           return;
         }

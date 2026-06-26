@@ -35,7 +35,7 @@ export default function ExcluirAnexo({
       .eq("id", anexoId);
 
     if (error) {
-      alert("Erro ao excluir anexo: " + error.message);
+      alert("Nao foi possivel excluir o anexo agora.");
       return;
     }
 

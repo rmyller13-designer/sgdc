@@ -55,7 +55,9 @@ export default async function Demandas() {
         <h1>Demandas</h1>
 
         {error && (
-          <pre style={{ color: "#fca5a5" }}>{JSON.stringify(error, null, 2)}</pre>
+          <p style={{ color: "#fca5a5" }}>
+            Nao foi possivel carregar o quadro agora.
+          </p>
         )}
 
         <div style={boardShell}>

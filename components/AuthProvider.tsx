@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 type AuthResultado = {
   ok: boolean;
   mensagem?: string;
+  usuario?: UsuarioSessao;
 };
 
 type AuthContextValue = {
@@ -32,7 +33,6 @@ type AuthContextValue = {
   recarregarUsuario: () => Promise<void>;
 };
 
-const SENHA_PADRAO = "Ascom.2026";
 const STORAGE_KEY = "sgdc_usuario";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -78,35 +78,50 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     async (usuarioEntrada: UsuarioComunicacao | number, senha: string) => {
       setCarregando(true);
 
-      if (senha !== SENHA_PADRAO) {
+      const usuarioId =
+        typeof usuarioEntrada === "number" ? usuarioEntrada : Number(usuarioEntrada.id);
+
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            usuarioId,
+            senha,
+          }),
+        });
+
+        const json = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+          usuario?: UsuarioSessao;
+        };
+
+        if (!response.ok || !json.ok || !json.usuario) {
+          setUsuario(null);
+          return {
+            ok: false,
+            mensagem: json.error || "Nao foi possivel entrar.",
+          };
+        }
+
+        setUsuario(json.usuario);
+        salvarUsuario(json.usuario);
+        return {
+          ok: true,
+          usuario: json.usuario,
+        };
+      } catch {
         setUsuario(null);
-        setCarregando(false);
         return {
           ok: false,
-          mensagem: "Senha incorreta.",
+          mensagem: "Nao foi possivel entrar agora.",
         };
-      }
-
-      const usuarioSelecionado =
-        typeof usuarioEntrada === "number"
-          ? await buscarUsuario(usuarioEntrada)
-          : usuarioEntrada;
-
-      if (!usuarioSelecionado || usuarioSelecionado.ativo === false) {
-        setUsuario(null);
+      } finally {
         setCarregando(false);
-        return {
-          ok: false,
-          mensagem: "Usuário não encontrado ou inativo.",
-        };
       }
-
-      const usuarioSessao = criarSessaoUsuario(usuarioSelecionado);
-      setUsuario(usuarioSessao);
-      salvarUsuario(usuarioSessao);
-      setCarregando(false);
-
-      return { ok: true };
     },
     []
   );

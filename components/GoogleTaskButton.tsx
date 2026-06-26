@@ -31,7 +31,7 @@ export default function GoogleTaskButton({
     } catch (error) {
       const mensagem =
         error instanceof Error
-          ? error.message
+          ? "Nao foi possivel sincronizar com o Google Agenda."
           : "Erro ao criar tarefa no Google Agenda.";
 
       alert(mensagem);

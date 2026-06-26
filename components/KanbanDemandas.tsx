@@ -135,7 +135,7 @@ export default function KanbanDemandas({
       .single();
 
     if (error) {
-      alert("Erro ao atualizar status: " + error.message);
+      alert("Nao foi possivel atualizar o status agora.");
       return;
     }
 

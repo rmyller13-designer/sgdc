@@ -42,13 +42,11 @@ export default function RegistroPage() {
 
         if (usuariosFallback.length === 0) {
           setTipoMensagem("erro");
-          setMensagem(`Erro ao carregar usuários: ${error.message}`);
+          setMensagem("Nao foi possivel carregar a lista de usuarios agora.");
         } else {
           setUsuarios(usuariosFallback);
           setTipoMensagem("sucesso");
-          setMensagem(
-            "Lista carregada em modo de compatibilidade. Ainda falta publicar as funções de registro no Supabase."
-          );
+          setMensagem("Lista carregada em modo de compatibilidade.");
         }
       } else {
         setUsuarios(prepararUsuariosRegistro((data as UsuarioRegistro[] | null) || []));
@@ -66,7 +64,7 @@ export default function RegistroPage() {
 
     if (!usuarioId) {
       setTipoMensagem("erro");
-      setMensagem("Selecione o usuário que será vinculado.");
+      setMensagem("Selecione o usuario que sera vinculado.");
       return;
     }
 
@@ -84,7 +82,7 @@ export default function RegistroPage() {
 
     if (senha !== confirmacaoSenha) {
       setTipoMensagem("erro");
-      setMensagem("As senhas não conferem.");
+      setMensagem("As senhas nao conferem.");
       return;
     }
 
@@ -109,15 +107,13 @@ export default function RegistroPage() {
 
     if (!resposta.ok || !resultado.ok) {
       setTipoMensagem("erro");
-      setMensagem(resultado.error || "Não foi possível criar a conta.");
+      setMensagem(resultado.error || "Nao foi possivel criar a conta.");
       setCarregando(false);
       return;
     }
 
     setTipoMensagem("sucesso");
-    setMensagem(
-      "Conta criada com sucesso. Volte para o login e entre com seu usuário e a senha padrão do sistema."
-    );
+    setMensagem("Conta criada com sucesso. Volte para o login e entre com seu usuario e sua senha.");
     setCarregando(false);
     router.push("/login");
   }
@@ -125,7 +121,7 @@ export default function RegistroPage() {
   async function reenviarConfirmacao() {
     setTipoMensagem("sucesso");
     setMensagem(
-      "A confirmação por e-mail não é mais necessária. Crie a conta e entre direto com e-mail e senha."
+      "A confirmacao por e-mail nao e mais necessaria. Crie a conta e entre direto com e-mail e senha."
     );
   }
 
@@ -135,10 +131,10 @@ export default function RegistroPage() {
         <p style={eyebrow}>Primeiro acesso</p>
         <h1 style={titulo}>Criar conta</h1>
         <p style={descricao}>
-          Vincule seu e-mail ao usuário interno autorizado do sistema.
+          Vincule seu e-mail ao usuario interno autorizado do sistema.
         </p>
 
-        <label style={label}>Usuário interno</label>
+        <label style={label}>Usuario interno</label>
         <select
           value={usuarioId}
           onChange={(event) => setUsuarioId(event.target.value)}
@@ -147,9 +143,9 @@ export default function RegistroPage() {
         >
           <option value="">
             {carregandoUsuarios
-              ? "Carregando usuários..."
+              ? "Carregando usuarios..."
               : usuarios.length === 0
-                ? "Nenhum usuário disponível"
+                ? "Nenhum usuario disponivel"
                 : "Selecione"}
           </option>
           {usuarios.map((usuario) => (
@@ -162,8 +158,8 @@ export default function RegistroPage() {
         {usuarioSelecionado && (
           <p style={ajuda}>
             {usuarioSelecionado.conta_criada
-              ? "Este usuário já possui um vínculo registrado. Se o acesso antigo não estiver funcionando, continue com o cadastro para reativar o acesso com este e-mail."
-              : "Este usuário está liberado para criar o primeiro acesso."}
+              ? "Este usuario ja possui um vinculo registrado. Se o acesso anterior nao estiver funcionando, voce pode refazer o cadastro com o mesmo e-mail."
+              : "Este usuario esta liberado para criar o primeiro acesso."}
           </p>
         )}
 
@@ -183,7 +179,7 @@ export default function RegistroPage() {
           type="text"
           value={usuarioSelecionado?.nome || ""}
           style={campo}
-          placeholder="Selecione o usuário interno"
+          placeholder="Selecione o usuario interno"
           disabled
           readOnly
         />
@@ -227,11 +223,11 @@ export default function RegistroPage() {
           onClick={() => void reenviarConfirmacao()}
           disabled={carregando}
         >
-          Reenviar confirmação
+          Reenviar confirmacao
         </button>
 
         <p style={rodape}>
-          Já possui conta? <Link href="/login" style={link}>Entrar</Link>
+          Ja possui conta? <Link href="/login" style={link}>Entrar</Link>
         </p>
 
         {mensagem && (

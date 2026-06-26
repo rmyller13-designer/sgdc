@@ -17,16 +17,13 @@ export async function POST(request: Request) {
 
     if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
       return NextResponse.json(
-        { error: "Selecione o usuário que será vinculado." },
+        { error: "Selecione o usuario que sera vinculado." },
         { status: 400 }
       );
     }
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Digite um e-mail." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Digite um e-mail." }, { status: 400 });
     }
 
     if (senha.length < 6) {
@@ -46,14 +43,14 @@ export async function POST(request: Request) {
 
     if (usuarioError || !usuario || usuario.ativo === false) {
       return NextResponse.json(
-        { error: "Usuário não encontrado ou inativo." },
+        { error: "Usuario nao encontrado ou inativo." },
         { status: 404 }
       );
     }
 
     if (!usuarioEstaAutorizado(usuario.nome)) {
       return NextResponse.json(
-        { error: "Usuário sem autorização para acessar o sistema." },
+        { error: "Usuario sem autorizacao para acessar o sistema." },
         { status: 403 }
       );
     }
@@ -110,7 +107,7 @@ export async function POST(request: Request) {
       Number(acessoExistente.usuario_comunicacao_id) !== usuarioId
     ) {
       return NextResponse.json(
-        { error: "Este e-mail já está vinculado a outro usuário interno." },
+        { error: "Este e-mail ja esta vinculado a outro usuario interno." },
         { status: 409 }
       );
     }
@@ -131,17 +128,17 @@ export async function POST(request: Request) {
 
     if (acessoError && !tabelaOuColunaInexistente(acessoError.message)) {
       return NextResponse.json(
-        { error: acessoError.message },
+        { error: "Nao foi possivel concluir o vinculo de acesso." },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
-    const mensagem =
-      error instanceof Error ? error.message : "Falha ao criar conta.";
-
-    return NextResponse.json({ error: mensagem }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { error: "Nao foi possivel criar a conta agora." },
+      { status: 500 }
+    );
   }
 }
 
@@ -163,6 +160,7 @@ async function criarOuAtualizarContaAuth(args: {
     authUserIdAtual,
     emailAtualUsuario,
   } = args;
+
   const payload = {
     email,
     password: senha,
@@ -211,14 +209,11 @@ async function criarOuAtualizarContaAuth(args: {
   if (usuarioAuthExistente) {
     const conflito = await buscarAcessoPorAuthUserId(admin, usuarioAuthExistente.id);
 
-    if (
-      conflito &&
-      Number(conflito.usuario_comunicacao_id) !== usuarioId
-    ) {
+    if (conflito && Number(conflito.usuario_comunicacao_id) !== usuarioId) {
       return {
         ok: false,
         user: null,
-        error: "Este e-mail já está vinculado a outro usuário interno.",
+        error: "Este e-mail ja esta vinculado a outro usuario interno.",
       };
     }
 
@@ -249,14 +244,11 @@ async function criarOuAtualizarContaAuth(args: {
         usuarioCriadoEntreTentativas.id
       );
 
-      if (
-        conflito &&
-        Number(conflito.usuario_comunicacao_id) !== usuarioId
-      ) {
+      if (conflito && Number(conflito.usuario_comunicacao_id) !== usuarioId) {
         return {
           ok: false,
           user: null,
-          error: "Este e-mail já está vinculado a outro usuário interno.",
+          error: "Este e-mail ja esta vinculado a outro usuario interno.",
         };
       }
 
@@ -447,18 +439,18 @@ function traduzirErroAuthAdmin(mensagem: string) {
   const texto = mensagem.toLowerCase();
 
   if (texto.includes("already been registered")) {
-    return "Este e-mail já está cadastrado.";
+    return "Este e-mail ja esta cadastrado.";
   }
 
   if (texto.includes("database error creating new user")) {
-    return "Já existe um cadastro parcial para este e-mail no Auth. Tente novamente para reativar a conta ou use outro e-mail.";
+    return "Ja existe um cadastro parcial para este e-mail. Tente novamente para reativar a conta ou use outro e-mail.";
   }
 
   if (texto.includes("password")) {
-    return "A senha informada não atende aos requisitos mínimos.";
+    return "A senha informada nao atende aos requisitos minimos.";
   }
 
-  return mensagem;
+  return "Nao foi possivel concluir o cadastro com este e-mail.";
 }
 
 function podeSerContaExistente(mensagem?: string) {

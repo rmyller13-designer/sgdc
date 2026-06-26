@@ -54,7 +54,7 @@ export default async function DetalheDemanda({
     .eq("demanda_id", demandaId);
 
   if (error) {
-    return <p style={{ color: "red" }}>Erro: {error.message}</p>;
+    return <p style={{ color: "red" }}>Nao foi possivel carregar a demanda agora.</p>;
   }
 
   if (!demanda) {

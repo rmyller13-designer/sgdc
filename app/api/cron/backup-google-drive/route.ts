@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         ok: true,
         ignorado: true,
-        motivo: "Hoje ainda nao e o ultimo dia do mes.",
+        motivo: "Hoje ainda não é o último dia do mês.",
       });
     }
 
@@ -36,10 +36,10 @@ export async function GET(request: Request) {
       ok: true,
       resultado,
     });
-  } catch (error) {
-    const mensagem =
-      error instanceof Error ? error.message : "Falha ao executar o acervo mensal.";
-
-    return NextResponse.json({ error: mensagem }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { error: "Não foi possível executar o acervo mensal." },
+      { status: 500 }
+    );
   }
 }

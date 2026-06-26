@@ -250,7 +250,7 @@ export default function EixosProdutosDemanda({
     });
 
     if (error) {
-      setMensagem("Erro ao adicionar eixo: " + error.message);
+      setMensagem("Nao foi possivel adicionar o eixo agora.");
       return;
     }
 
@@ -289,7 +289,7 @@ export default function EixosProdutosDemanda({
     });
 
     if (error) {
-      setMensagem("Erro ao adicionar destino: " + error.message);
+      setMensagem("Nao foi possivel adicionar o destino agora.");
       return;
     }
 
@@ -346,7 +346,7 @@ export default function EixosProdutosDemanda({
 
       salvarStatusProdutoLocal(demandaId, produtoIdNumero, "ANDAMENTO");
     } else if (error) {
-      setMensagem("Erro ao adicionar produto: " + error.message);
+      setMensagem("Nao foi possivel adicionar o produto agora.");
       return;
     }
 
@@ -378,7 +378,7 @@ export default function EixosProdutosDemanda({
       .single();
 
     if (error) {
-      setMensagem("Erro ao atualizar quantidade: " + error.message);
+      setMensagem("Nao foi possivel atualizar a quantidade agora.");
       return;
     }
 
@@ -404,7 +404,7 @@ export default function EixosProdutosDemanda({
       .single();
 
     if (error && !colunaStatusAusente(error)) {
-      setMensagem("Erro ao atualizar status: " + error.message);
+      setMensagem("Nao foi possivel atualizar o status agora.");
       return;
     }
 
@@ -505,7 +505,7 @@ export default function EixosProdutosDemanda({
       }
 
       if (error) {
-        setMensagem("Erro ao sincronizar produto automatico: " + error.message);
+        setMensagem("Nao foi possivel sincronizar o produto automatico agora.");
         return;
       }
     }

@@ -67,7 +67,7 @@ export default function ResponsavelDemanda({
       .single();
 
     if (error) {
-      setMensagem("Erro ao atualizar responsável: " + error.message);
+      setMensagem("Nao foi possivel atualizar o responsavel agora.");
       return;
     }
 

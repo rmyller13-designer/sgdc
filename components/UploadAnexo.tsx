@@ -61,7 +61,7 @@ export default function UploadAnexo({ demandaId }: { demandaId: number }) {
         });
 
         if (error) {
-          setMensagem("Erro ao salvar anexo: " + error.message);
+          setMensagem("Nao foi possivel salvar o anexo agora.");
           return;
         }
 
@@ -194,4 +194,3 @@ const regraUpload = {
   fontSize: "12px",
   margin: 0,
 };
-

@@ -62,7 +62,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
 
       produtosData = produtosSemStatus as ProdutoChecklistSupabase[] | null;
     } else if (error) {
-      setMensagem("Erro ao carregar produtos: " + error.message);
+      setMensagem("Nao foi possivel carregar os produtos agora.");
       return;
     }
 
@@ -91,7 +91,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       .order("id", { ascending: true });
 
     if (error) {
-      setMensagem("Erro ao carregar checklist: " + error.message);
+      setMensagem("Nao foi possivel carregar o checklist agora.");
       return;
     }
 
@@ -143,7 +143,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
     }).select("id").single();
 
     if (error) {
-      setMensagem("Erro ao adicionar item: " + error.message);
+      setMensagem("Nao foi possivel adicionar o item agora.");
       return;
     }
 
@@ -175,7 +175,7 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       .single();
 
     if (error) {
-      setMensagem("Erro ao atualizar item: " + error.message);
+      setMensagem("Nao foi possivel atualizar o item agora.");
       return;
     }
 
