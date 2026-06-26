@@ -55,7 +55,7 @@ export async function PUT(request: Request) {
 
 export async function POST() {
   try {
-    const resultado = await executarBackupGoogleDrive({ origem: "manual" });
+    const resultado = await executarBackupGoogleDrive();
     const configuracao = await obterConfiguracaoBackupGoogleDrive();
 
     return NextResponse.json({

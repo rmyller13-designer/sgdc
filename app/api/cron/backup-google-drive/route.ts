@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const resultado = await executarBackupGoogleDrive({ origem: "cron" });
+    const resultado = await executarBackupGoogleDrive();
 
     return NextResponse.json({
       ok: true,
