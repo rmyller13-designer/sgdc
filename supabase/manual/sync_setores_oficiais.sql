@@ -41,6 +41,7 @@ values
   ('FISIOTERAPIA'),
   ('SERVIÇO SOCIAL'),
   ('PSICOLOGIA'),
+  ('HOTEL VISCONDE'),
   ('HOTELARIA'),
   ('MANUTENÇÃO'),
   ('COMISSÃO'),
@@ -104,6 +105,22 @@ as $$
     'g'
   )
 $$;
+
+with setor_legado as (
+  select id
+  from public.setores
+  where public.sgdc_normalizar_setor(nome) = public.sgdc_normalizar_setor('HOTELARIA')
+  order by id
+  limit 1
+)
+update public.setores
+set nome = 'HOTEL VISCONDE'
+where id in (select id from setor_legado)
+  and not exists (
+    select 1
+    from public.setores
+    where public.sgdc_normalizar_setor(nome) = public.sgdc_normalizar_setor('HOTEL VISCONDE')
+  );
 
 update public.setores atual
 set nome = oficial.nome
