@@ -4,6 +4,7 @@ import {
   obterConfiguracaoBackupGoogleDrive,
   obterStatusInfraBackup,
   salvarConfiguracaoBackupGoogleDrive,
+  testarPastaGoogleDrive,
 } from "@/lib/google-drive-backup";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +68,28 @@ export async function POST() {
   } catch (error) {
     const mensagem =
       error instanceof Error ? error.message : "Falha ao executar o acervo manual.";
+
+    return NextResponse.json({ error: mensagem }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = (await request.json().catch(() => ({}))) as ConfiguracaoBody;
+    const configuracao = await obterConfiguracaoBackupGoogleDrive();
+    const resultado = await testarPastaGoogleDrive(
+      body.pastaPaiId || configuracao.pasta_pai_id
+    );
+
+    return NextResponse.json({
+      ok: true,
+      resultado,
+      configuracao,
+      infra: obterStatusInfraBackup(),
+    });
+  } catch (error) {
+    const mensagem =
+      error instanceof Error ? error.message : "Falha ao testar a pasta do Google Drive.";
 
     return NextResponse.json({ error: mensagem }, { status: 500 });
   }

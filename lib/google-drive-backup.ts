@@ -253,6 +253,58 @@ export async function executarBackupGoogleDrive() {
   }
 }
 
+export async function testarPastaGoogleDrive(pastaPaiId?: string | null) {
+  const pastaId = normalizarTexto(pastaPaiId);
+
+  if (!pastaId) {
+    throw new Error("Informe o ID da pasta principal do Google Drive.");
+  }
+
+  const drive = await criarClienteGoogleDrive();
+
+  const pasta = await drive.files.get({
+    fileId: pastaId,
+    fields: "id, name, mimeType, driveId, parents",
+    supportsAllDrives: true,
+  });
+
+  if (!pasta.data.id) {
+    throw new Error("Nao foi possivel localizar a pasta informada no Google Drive.");
+  }
+
+  const nomeArquivo = `sgdc-teste-${Date.now()}.txt`;
+  const conteudo = `Teste SGDC ${new Date().toISOString()}`;
+
+  const criado = await drive.files.create({
+    requestBody: {
+      name: nomeArquivo,
+      parents: [pastaId],
+    },
+    media: {
+      mimeType: "text/plain",
+      body: Readable.from(Buffer.from(conteudo, "utf-8")),
+    },
+    fields: "id, name, parents, driveId",
+    supportsAllDrives: true,
+  });
+
+  if (!criado.data.id) {
+    throw new Error("Nao foi possivel gravar o arquivo de teste no Google Drive.");
+  }
+
+  await drive.files.delete({
+    fileId: criado.data.id,
+    supportsAllDrives: true,
+  });
+
+  return {
+    pastaId,
+    pastaNome: pasta.data.name || "Pasta",
+    driveId: pasta.data.driveId || null,
+    escritaOk: true,
+  };
+}
+
 export function obterStatusInfraBackup() {
   return {
     credenciaisGoogleOk: Boolean(
