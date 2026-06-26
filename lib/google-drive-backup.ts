@@ -31,7 +31,7 @@ type DemandaResumo = {
   titulo: string | null;
   descricao: string | null;
   setor: string | null;
-  solicitante: string | null;
+  cadastrado_por: string | null;
   responsavel: string | null;
   produto: string | null;
   prioridade: string | null;
@@ -367,7 +367,7 @@ async function montarAcervoDemandas(admin: SupabaseClient) {
   const { data: demandas, error: demandasError } = await admin
     .from("demandas_completas")
     .select(
-      "id, titulo, descricao, setor, solicitante, responsavel, produto, prioridade, status, data_entrega, criado_em"
+      "id, titulo, descricao, setor, cadastrado_por, responsavel, produto, prioridade, status, data_entrega, criado_em"
     )
     .order("id", { ascending: false });
 
@@ -712,7 +712,7 @@ function criarIndiceCsv(acervo: AcervoDemanda[]) {
         csvSeguro(formatarHumano(item.demanda.status)),
         csvSeguro(item.demanda.responsavel),
         csvSeguro(item.demanda.setor),
-        csvSeguro(item.demanda.solicitante),
+        csvSeguro(item.demanda.cadastrado_por),
         csvSeguro(formatarHumano(item.demanda.prioridade)),
         csvSeguro(formatarData(item.demanda.data_entrega)),
         csvSeguro(item.demanda.produto),
@@ -801,7 +801,7 @@ function criarResumoHtml(item: AcervoDemanda) {
     <div class="card"><strong>Status</strong><br />${escaparHtml(formatarHumano(d.status))}</div>
     <div class="card"><strong>Prioridade</strong><br />${escaparHtml(formatarHumano(d.prioridade))}</div>
     <div class="card"><strong>Setor</strong><br />${escaparHtml(d.setor || "Nao informado")}</div>
-    <div class="card"><strong>Solicitante</strong><br />${escaparHtml(d.solicitante || "Nao informado")}</div>
+    <div class="card"><strong>Solicitante</strong><br />${escaparHtml(d.cadastrado_por || "Nao informado")}</div>
     <div class="card"><strong>Responsavel</strong><br />${escaparHtml(d.responsavel || "Nao definido")}</div>
     <div class="card"><strong>Entrega</strong><br />${escaparHtml(formatarData(d.data_entrega))}</div>
     <div class="card"><strong>Produto inicial</strong><br />${escaparHtml(d.produto || "Nao informado")}</div>
@@ -842,7 +842,7 @@ function criarResumoTxt(item: AcervoDemanda) {
     `Status: ${formatarHumano(d.status)}`,
     `Prioridade: ${formatarHumano(d.prioridade)}`,
     `Setor: ${d.setor || "Nao informado"}`,
-    `Solicitante: ${d.solicitante || "Nao informado"}`,
+    `Solicitante: ${d.cadastrado_por || "Nao informado"}`,
     `Responsavel: ${d.responsavel || "Nao definido"}`,
     `Entrega: ${formatarData(d.data_entrega)}`,
     `Produto inicial: ${d.produto || "Nao informado"}`,
