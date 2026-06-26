@@ -37,6 +37,7 @@ export default function RootLayout({
                 <Link href="/calendario-editorial" style={linkStyle}>Calendário</Link>
                 <Link href="/relatorios" style={linkStyle}>Relatórios</Link>
                 <Link href="/relatorios-quantitativos" style={linkStyle}>Indicadores</Link>
+                <Link href="/configuracoes" style={linkStyle}>ConfiguraÃ§Ãµes</Link>
               </nav>
 
               <div style={rightSpace}>
