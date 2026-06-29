@@ -20,10 +20,10 @@ import {
 
 const STATUS = [
   { id: 1, nome: "RECEBIDO", titulo: "Recebido" },
-  { id: 2, nome: "EM_PRODUCAO", titulo: "Em ProduÃ§Ã£o" },
-  { id: 3, nome: "EM_APROVACAO", titulo: "Em AprovaÃ§Ã£o" },
+  { id: 2, nome: "EM_PRODUCAO", titulo: "Em Produção" },
+  { id: 3, nome: "EM_APROVACAO", titulo: "Em Aprovação" },
   { id: 4, nome: "AP_PARA_PUBLICAR", titulo: "AP. para Publicar" },
-  { id: 5, nome: "CONCLUIDO", titulo: "ConcluÃ­do" },
+  { id: 5, nome: "CONCLUIDO", titulo: "Concluído" },
   { id: 6, nome: "CANCELADO", titulo: "Cancelado" },
 ];
 
@@ -115,7 +115,7 @@ export default function KanbanDemandas({
     if (!novoStatus) return;
 
     if (!podeMover || !usuario) {
-      alert("Seu usuÃ¡rio nÃ£o tem permissÃ£o para mover demandas.");
+      alert("Seu usuário não tem permissão para mover demandas.");
       return;
     }
 
@@ -150,12 +150,12 @@ export default function KanbanDemandas({
 
   async function excluirDemanda(demanda: DemandaKanban) {
     if (!podeMover || !usuario) {
-      alert("Seu usuÃ¡rio nÃ£o tem permissÃ£o para excluir demandas.");
+      alert("Seu usuário não tem permissão para excluir demandas.");
       return;
     }
 
     const confirmar = window.confirm(
-      `Excluir a demanda #${demanda.id} - ${corrigirTextoExibicao(demanda.titulo) || "Sem tÃ­tulo"}?`
+      `Excluir a demanda #${demanda.id} - ${corrigirTextoExibicao(demanda.titulo) || "Sem título"}?`
     );
 
     if (!confirmar) return;
@@ -186,7 +186,7 @@ export default function KanbanDemandas({
       setLista(listaAnterior);
       alert(
           "Erro ao excluir demanda: " +
-          (resultado?.error || "NÃ£o foi possÃ­vel excluir a demanda.")
+          (resultado?.error || "Não foi possível excluir a demanda.")
       );
       return;
     }
@@ -229,7 +229,7 @@ export default function KanbanDemandas({
           </label>
 
           <label style={filtroChip}>
-            <span style={chipLabel}>ResponsÃ¡vel</span>
+            <span style={chipLabel}>Responsável</span>
             <select
               value={filtroResponsavel}
               onChange={(e) => setFiltroResponsavel(e.target.value)}
@@ -384,8 +384,8 @@ export default function KanbanDemandas({
 
                                       <button
                                         type="button"
-                                        title="AÃ§Ãµes"
-                                        aria-label={`AÃ§Ãµes da demanda #${demanda.id}`}
+                                        title="Ações"
+                                        aria-label={`Ações da demanda #${demanda.id}`}
                                         onClick={(event) => {
                                           event.preventDefault();
                                           event.stopPropagation();
@@ -468,7 +468,7 @@ export default function KanbanDemandas({
                                         </div>
 
                                         <strong style={titulo}>
-                                          {corrigirTextoExibicao(demanda.titulo) || "Sem tÃ­tulo"}
+                                          {corrigirTextoExibicao(demanda.titulo) || "Sem título"}
                                         </strong>
 
                                         <div style={resumoLinha}>
@@ -577,7 +577,7 @@ function formatarData(data: string) {
 
 function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
   if (status === "CONCLUIDO") {
-    return { texto: "ConcluÃ­da", cor: "#22c55e", tipo: "concluido" };
+    return { texto: "Concluída", cor: "#22c55e", tipo: "concluido" };
   }
 
   if (status === "CANCELADO") {
@@ -601,7 +601,7 @@ function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
 
   if (diff < 0) {
     return {
-      texto: `Atrasado hÃ¡ ${Math.abs(diff)} dia(s)`,
+      texto: `Atrasado há ${Math.abs(diff)} dia(s)`,
       cor: "#ef4444",
       tipo: "atrasado",
     };
