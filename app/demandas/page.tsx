@@ -6,8 +6,10 @@ export default async function Demandas() {
   await connection();
 
   const { data: demandas, error } = await supabase
-    .from("demandas_kanban")
-    .select("*")
+    .from("demandas_completas")
+    .select(
+      "id, titulo, descricao, setor, cadastrado_por, responsavel, prioridade, status, data_entrega"
+    )
     .order("id", { ascending: false });
 
   const demandaIds = (demandas || []).map((demanda) => demanda.id);
