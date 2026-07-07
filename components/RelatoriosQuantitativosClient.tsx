@@ -66,6 +66,9 @@ export default function RelatoriosQuantitativosClient({
   const totalProdutos = produtos.reduce((soma, item) => soma + item.valor, 0);
   const totalCanais = canais.reduce((soma, item) => soma + item.valor, 0);
   const totalEixos = eixos.reduce((soma, item) => soma + item.valor, 0);
+  const mediaItensPorDemanda = totalDemandas > 0 ? totalProdutos / totalDemandas : 0;
+  const mediaCanaisPorDemanda = totalDemandas > 0 ? totalCanais / totalDemandas : 0;
+  const mediaEixosPorDemanda = totalDemandas > 0 ? totalEixos / totalDemandas : 0;
   const periodo = formatarPeriodo(inicio, fim);
 
   function exportarExcel() {
@@ -75,6 +78,9 @@ export default function RelatoriosQuantitativosClient({
       totalProdutos,
       totalCanais,
       totalEixos,
+      mediaItensPorDemanda,
+      mediaCanaisPorDemanda,
+      mediaEixosPorDemanda,
       produtos,
       canais,
       eixos,
@@ -103,6 +109,9 @@ export default function RelatoriosQuantitativosClient({
         totalProdutos,
         totalCanais,
         totalEixos,
+        mediaItensPorDemanda,
+        mediaCanaisPorDemanda,
+        mediaEixosPorDemanda,
         produtos,
         canais,
         eixos,
@@ -171,6 +180,21 @@ export default function RelatoriosQuantitativosClient({
         <Card titulo="Produtos produzidos" valor={totalProdutos} />
         <Card titulo="Canais utilizados" valor={totalCanais} />
         <Card titulo="Eixos acionados" valor={totalEixos} />
+        <Card
+          titulo="Média de itens por demanda"
+          valor={formatarMedia(mediaItensPorDemanda)}
+          derivado
+        />
+        <Card
+          titulo="Média de canais por demanda"
+          valor={formatarMedia(mediaCanaisPorDemanda)}
+          derivado
+        />
+        <Card
+          titulo="Média de eixos por demanda"
+          valor={formatarMedia(mediaEixosPorDemanda)}
+          derivado
+        />
       </div>
 
       <div style={layoutDois}>
@@ -269,11 +293,19 @@ export default function RelatoriosQuantitativosClient({
   );
 }
 
-function Card({ titulo, valor }: { titulo: string; valor: number }) {
+function Card({
+  titulo,
+  valor,
+  derivado,
+}: {
+  titulo: string;
+  valor: number | string;
+  derivado?: boolean;
+}) {
   return (
-    <div style={card}>
-      <p style={cardTitulo}>{titulo}</p>
-      <strong style={cardValor}>{valor}</strong>
+    <div style={derivado ? cardDerivado : card}>
+      <p style={derivado ? cardTituloDerivado : cardTitulo}>{titulo}</p>
+      <strong style={derivado ? cardValorDerivado : cardValor}>{valor}</strong>
     </div>
   );
 }
@@ -405,6 +437,13 @@ function formatarDataPeriodo(valor: string) {
   return valor;
 }
 
+function formatarMedia(valor: number) {
+  return valor.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
 function criarSufixoArquivo(inicio: string, fim: string) {
   return `${inicio || "todos"}-${fim || "registros"}`.replace(/[^\w-]+/g, "-");
 }
@@ -479,6 +518,9 @@ function criarHtmlExcel(args: {
   totalProdutos: number;
   totalCanais: number;
   totalEixos: number;
+  mediaItensPorDemanda: number;
+  mediaCanaisPorDemanda: number;
+  mediaEixosPorDemanda: number;
   produtos: Item[];
   canais: Item[];
   eixos: Item[];
@@ -530,6 +572,9 @@ function criarHtmlExcel(args: {
           <td class="card"><div class="label-sm">Produtos produzidos</div><div class="value-lg">${args.totalProdutos}</div></td>
           <td class="card"><div class="label-sm">Canais utilizados</div><div class="value-lg">${args.totalCanais}</div></td>
           <td class="card"><div class="label-sm">Eixos acionados</div><div class="value-lg">${args.totalEixos}</div></td>
+          <td class="card"><div class="label-sm">Média de itens por demanda</div><div class="value-lg">${formatarMedia(args.mediaItensPorDemanda)}</div></td>
+          <td class="card"><div class="label-sm">Média de canais por demanda</div><div class="value-lg">${formatarMedia(args.mediaCanaisPorDemanda)}</div></td>
+          <td class="card"><div class="label-sm">Média de eixos por demanda</div><div class="value-lg">${formatarMedia(args.mediaEixosPorDemanda)}</div></td>
         </tr>
       </table>
 
@@ -732,6 +777,9 @@ function criarHtmlPdf(args: {
   totalProdutos: number;
   totalCanais: number;
   totalEixos: number;
+  mediaItensPorDemanda: number;
+  mediaCanaisPorDemanda: number;
+  mediaEixosPorDemanda: number;
   produtos: Item[];
   canais: Item[];
   eixos: Item[];
@@ -784,6 +832,9 @@ function criarHtmlPdf(args: {
         <div class="card"><div class="label">Produtos produzidos</div><div class="value">${args.totalProdutos}</div></div>
         <div class="card"><div class="label">Canais utilizados</div><div class="value">${args.totalCanais}</div></div>
         <div class="card"><div class="label">Eixos acionados</div><div class="value">${args.totalEixos}</div></div>
+        <div class="card"><div class="label">Média de itens por demanda</div><div class="value">${formatarMedia(args.mediaItensPorDemanda)}</div></div>
+        <div class="card"><div class="label">Média de canais por demanda</div><div class="value">${formatarMedia(args.mediaCanaisPorDemanda)}</div></div>
+        <div class="card"><div class="label">Média de eixos por demanda</div><div class="value">${formatarMedia(args.mediaEixosPorDemanda)}</div></div>
       </section>
 
       <section class="grid-2">
@@ -925,6 +976,13 @@ const card = {
   boxShadow: "0 12px 30px rgba(0,0,0,.22)",
 };
 
+const cardDerivado = {
+  ...card,
+  background: "linear-gradient(135deg, rgba(30,41,59,.94), rgba(37,99,235,.16))",
+  border: "1px solid rgba(96,165,250,.22)",
+  boxShadow: "0 10px 24px rgba(0,0,0,.18)",
+};
+
 const cardTitulo = {
   color: "#fecaca",
   margin: 0,
@@ -932,8 +990,22 @@ const cardTitulo = {
   fontSize: "13px",
 };
 
+const cardTituloDerivado = {
+  ...cardTitulo,
+  color: "#bfdbfe",
+  fontSize: "12px",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+};
+
 const cardValor = {
   fontSize: "34px",
+};
+
+const cardValorDerivado = {
+  ...cardValor,
+  fontSize: "28px",
+  color: "#eff6ff",
 };
 
 const layoutPrincipal = {

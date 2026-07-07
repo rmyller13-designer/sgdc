@@ -39,6 +39,13 @@ export default function DashboardClient(props: {
   status: Item[];
   evolucaoMensal: EvolucaoItem[];
 }) {
+  const totalProdutos = props.produtos.reduce((soma, item) => soma + item.valor, 0);
+  const totalCanais = props.canais.reduce((soma, item) => soma + item.valor, 0);
+  const totalEixos = props.eixos.reduce((soma, item) => soma + item.valor, 0);
+  const mediaItensPorDemanda = props.total > 0 ? totalProdutos / props.total : 0;
+  const mediaCanaisPorDemanda = props.total > 0 ? totalCanais / props.total : 0;
+  const mediaEixosPorDemanda = props.total > 0 ? totalEixos / props.total : 0;
+
   return (
     <div>
       <div style={logoWrap}>
@@ -74,6 +81,21 @@ export default function DashboardClient(props: {
         <Card titulo="AP. para Publicar" valor={props.apParaPublicar} />
         <Card titulo="Concluídas" valor={props.concluidas} />
         <Card titulo="Canceladas" valor={props.canceladas} />
+        <Card
+          titulo="Média de itens por demanda"
+          valor={formatarMedia(mediaItensPorDemanda)}
+          derivado
+        />
+        <Card
+          titulo="Média de canais por demanda"
+          valor={formatarMedia(mediaCanaisPorDemanda)}
+          derivado
+        />
+        <Card
+          titulo="Média de eixos por demanda"
+          valor={formatarMedia(mediaEixosPorDemanda)}
+          derivado
+        />
       </div>
 
       <div style={dashboardGrid}>
@@ -124,18 +146,27 @@ function Card({
   valor,
   destaque,
   alerta,
+  derivado,
 }: {
   titulo: string;
-  valor: number;
+  valor: number | string;
   destaque?: boolean;
   alerta?: boolean;
+  derivado?: boolean;
 }) {
   return (
-    <div style={alerta ? cardAlerta : destaque ? cardDestaque : card}>
-      <p style={cardTitulo}>{titulo}</p>
-      <strong style={cardValor}>{valor}</strong>
+    <div style={alerta ? cardAlerta : destaque ? cardDestaque : derivado ? cardDerivado : card}>
+      <p style={derivado ? cardTituloDerivado : cardTitulo}>{titulo}</p>
+      <strong style={derivado ? cardValorDerivado : cardValor}>{valor}</strong>
     </div>
   );
+}
+
+function formatarMedia(valor: number) {
+  return valor.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 function Painel({
@@ -368,6 +399,14 @@ const cardAlerta = {
     "linear-gradient(135deg, rgba(127,29,29,0.98), rgba(239,68,68,0.78))",
 };
 
+const cardDerivado = {
+  ...card,
+  background:
+    "linear-gradient(135deg, rgba(30,41,59,0.96), rgba(37,99,235,0.18))",
+  border: "1px solid rgba(96, 165, 250, 0.22)",
+  boxShadow: "0 14px 32px rgba(0,0,0,0.18)",
+};
+
 const cardTitulo = {
   color: "#fecaca",
   margin: 0,
@@ -375,8 +414,22 @@ const cardTitulo = {
   fontSize: "13px",
 };
 
+const cardTituloDerivado = {
+  ...cardTitulo,
+  color: "#bfdbfe",
+  fontSize: "12px",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+};
+
 const cardValor = {
   fontSize: "34px",
+};
+
+const cardValorDerivado = {
+  ...cardValor,
+  fontSize: "28px",
+  color: "#eff6ff",
 };
 
 const painel = {
