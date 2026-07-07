@@ -31,6 +31,9 @@ export default function RootLayout({
               </Link>
 
               <nav style={nav}>
+                <Link href="/relatorios-quantitativos" style={linkStyle}>
+                  Indicadores
+                </Link>
                 <Link href="/" style={linkStyle}>
                   Dashboard
                 </Link>
@@ -45,9 +48,6 @@ export default function RootLayout({
                 </Link>
                 <Link href="/relatorios" style={linkStyle}>
                   Relatórios
-                </Link>
-                <Link href="/relatorios-quantitativos" style={linkStyle}>
-                  Indicadores
                 </Link>
                 <Link href="/configuracoes" style={linkStyle}>
                   Configurações

@@ -26,6 +26,7 @@ export const usuariosAutorizados = [
   "Junior",
   "Roberto",
   "Josivania",
+  "Renata",
 ];
 
 export const todasPermissoes: Permissao[] = [
@@ -49,6 +50,7 @@ export const cargosPorUsuario: Record<string, string> = {
   josivania: "Jornalista",
   junior: "Jornalista/Designer",
   terezinha: "Jornalista/Coordenadora",
+  renata: "Solicitante",
 };
 
 export function criarSessaoUsuario(usuario: UsuarioComunicacao): UsuarioSessao {
@@ -63,30 +65,8 @@ export function criarSessaoUsuario(usuario: UsuarioComunicacao): UsuarioSessao {
   };
 }
 
-export function permissoesPorFuncao(funcao?: string | null): Permissao[] {
-  const texto = normalizar(funcao || "");
-
-  if (
-    texto.includes("admin") ||
-    texto.includes("gestao") ||
-    texto.includes("coorden") ||
-    texto.includes("designer") ||
-    texto.includes("jornalista")
-  ) {
-    return todasPermissoes;
-  }
-
-  const permissoes = new Set<Permissao>();
-
-  if (texto.includes("solicitante")) {
-    permissoes.add("solicitante");
-  }
-
-  if (permissoes.size === 0) {
-    permissoes.add("solicitante");
-  }
-
-  return Array.from(permissoes);
+export function permissoesPorFuncao(): Permissao[] {
+  return todasPermissoes;
 }
 
 export function temPermissao(
