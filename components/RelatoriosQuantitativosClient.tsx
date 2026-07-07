@@ -16,6 +16,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  formatarCanalExibicao,
+  formatarEixoExibicao,
+  formatarProdutoExibicao,
+  formatarSetorExibicao,
+  formatarTituloHumano,
+} from "@/lib/display-text";
 
 type Item = {
   titulo: string;
@@ -26,6 +33,8 @@ type EvolucaoItem = {
   mes: string;
   demandas: number;
 };
+
+type TipoGrafico = "produto" | "eixo" | "canal" | "setor" | "livre";
 
 const cores = ["#ef4444", "#f97316", "#22c55e", "#3b82f6", "#a855f7", "#eab308"];
 
@@ -234,21 +243,21 @@ export default function RelatoriosQuantitativosClient({
 
       <div style={layoutPrincipal}>
         <Painel titulo="Produtos produzidos">
-          <GraficoBarras dados={produtos} cor="#ef4444" />
+          <GraficoBarras dados={produtos} cor="#ef4444" tipo="produto" />
         </Painel>
 
         <Painel titulo="Eixos de comunicação">
-          <GraficoBarras dados={eixos} cor="#3b82f6" />
+          <GraficoBarras dados={eixos} cor="#3b82f6" tipo="eixo" />
         </Painel>
 
         <Painel titulo="Canais utilizados">
-          <GraficoBarras dados={canais} cor="#f97316" />
+          <GraficoBarras dados={canais} cor="#f97316" tipo="canal" />
         </Painel>
       </div>
 
       <div style={layoutDois}>
         <Painel titulo="Setores solicitantes">
-          <GraficoBarras dados={setores} cor="#22c55e" />
+          <GraficoBarras dados={setores} cor="#22c55e" tipo="setor" />
         </Painel>
 
         <Painel titulo="Ranking final">
@@ -278,7 +287,15 @@ function Painel({ titulo, children }: { titulo: string; children: ReactNode }) {
   );
 }
 
-function GraficoBarras({ dados, cor }: { dados: Item[]; cor: string }) {
+function GraficoBarras({
+  dados,
+  cor,
+  tipo = "livre",
+}: {
+  dados: Item[];
+  cor: string;
+  tipo?: TipoGrafico;
+}) {
   const lista = dados.slice(0, 10);
 
   if (lista.length === 0) return <p style={textoFraco}>Nenhum dado encontrado.</p>;
@@ -286,15 +303,57 @@ function GraficoBarras({ dados, cor }: { dados: Item[]; cor: string }) {
   return (
     <div style={graficoAltura}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={lista} layout="vertical" margin={{ left: 8, right: 12 }}>
+        <BarChart data={lista} layout="vertical" margin={{ left: 10, right: 18 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.12)" />
           <XAxis type="number" stroke="#fecaca" allowDecimals={false} />
-          <YAxis type="category" dataKey="titulo" stroke="#fecaca" width={132} />
+          <YAxis
+            type="category"
+            dataKey="titulo"
+            stroke="#fecaca"
+            width={176}
+            tick={(props) => <RotuloGrafico {...props} tipo={tipo} />}
+          />
           <Tooltip contentStyle={tooltipStyle} />
           <Bar dataKey="valor" fill={cor} radius={[0, 8, 8, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
+  );
+}
+
+function RotuloGrafico(props: {
+  x?: number | string;
+  y?: number | string;
+  payload?: { value?: string | number };
+  tipo: TipoGrafico;
+}) {
+  const { payload, tipo } = props;
+  const x = typeof props.x === "number" ? props.x : Number(props.x || 0);
+  const y = typeof props.y === "number" ? props.y : Number(props.y || 0);
+  const texto = formatarRotuloGrafico(
+    payload?.value === undefined || payload?.value === null ? "" : String(payload.value),
+    tipo
+  );
+  const linhas = quebrarRotuloGrafico(texto, 18, 2);
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={4}
+        textAnchor="end"
+        fill="#fde2e2"
+        fontSize={11}
+        fontWeight={500}
+      >
+        {linhas.map((linha, index) => (
+          <tspan key={`${linha}-${index}`} x={0} dy={index === 0 ? 0 : 13}>
+            {linha}
+          </tspan>
+        ))}
+      </text>
+    </g>
   );
 }
 
@@ -367,7 +426,7 @@ function escaparHtml(valor: string | number) {
     .replace(/"/g, "&quot;");
 }
 
-function criarBarraHtml(dados: Item[], cor: string) {
+function criarBarraHtml(dados: Item[], cor: string, tipo: TipoGrafico = "livre") {
   const lista = dados.slice(0, 8);
   const maximo = Math.max(...lista.map((item) => item.valor), 1);
 
@@ -377,7 +436,7 @@ function criarBarraHtml(dados: Item[], cor: string) {
         .map((item) => {
           const largura = Math.max(8, Math.round((item.valor / maximo) * 100));
           return `<tr>
-            <td class="label">${escaparHtml(item.titulo)}</td>
+            <td class="label">${escaparHtml(formatarRotuloGrafico(item.titulo, tipo))}</td>
             <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${largura}%;background:${cor};"></div></div></td>
             <td class="value">${item.valor}</td>
           </tr>`;
@@ -476,12 +535,12 @@ function criarHtmlExcel(args: {
 
       <table class="grid">
         <tr>
-          <td class="panel"><h3>Produtos produzidos</h3>${criarBarraHtml(args.produtos, "#ef4444")}</td>
-          <td class="panel"><h3>Eixos de comunicação</h3>${criarBarraHtml(args.eixos, "#3b82f6")}</td>
+          <td class="panel"><h3>Produtos produzidos</h3>${criarBarraHtml(args.produtos, "#ef4444", "produto")}</td>
+          <td class="panel"><h3>Eixos de comunicação</h3>${criarBarraHtml(args.eixos, "#3b82f6", "eixo")}</td>
         </tr>
         <tr>
-          <td class="panel"><h3>Canais utilizados</h3>${criarBarraHtml(args.canais, "#f97316")}</td>
-          <td class="panel"><h3>Setores solicitantes</h3>${criarBarraHtml(args.setores, "#22c55e")}</td>
+          <td class="panel"><h3>Canais utilizados</h3>${criarBarraHtml(args.canais, "#f97316", "canal")}</td>
+          <td class="panel"><h3>Setores solicitantes</h3>${criarBarraHtml(args.setores, "#22c55e", "setor")}</td>
         </tr>
         <tr>
           <td class="panel"><h3>Demandas por status</h3>${criarPizzaHtml(args.status)}</td>
@@ -527,7 +586,7 @@ function criarLinhaSvg(dados: EvolucaoItem[]) {
   </svg>`;
 }
 
-function criarBarrasSvg(dados: Item[], cor: string) {
+function criarBarrasSvg(dados: Item[], cor: string, tipo: TipoGrafico = "livre") {
   const lista = dados.slice(0, 8);
   const largura = 460;
   const altura = 220;
@@ -544,13 +603,85 @@ function criarBarrasSvg(dados: Item[], cor: string) {
         const y = 18 + index * (barraAltura + espacamento);
         const barWidth = Math.max(10, Math.round((item.valor / maximo) * areaLargura));
         return `
-          <text x="0" y="${y + 13}" font-size="12" fill="#4b5563">${escaparHtml(item.titulo)}</text>
+          <text x="0" y="${y + 13}" font-size="12" fill="#4b5563">${escaparHtml(
+            formatarRotuloGrafico(item.titulo, tipo)
+          )}</text>
           <rect x="${margemEsquerda}" y="${y}" rx="9" ry="9" width="${areaLargura}" height="${barraAltura}" fill="#fee2e2"/>
           <rect x="${margemEsquerda}" y="${y}" rx="9" ry="9" width="${barWidth}" height="${barraAltura}" fill="${cor}"/>
           <text x="${margemEsquerda + barWidth + 8}" y="${y + 13}" font-size="12" fill="#111827">${item.valor}</text>`;
       })
       .join("")}
   </svg>`;
+}
+
+function formatarRotuloGrafico(valor: string | null | undefined, tipo: TipoGrafico) {
+  const textoBase = valor || "";
+
+  const texto =
+    tipo === "produto"
+      ? formatarProdutoExibicao(textoBase)
+      : tipo === "eixo"
+        ? formatarEixoExibicao(textoBase)
+        : tipo === "canal"
+          ? formatarCanalExibicao(textoBase)
+          : tipo === "setor"
+            ? formatarSetorExibicao(textoBase)
+            : formatarTituloHumano(textoBase);
+
+  return texto
+    .replace(/^WhatsApp Público Interno$/i, "WhatsApp interno")
+    .replace(/^Disparo de E-mail Público Interno$/i, "E-mail público interno")
+    .replace(/^Disparo de E-mail para Imprensa$/i, "E-mail para imprensa")
+    .replace(/^Disparo de WhatsApp para Imprensa$/i, "WhatsApp imprensa")
+    .replace(/^Cobertura de Eventos Internos$/i, "Eventos internos")
+    .replace(/^Cobertura de Eventos Externos$/i, "Eventos externos")
+    .replace(/^Entrevista de Rádio$/i, "Entrevista rádio")
+    .replace(/^Entrevista de TV$/i, "Entrevista TV");
+}
+
+function quebrarRotuloGrafico(texto: string, limite = 18, maxLinhas = 2) {
+  if (!texto) return [""];
+
+  const palavras = texto.split(" ");
+  const linhas: string[] = [];
+  let atual = "";
+  let indicePalavra = 0;
+
+  while (indicePalavra < palavras.length) {
+    const palavra = palavras[indicePalavra];
+    const candidata = atual ? `${atual} ${palavra}` : palavra;
+
+    if (candidata.length <= limite) {
+      atual = candidata;
+      indicePalavra += 1;
+      continue;
+    }
+
+    if (atual) {
+      linhas.push(atual);
+      atual = "";
+    } else {
+      linhas.push(`${palavra.slice(0, limite - 1)}…`);
+      indicePalavra += 1;
+    }
+
+    if (linhas.length === maxLinhas) {
+      break;
+    }
+  }
+
+  if (linhas.length < maxLinhas && atual) {
+    linhas.push(atual);
+  }
+
+  const textoOriginal = palavras.join(" ");
+  const textoMontado = linhas.join(" ");
+  if (textoOriginal.length > textoMontado.length && linhas.length > 0) {
+    const ultimaLinha = linhas.length - 1;
+    linhas[ultimaLinha] = `${linhas[ultimaLinha].slice(0, Math.max(0, limite - 1))}…`;
+  }
+
+  return linhas.slice(0, maxLinhas);
 }
 
 function criarDonutSvg(dados: Item[]) {
@@ -661,13 +792,13 @@ function criarHtmlPdf(args: {
       </section>
 
       <section class="grid-3">
-        <section class="viz"><h2>Produtos produzidos</h2>${criarBarrasSvg(args.produtos, "#ef4444")}</section>
-        <section class="viz"><h2>Eixos de comunicação</h2>${criarBarrasSvg(args.eixos, "#3b82f6")}</section>
-        <section class="viz"><h2>Canais utilizados</h2>${criarBarrasSvg(args.canais, "#f97316")}</section>
+        <section class="viz"><h2>Produtos produzidos</h2>${criarBarrasSvg(args.produtos, "#ef4444", "produto")}</section>
+        <section class="viz"><h2>Eixos de comunicação</h2>${criarBarrasSvg(args.eixos, "#3b82f6", "eixo")}</section>
+        <section class="viz"><h2>Canais utilizados</h2>${criarBarrasSvg(args.canais, "#f97316", "canal")}</section>
       </section>
 
       <section class="grid-1-2">
-        <section class="viz"><h2>Setores solicitantes</h2>${criarBarrasSvg(args.setores, "#22c55e")}</section>
+        <section class="viz"><h2>Setores solicitantes</h2>${criarBarrasSvg(args.setores, "#22c55e", "setor")}</section>
         <section class="ranking">
           <h2>Demandas por responsável</h2>
           ${args.responsaveis
