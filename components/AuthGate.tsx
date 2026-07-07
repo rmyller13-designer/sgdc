@@ -4,6 +4,8 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 
+const ROTA_INICIAL_APOS_LOGIN = "/relatorios-quantitativos";
+
 export default function AuthGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -14,13 +16,18 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     if (carregando) return;
 
     if (!usuario && !rotaPublica) {
-      router.replace(`/login?next=${encodeURIComponent(pathname || "/")}`);
+      const proximaRota =
+        !pathname || pathname === "/" ? ROTA_INICIAL_APOS_LOGIN : pathname;
+      router.replace(`/login?next=${encodeURIComponent(proximaRota)}`);
       return;
     }
 
     if (usuario && rotaPublica) {
       const params = new URLSearchParams(window.location.search);
-      router.replace(params.get("next") || "/");
+      const proximaRota = params.get("next");
+      router.replace(
+        !proximaRota || proximaRota === "/" ? ROTA_INICIAL_APOS_LOGIN : proximaRota
+      );
     }
   }, [carregando, pathname, rotaPublica, router, usuario]);
 

@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 
 type UsuarioLogin = UsuarioComunicacao;
+const ROTA_INICIAL_APOS_LOGIN = "/relatorios-quantitativos";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -66,7 +67,10 @@ export default function LoginPage() {
     }
 
     const params = new URLSearchParams(window.location.search);
-    router.push(params.get("next") || "/");
+    const proximaRota = params.get("next");
+    router.push(
+      !proximaRota || proximaRota === "/" ? ROTA_INICIAL_APOS_LOGIN : proximaRota
+    );
   }
 
   return (
