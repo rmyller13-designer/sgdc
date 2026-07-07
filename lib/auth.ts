@@ -61,7 +61,7 @@ export function criarSessaoUsuario(usuario: UsuarioComunicacao): UsuarioSessao {
     nome: nomeDoUsuario(usuario.nome),
     funcao,
     email: usuario.email,
-    permissoes: permissoesPorFuncao(funcao),
+    permissoes: permissoesPorFuncao(),
   };
 }
 
