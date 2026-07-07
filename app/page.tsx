@@ -3,190 +3,187 @@ import DashboardClient from "@/components/DashboardClient";
 import { supabase } from "../lib/supabase";
 import {
   corrigirTextoExibicao,
-  formatarCanalExibicao,
-  formatarEixoExibicao,
-  formatarProdutoExibicao,
   formatarSetorExibicao,
 } from "@/lib/display-text";
 
 type DemandaDashboard = {
+  id: number;
+  titulo: string | null;
   status: string | null;
   responsavel: string | null;
   setor: string | null;
   data_entrega: string | null;
   data_solicitacao?: string | null;
   criado_em?: string | null;
+  prioridade?: string | null;
+  cadastrado_por?: string | null;
+};
+
+type HistoricoDashboard = {
+  id: number;
+  demanda_id: number | null;
+  acao: string | null;
+  criado_em: string;
 };
 
 export default async function Dashboard() {
   await connection();
 
-  const { data: demandas } = await supabase.from("demandas_completas").select("*");
+  const [{ data: demandas }, { data: historico }] = await Promise.all([
+    supabase
+      .from("demandas_completas")
+      .select(
+        "id, titulo, status, responsavel, setor, data_entrega, data_solicitacao, criado_em, prioridade, cadastrado_por"
+      ),
+    supabase
+      .from("historico_demanda")
+      .select("id, demanda_id, acao, criado_em")
+      .order("criado_em", { ascending: false })
+      .limit(10),
+  ]);
 
-  const { data: produtos } = await supabase
-    .from("relatorio_quantitativo_produtos")
-    .select("*")
-    .gt("quantidade", 0)
-    .order("quantidade", { ascending: false })
-    .limit(8);
+  const listaDemandas = ((demandas as DemandaDashboard[] | null) || []).map((demanda) => ({
+    ...demanda,
+    id: Number(demanda.id),
+  }));
+  const mapaDemandas = new Map(listaDemandas.map((demanda) => [demanda.id, demanda]));
+  const demandasAbertas = listaDemandas.filter((demanda) => !ehStatusEncerrado(demanda.status));
 
-  const { data: canais } = await supabase
-    .from("relatorio_quantitativo_canais")
-    .select("*")
-    .gt("quantidade", 0)
-    .order("quantidade", { ascending: false })
-    .limit(8);
+  const resumo = {
+    total: listaDemandas.length,
+    abertas: demandasAbertas.length,
+    concluidas: listaDemandas.filter((demanda) => demanda.status === "CONCLUIDO").length,
+    canceladas: listaDemandas.filter((demanda) => demanda.status === "CANCELADO").length,
+  };
 
-  const { data: eixos } = await supabase
-    .from("relatorio_quantitativo_eixos")
-    .select("*")
-    .gt("quantidade", 0)
-    .order("quantidade", { ascending: false })
-    .limit(8);
+  const alertas = calcularAlertas(demandasAbertas);
 
-  const listaDemandas = (demandas || []) as DemandaDashboard[];
-  const total = listaDemandas.length;
-  const recebidas = listaDemandas.filter((d) => d.status === "RECEBIDO").length;
-  const emProducao = listaDemandas.filter((d) => d.status === "EM_PRODUCAO").length;
-  const emAprovacao = listaDemandas.filter((d) => d.status === "EM_APROVACAO").length;
-  const apParaPublicar = listaDemandas.filter((d) => d.status === "AP_PARA_PUBLICAR").length;
-  const concluidas = listaDemandas.filter((d) => d.status === "CONCLUIDO").length;
-  const canceladas = listaDemandas.filter((d) => d.status === "CANCELADO").length;
+  const demandasAtrasadas = ordenarPorEntrega(
+    demandasAbertas.filter((demanda) => calcularPrazoMeta(demanda.data_entrega).tipo === "atrasada")
+  ).slice(0, 5);
 
-  const prazos = calcularResumoPrazos(listaDemandas);
+  const demandasSemResponsavel = ordenarPorEntrega(
+    demandasAbertas.filter((demanda) => !corrigirTextoExibicao(demanda.responsavel))
+  ).slice(0, 5);
 
-  const porResponsavel = listaDemandas.reduce<Record<string, number>>((acc, demanda) => {
-    const nome = corrigirTextoExibicao(demanda.responsavel) || "Não atribuído";
-    acc[nome] = (acc[nome] || 0) + 1;
-    return acc;
-  }, {});
+  const demandasEmAprovacao = ordenarPorEntrega(
+    demandasAbertas.filter((demanda) => demanda.status === "EM_APROVACAO")
+  ).slice(0, 5);
 
-  const porSetor = listaDemandas.reduce<Record<string, number>>((acc, demanda) => {
-    const setor = formatarSetorExibicao(demanda.setor);
-    acc[setor] = (acc[setor] || 0) + 1;
-    return acc;
-  }, {});
+  const demandasProntas = ordenarPorEntrega(
+    demandasAbertas.filter((demanda) => demanda.status === "AP_PARA_PUBLICAR")
+  ).slice(0, 5);
+
+  const ultimasDemandas = [...listaDemandas]
+    .sort((a, b) => pegarDataOrdenacao(b) - pegarDataOrdenacao(a))
+    .slice(0, 6);
+
+  const atividadesRecentes = ((historico as HistoricoDashboard[] | null) || []).map((item) => ({
+    id: Number(item.id),
+    demandaId: item.demanda_id ? Number(item.demanda_id) : null,
+    acao: item.acao || "Atividade registrada",
+    criadoEm: item.criado_em,
+    demandaTitulo: item.demanda_id
+      ? mapaDemandas.get(Number(item.demanda_id))?.titulo || `Demanda #${item.demanda_id}`
+      : "Sistema",
+  }));
+
+  const cargaResponsaveis = agruparMapa(
+    demandasAbertas,
+    (demanda) => corrigirTextoExibicao(demanda.responsavel) || "Não definido"
+  ).slice(0, 6);
+
+  const setoresTop = agruparMapa(
+    listaDemandas,
+    (demanda) => formatarSetorExibicao(demanda.setor)
+  ).slice(0, 6);
 
   return (
     <DashboardClient
-      total={total}
-      recebidas={recebidas}
-      emProducao={emProducao}
-      emAprovacao={emAprovacao}
-      apParaPublicar={apParaPublicar}
-      concluidas={concluidas}
-      canceladas={canceladas}
-      prazos={prazos}
-      produtos={mapearRanking(produtos || [], "produto")}
-      canais={mapearRanking(canais || [], "canal")}
-      eixos={mapearRanking(eixos || [], "eixo")}
-      responsaveis={ordenarItens(porResponsavel)}
-      setores={ordenarItens(porSetor)}
-      status={[
-        { titulo: "Recebido", valor: recebidas },
-        { titulo: "Em Produção", valor: emProducao },
-        { titulo: "Em Aprovação", valor: emAprovacao },
-        { titulo: "AP. para Publicar", valor: apParaPublicar },
-        { titulo: "Concluído", valor: concluidas },
-        { titulo: "Cancelado", valor: canceladas },
-      ].filter((item) => item.valor > 0)}
-      evolucaoMensal={agruparEvolucaoMensal(listaDemandas)}
+      resumo={resumo}
+      alertas={alertas}
+      demandasAtrasadas={demandasAtrasadas}
+      demandasSemResponsavel={demandasSemResponsavel}
+      demandasEmAprovacao={demandasEmAprovacao}
+      demandasProntas={demandasProntas}
+      ultimasDemandas={ultimasDemandas}
+      atividadesRecentes={atividadesRecentes}
+      cargaResponsaveis={cargaResponsaveis}
+      setoresTop={setoresTop}
     />
   );
 }
 
-function mapearRanking(
-  lista: Array<Record<string, string | number | null>>,
-  campo: string
-) {
-  return lista.map((item) => ({
-    titulo: formatarValorDashboard(campo, item[campo]),
-    valor: Number(item.quantidade || 0),
-  }));
-}
+function agruparMapa<T>(lista: T[], seletor: (item: T) => string) {
+  const mapa = lista.reduce<Record<string, number>>((acc, item) => {
+    const chave = seletor(item);
+    acc[chave] = (acc[chave] || 0) + 1;
+    return acc;
+  }, {});
 
-function formatarValorDashboard(
-  campo: string,
-  valor: string | number | null | undefined
-) {
-  const texto = typeof valor === "string" ? valor : valor == null ? "" : String(valor);
-
-  if (!texto) {
-    return "Não informado";
-  }
-
-  if (campo === "produto") return formatarProdutoExibicao(texto);
-  if (campo === "canal") return formatarCanalExibicao(texto);
-  if (campo === "eixo") return formatarEixoExibicao(texto);
-
-  return corrigirTextoExibicao(texto);
-}
-
-function ordenarItens(mapa: Record<string, number>) {
   return Object.entries(mapa)
     .map(([titulo, valor]) => ({ titulo, valor }))
     .sort((a, b) => b.valor - a.valor || a.titulo.localeCompare(b.titulo, "pt-BR"));
 }
 
-function agruparEvolucaoMensal(demandas: DemandaDashboard[]) {
-  const mapa: Record<string, number> = {};
-
-  demandas.forEach((demanda) => {
-    const data = demanda.data_solicitacao || demanda.criado_em;
-    if (!data) return;
-
-    const chave = data.slice(0, 7);
-    mapa[chave] = (mapa[chave] || 0) + 1;
-  });
-
-  return Object.entries(mapa)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, demandasNoMes]) => ({
-      mes: formatarMes(mes),
-      demandas: demandasNoMes,
-    }));
-}
-
-function formatarMes(valor: string) {
-  const [ano, mes] = valor.split("-");
-  return `${mes}/${ano}`;
-}
-
-function calcularResumoPrazos(demandas: DemandaDashboard[]) {
+function calcularAlertas(demandas: DemandaDashboard[]) {
   const resumo = {
     atrasadas: 0,
     hoje: 0,
-    ateTresDias: 0,
-    noPrazo: 0,
-    semPrazo: 0,
+    proximas: 0,
+    semResponsavel: 0,
+    emAprovacao: 0,
+    prontasPublicar: 0,
   };
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
   demandas.forEach((demanda) => {
-    if (demanda.status === "CONCLUIDO" || demanda.status === "CANCELADO") {
-      return;
-    }
+    const prazo = calcularPrazoMeta(demanda.data_entrega);
 
-    if (!demanda.data_entrega) {
-      resumo.semPrazo += 1;
-      return;
-    }
-
-    const [ano, mes, dia] = demanda.data_entrega.split("-").map(Number);
-    const entrega = new Date(ano, mes - 1, dia);
-    entrega.setHours(0, 0, 0, 0);
-
-    const diff = Math.floor(
-      (entrega.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diff < 0) resumo.atrasadas += 1;
-    else if (diff === 0) resumo.hoje += 1;
-    else if (diff <= 3) resumo.ateTresDias += 1;
-    else resumo.noPrazo += 1;
+    if (prazo.tipo === "atrasada") resumo.atrasadas += 1;
+    if (prazo.tipo === "hoje") resumo.hoje += 1;
+    if (prazo.tipo === "proxima") resumo.proximas += 1;
+    if (!corrigirTextoExibicao(demanda.responsavel)) resumo.semResponsavel += 1;
+    if (demanda.status === "EM_APROVACAO") resumo.emAprovacao += 1;
+    if (demanda.status === "AP_PARA_PUBLICAR") resumo.prontasPublicar += 1;
   });
 
   return resumo;
+}
+
+function pegarDataOrdenacao(demanda: DemandaDashboard) {
+  const valor = demanda.criado_em || demanda.data_solicitacao || "";
+  const data = valor ? new Date(valor).getTime() : 0;
+  return Number.isNaN(data) ? 0 : data;
+}
+
+function ordenarPorEntrega(demandas: DemandaDashboard[]) {
+  return [...demandas].sort((a, b) => {
+    const prazoA = calcularPrazoMeta(a.data_entrega).ordem;
+    const prazoB = calcularPrazoMeta(b.data_entrega).ordem;
+    return prazoA - prazoB || pegarDataOrdenacao(b) - pegarDataOrdenacao(a);
+  });
+}
+
+function calcularPrazoMeta(dataEntrega?: string | null) {
+  if (!dataEntrega) {
+    return { tipo: "sem_prazo", ordem: 9999 };
+  }
+
+  const [ano, mes, dia] = dataEntrega.split("-").map(Number);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const entrega = new Date(ano, mes - 1, dia);
+  entrega.setHours(0, 0, 0, 0);
+
+  const diff = Math.floor((entrega.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diff < 0) return { tipo: "atrasada", ordem: diff };
+  if (diff === 0) return { tipo: "hoje", ordem: diff };
+  if (diff <= 3) return { tipo: "proxima", ordem: diff };
+  return { tipo: "normal", ordem: diff };
+}
+
+function ehStatusEncerrado(status?: string | null) {
+  return status === "CONCLUIDO" || status === "CANCELADO";
 }
