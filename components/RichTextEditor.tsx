@@ -21,6 +21,7 @@ type Props = {
 export type RichTextEditorHandle = {
   getHtml: () => string;
   focus: () => void;
+  setHtml: (value: string) => void;
 };
 
 type Action =
@@ -67,11 +68,19 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(function RichText
       getHtml() {
         return sanitizeRichText(editorRef.current?.innerHTML || "");
       },
+      setHtml(value: string) {
+        const html = sanitizeRichText(value);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = html;
+        }
+        ultimoHtmlRef.current = html;
+        onChange(html);
+      },
       focus() {
         editorRef.current?.focus();
       },
     }),
-    []
+    [onChange]
   );
 
   function executar(comando: Action) {

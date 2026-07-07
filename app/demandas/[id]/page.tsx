@@ -14,6 +14,8 @@ import ExcluirAnexo from "@/components/ExcluirAnexo";
 import EditarDemandaInfo from "@/components/EditarDemandaInfo";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import RichTextContent from "@/components/RichTextContent";
+import MemoriaEditorialSection from "@/components/MemoriaEditorialSection";
+import { buscarMemoriaEditorial } from "@/lib/memoria-editorial";
 import {
   corrigirTextoExibicao,
   formatarTituloHumano,
@@ -52,6 +54,13 @@ export default async function DetalheDemanda({
     .from("demanda_anexos")
     .select("*")
     .eq("demanda_id", demandaId);
+
+  const sugestoesMemoria = await buscarMemoriaEditorial({
+    titulo: demanda?.titulo,
+    descricao: demanda?.descricao,
+    setor: demanda?.setor,
+    excluirDemandaId: demandaId,
+  });
 
   if (error) {
     return <p style={{ color: "red" }}>Nao foi possivel carregar a demanda agora.</p>;
@@ -169,6 +178,15 @@ export default async function DetalheDemanda({
 
           <section style={card}>
             <ChecklistDemanda demandaId={demanda.id} />
+          </section>
+
+          <section style={card}>
+            <MemoriaEditorialSection
+              itens={sugestoesMemoria}
+              titulo="Demandas relacionadas"
+              subtitulo="Referências editoriais para reaproveitar conteúdo, estrutura e contexto."
+              vazio="Nenhuma demanda parecida encontrada para esta solicitação."
+            />
           </section>
 
           <section style={card}>

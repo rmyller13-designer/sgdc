@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import MemoriaEditorialSection from "@/components/MemoriaEditorialSection";
 import RichTextEditor, {
   type RichTextEditorHandle,
 } from "@/components/RichTextEditor";
@@ -18,6 +19,7 @@ import {
 } from "@/lib/storage-policy";
 import { supabase } from "../../lib/supabase";
 import { corrigirTextoExibicao, formatarTituloHumano } from "@/lib/display-text";
+import type { SugestaoMemoriaEditorial } from "@/lib/memoria-editorial";
 
 type Opcao = {
   id: number;
@@ -73,6 +75,8 @@ export default function NovaDemanda() {
   const [mensagem, setMensagem] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [arrastandoArquivos, setArrastandoArquivos] = useState(false);
+  const [sugestoesMemoria, setSugestoesMemoria] = useState<SugestaoMemoriaEditorial[]>([]);
+  const [carregandoMemoria, setCarregandoMemoria] = useState(false);
   const salvandoRef = useRef(false);
 
   const carregarDados = useCallback(async () => {
@@ -116,6 +120,58 @@ export default function NovaDemanda() {
     });
   }, [carregarDados]);
 
+  useEffect(() => {
+    const setorSelecionado =
+      setores.find((item) => String(item.id) === setorId)?.nome || "";
+    const descricaoTexto = stripRichText(descricao).trim();
+    const tituloAtual = titulo.trim();
+    let ativo = true;
+
+    if (!tituloAtual && descricaoTexto.length < 24 && !setorSelecionado) {
+      const limparTimer = window.setTimeout(() => {
+        if (!ativo) return;
+        setSugestoesMemoria([]);
+        setCarregandoMemoria(false);
+      }, 0);
+
+      return () => {
+        ativo = false;
+        window.clearTimeout(limparTimer);
+      };
+    }
+
+    const timer = window.setTimeout(async () => {
+      if (!ativo) return;
+      setCarregandoMemoria(true);
+
+      const params = new URLSearchParams();
+
+      if (tituloAtual) params.set("titulo", tituloAtual);
+      if (descricaoTexto) params.set("descricao", descricaoTexto);
+      if (setorSelecionado) params.set("setor", setorSelecionado);
+
+      try {
+        const response = await fetch(`/api/memoria-editorial?${params.toString()}`);
+        const resultado = (await response.json()) as {
+          data?: SugestaoMemoriaEditorial[];
+        };
+
+        if (!ativo) return;
+        setSugestoesMemoria(resultado.data || []);
+      } catch {
+        if (!ativo) return;
+        setSugestoesMemoria([]);
+      } finally {
+        if (ativo) setCarregandoMemoria(false);
+      }
+    }, 350);
+
+    return () => {
+      ativo = false;
+      window.clearTimeout(timer);
+    };
+  }, [descricao, setorId, setores, titulo]);
+
   function adicionarArquivos(lista: File[]) {
     setArquivos((atual) => {
       const mapa = new Map<string, File>();
@@ -148,6 +204,16 @@ export default function NovaDemanda() {
             arquivo.lastModified === alvo.lastModified
           )
       )
+    );
+  }
+
+  function usarSugestaoComoBase(item: SugestaoMemoriaEditorial) {
+    const htmlBase = item.descricaoHtml || "";
+    setDescricao(htmlBase);
+    descricaoEditorRef.current?.setHtml(htmlBase);
+    descricaoEditorRef.current?.focus();
+    setMensagem(
+      `Base editorial carregada da demanda #${item.id}. Revise e adapte o conteúdo antes de salvar.`
     );
   }
 
@@ -481,6 +547,22 @@ export default function NovaDemanda() {
               placeholder="Descreva a necessidade, contexto, objetivo, público e observações importantes"
             />
           </CampoBloco>
+
+          <MemoriaEditorialSection
+            itens={sugestoesMemoria}
+            titulo="Memória editorial"
+            subtitulo={
+              carregandoMemoria
+                ? "Buscando demandas parecidas para reaproveitamento..."
+                : "Sugestões automáticas com base no título, setor e contexto do briefing."
+            }
+            vazio={
+              carregandoMemoria
+                ? "Buscando referências parecidas..."
+                : "Preencha melhor o briefing para o sistema sugerir conteúdos relacionados."
+            }
+            onUsarComoBase={usarSugestaoComoBase}
+          />
 
           <label style={checkboxBox}>
             <input
