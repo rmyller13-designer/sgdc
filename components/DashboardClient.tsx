@@ -481,7 +481,7 @@ const hero = {
 
 const eyebrow = {
   margin: 0,
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   fontWeight: 700,
   textTransform: "uppercase" as const,
@@ -495,7 +495,7 @@ const title = {
 
 const subtitle = {
   margin: 0,
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   maxWidth: "720px",
   lineHeight: "22px",
 };
@@ -523,14 +523,14 @@ const primaryAction = {
 
 const secondaryAction = {
   ...actionBase,
-  background: "rgba(15,23,42,.78)",
-  color: "#fff",
+  background: "var(--sg-button-neutral-bg)",
+  color: "var(--sg-button-neutral-text)",
 };
 
 const ghostAction = {
   ...actionBase,
-  background: "rgba(15,23,42,.45)",
-  color: "#fecaca",
+  background: "var(--sg-panel-bg-soft)",
+  color: "var(--sg-text-secondary)",
 };
 
 const summaryGrid = {
@@ -540,11 +540,11 @@ const summaryGrid = {
 };
 
 const summaryCard = {
-  background: "rgba(15, 23, 42, 0.74)",
-  border: "1px solid rgba(252,165,165,.14)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "12px",
   padding: "16px",
-  boxShadow: "0 12px 28px rgba(0,0,0,.18)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const summaryCardMain = {
@@ -556,7 +556,7 @@ const summaryTitle = {
   margin: 0,
   marginBottom: "6px",
   fontSize: "12px",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };
 
 const summaryValue = {
@@ -591,7 +591,7 @@ const alertDot = {
 
 const alertTitle = {
   fontSize: "12px",
-  color: "#fff",
+  color: "var(--sg-text-primary)",
 };
 
 const alertValue = {
@@ -605,11 +605,11 @@ const mainGrid = {
 };
 
 const panel = {
-  background: "linear-gradient(180deg, rgba(15,23,42,.82), rgba(30,41,59,.74))",
-  border: "1px solid rgba(252,165,165,.16)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "16px",
   padding: "18px",
-  boxShadow: "0 14px 32px rgba(0,0,0,.18)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const panelHeader = {
@@ -623,7 +623,7 @@ const panelTitle = {
 
 const panelSubtitle = {
   margin: "6px 0 0",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   lineHeight: "18px",
 };
@@ -655,7 +655,7 @@ const listPill = {
 };
 
 const listCount = {
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   fontSize: "12px",
 };
 
@@ -667,12 +667,12 @@ const listStack = {
 const demandCard = {
   display: "grid",
   gap: "8px",
-  background: "rgba(2,6,23,.42)",
-  border: "1px solid rgba(148,163,184,.12)",
+  background: "var(--sg-card-bg-alt)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "12px",
   padding: "12px",
   textDecoration: "none",
-  color: "#fff",
+  color: "var(--sg-text-primary)",
 };
 
 const demandTop = {
@@ -683,7 +683,7 @@ const demandTop = {
 };
 
 const demandId = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "12px",
 };
 
@@ -709,10 +709,10 @@ const metaWrap = {
 };
 
 const metaChip = {
-  background: "rgba(255,255,255,.06)",
+  background: "var(--sg-card-bg-soft)",
   borderRadius: "999px",
   padding: "4px 8px",
-  color: "#e2e8f0",
+  color: "var(--sg-text-muted)",
   fontSize: "10px",
 };
 
@@ -720,7 +720,7 @@ const metaFooter = {
   display: "flex",
   justifyContent: "space-between",
   gap: "8px",
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   fontSize: "12px",
   flexWrap: "wrap" as const,
 };
@@ -732,9 +732,9 @@ const compactList = {
 
 const compactCard = {
   textDecoration: "none",
-  color: "#fff",
-  background: "rgba(2,6,23,.34)",
-  border: "1px solid rgba(148,163,184,.1)",
+  color: "var(--sg-text-primary)",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "12px",
   padding: "12px",
 };
@@ -753,7 +753,7 @@ const compactTitle = {
 };
 
 const compactId = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "12px",
 };
 
@@ -761,7 +761,7 @@ const compactMeta = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap" as const,
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   fontSize: "11px",
 };
 
@@ -794,13 +794,13 @@ const timelineLine = {
   flex: 1,
   width: "1px",
   minHeight: "22px",
-  background: "rgba(148,163,184,.2)",
+  background: "var(--sg-border-soft)",
   marginTop: "5px",
 };
 
 const timelineCard = {
-  background: "rgba(2,6,23,.34)",
-  border: "1px solid rgba(148,163,184,.1)",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "12px",
   padding: "12px",
 };
@@ -815,19 +815,19 @@ const timelineHeader = {
 };
 
 const timelineLink = {
-  color: "#fff",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
   fontWeight: 700,
 };
 
 const timelineTime = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "12px",
 };
 
 const timelineText = {
   margin: 0,
-  color: "#e2e8f0",
+  color: "var(--sg-text-muted)",
   lineHeight: "20px",
   fontSize: "13px",
 };
@@ -850,19 +850,19 @@ const rankingTop = {
 };
 
 const rankingLabel = {
-  color: "#e2e8f0",
+  color: "var(--sg-text-muted)",
   fontSize: "13px",
 };
 
 const rankingValue = {
-  color: "#fff",
+  color: "var(--sg-text-primary)",
 };
 
 const rankingTrack = {
   width: "100%",
   height: "8px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,.08)",
+  background: "var(--sg-border-soft)",
   overflow: "hidden" as const,
 };
 
@@ -878,12 +878,12 @@ const shortcutList = {
 
 const shortcutCard = {
   display: "block",
-  background: "rgba(2,6,23,.34)",
-  border: "1px solid rgba(148,163,184,.1)",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "12px",
   padding: "14px",
   textDecoration: "none",
-  color: "#fff",
+  color: "var(--sg-text-primary)",
 };
 
 const shortcutTitle = {
@@ -894,13 +894,13 @@ const shortcutTitle = {
 
 const shortcutDescription = {
   margin: 0,
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   lineHeight: "19px",
   fontSize: "12px",
 };
 
 const emptyText = {
   margin: 0,
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "13px",
 };

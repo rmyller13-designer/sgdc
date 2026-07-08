@@ -683,10 +683,7 @@ function estiloPrioridade(prioridade?: string | null) {
 function estiloStatus(status: string) {
   if (status === "RECEBIDO") {
     return {
-      coluna: {
-        background:
-          "linear-gradient(180deg, rgba(24, 24, 27, 0.95), rgba(20, 20, 24, 0.96))",
-      },
+      coluna: {},
       badge: {
         background: "rgba(63, 63, 70, 0.72)",
         border: "1px solid rgba(82, 82, 91, 0.88)",
@@ -703,10 +700,7 @@ function estiloStatus(status: string) {
 
   if (status === "EM_PRODUCAO") {
     return {
-      coluna: {
-        background:
-          "linear-gradient(180deg, rgba(26, 22, 44, 0.96), rgba(20, 18, 34, 0.98))",
-      },
+      coluna: {},
       badge: {
         background: "rgba(99, 70, 236, 0.92)",
         border: "1px solid rgba(167, 139, 250, 0.78)",
@@ -723,10 +717,7 @@ function estiloStatus(status: string) {
 
   if (status === "EM_APROVACAO") {
     return {
-      coluna: {
-        background:
-          "linear-gradient(180deg, rgba(43, 23, 50, 0.96), rgba(31, 19, 38, 0.98))",
-      },
+      coluna: {},
       badge: {
         background: "rgba(205, 70, 214, 0.92)",
         border: "1px solid rgba(232, 121, 249, 0.7)",
@@ -743,10 +734,7 @@ function estiloStatus(status: string) {
 
   if (status === "AP_PARA_PUBLICAR") {
     return {
-      coluna: {
-        background:
-          "linear-gradient(180deg, rgba(31, 22, 23, 0.96), rgba(28, 18, 20, 0.98))",
-      },
+      coluna: {},
       badge: {
         background: "rgba(239, 68, 68, 0.92)",
         border: "1px solid rgba(252, 165, 165, 0.68)",
@@ -763,10 +751,7 @@ function estiloStatus(status: string) {
 
   if (status === "CONCLUIDO") {
     return {
-      coluna: {
-        background:
-          "linear-gradient(180deg, rgba(16, 36, 28, 0.96), rgba(15, 28, 24, 0.98))",
-      },
+      coluna: {},
       badge: {
         background: "rgba(20, 184, 166, 0.9)",
         border: "1px solid rgba(94, 234, 212, 0.7)",
@@ -782,10 +767,7 @@ function estiloStatus(status: string) {
   }
 
   return {
-    coluna: {
-      background:
-        "linear-gradient(180deg, rgba(31, 22, 23, 0.96), rgba(25, 18, 19, 0.98))",
-    },
+    coluna: {},
     badge: {
       background: "rgba(100, 116, 139, 0.84)",
       border: "1px solid rgba(148, 163, 184, 0.58)",
@@ -824,8 +806,8 @@ const buscaWrap = {
   padding: "0 10px",
   height: "32px",
   borderRadius: "999px",
-  background: "rgba(24, 24, 27, 0.88)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "var(--sg-button-neutral-bg)",
+  border: "1px solid var(--sg-border-soft)",
 };
 
 const controlesWrap = {
@@ -838,7 +820,7 @@ const controlesWrap = {
 };
 
 const toolbarIcon = {
-  color: "#71717a",
+  color: "var(--sg-text-subtle)",
   fontSize: "10px",
   fontWeight: 700,
 };
@@ -846,7 +828,7 @@ const toolbarIcon = {
 const campoBuscaCompacto = {
   background: "transparent",
   border: "none",
-  color: "white",
+  color: "var(--sg-text-primary)",
   outline: "none",
   width: "180px",
   fontSize: "12px",
@@ -859,12 +841,12 @@ const filtroChip = {
   height: "32px",
   padding: "0 10px",
   borderRadius: "999px",
-  background: "rgba(24, 24, 27, 0.88)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "var(--sg-button-neutral-bg)",
+  border: "1px solid var(--sg-border-soft)",
 };
 
 const chipLabel = {
-  color: "#a1a1aa",
+  color: "var(--sg-text-subtle)",
   fontSize: "11px",
   whiteSpace: "nowrap" as const,
 };
@@ -872,7 +854,7 @@ const chipLabel = {
 const selectCompacto = {
   background: "transparent",
   border: "none",
-  color: "white",
+  color: "var(--sg-text-primary)",
   outline: "none",
   fontSize: "12px",
   paddingRight: "4px",
@@ -880,14 +862,14 @@ const selectCompacto = {
 };
 
 const optionCompacto = {
-  background: "#18181b",
-  color: "#ffffff",
+  background: "var(--sg-card-bg)",
+  color: "var(--sg-text-primary)",
 };
 
 const botaoLimpar = {
-  background: "rgba(24, 24, 27, 0.82)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#d4d4d8",
+  background: "var(--sg-button-neutral-bg)",
+  border: "1px solid var(--sg-border-soft)",
+  color: "var(--sg-text-muted)",
   borderRadius: "999px",
   height: "32px",
   padding: "0 11px",
@@ -928,9 +910,8 @@ const kanbanTrack = {
 
 const coluna = {
   flex: "0 0 248px",
-  background:
-    "linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(12, 18, 28, 0.88))",
-  border: "1px solid rgba(255,255,255,0.06)",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "14px",
   padding: "9px",
   display: "flex",
@@ -944,7 +925,7 @@ const colunaHeader = {
   alignItems: "center",
   marginBottom: "8px",
   paddingBottom: "7px",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  borderBottom: "1px solid var(--sg-border-soft)",
 };
 
 const colunaTitulo = {
@@ -954,7 +935,7 @@ const colunaTitulo = {
   borderRadius: "999px",
   textTransform: "uppercase" as const,
   letterSpacing: "0.03em",
-  color: "#f4f4f5",
+  color: "var(--sg-text-primary)",
   border: "1px solid transparent",
   lineHeight: 1,
   display: "inline-flex",
@@ -998,9 +979,9 @@ const cards = {
 const card = {
   position: "relative" as const,
   flexShrink: 0,
-  background: "#18181b",
+  background: "var(--sg-card-bg)",
   borderRadius: "12px",
-  color: "white",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
   boxShadow: "0 6px 14px rgba(0,0,0,0.2)",
   cursor: "grab",
@@ -1009,7 +990,7 @@ const card = {
 
 const cardLink = {
   display: "block",
-  color: "white",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
 };
 
@@ -1027,9 +1008,9 @@ const botaoAcao = {
   width: "26px",
   height: "26px",
   borderRadius: "999px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(17, 24, 39, 0.88)",
-  color: "#f8fafc",
+  border: "1px solid var(--sg-border-soft)",
+  background: "var(--sg-panel-bg-strong)",
+  color: "var(--sg-text-primary)",
   cursor: "pointer",
   fontSize: "12px",
   lineHeight: "12px",
@@ -1044,8 +1025,8 @@ const menuAcoes = {
   top: "36px",
   right: 0,
   minWidth: "160px",
-  background: "rgba(17, 24, 39, 0.98)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "var(--sg-panel-bg-strong)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "10px",
   boxShadow: "0 16px 30px rgba(0,0,0,0.3)",
   padding: "6px",
@@ -1054,7 +1035,7 @@ const menuAcoes = {
 };
 
 const itemMenu = {
-  color: "#f8fafc",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
   fontSize: "13px",
   padding: "9px 10px",
@@ -1076,9 +1057,9 @@ const itemMenuBotao = {
 const previewWrap = {
   width: "100%",
   height: "74px",
-  background: "#0f172a",
+  background: "var(--sg-panel-bg-strong)",
   overflow: "hidden",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  borderBottom: "1px solid var(--sg-border-soft)",
 };
 
 const previewImage = {
@@ -1091,17 +1072,16 @@ const previewImage = {
 const previewPlaceholder = {
   width: "100%",
   height: "74px",
-  background:
-    "linear-gradient(135deg, rgba(15,23,42,1), rgba(30,41,59,.96), rgba(17,24,39,1))",
+  background: "var(--sg-panel-bg)",
   display: "grid",
   placeItems: "center",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  borderBottom: "1px solid var(--sg-border-soft)",
   padding: "16px",
   textAlign: "center" as const,
 };
 
 const previewPlaceholderText = {
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   fontSize: "12px",
   fontWeight: 700,
   overflowWrap: "anywhere" as const,
@@ -1121,7 +1101,7 @@ const cardHeaderClean = {
 };
 
 const idBadge = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "11px",
   fontWeight: 700,
 };
@@ -1167,20 +1147,20 @@ const responsavelDot = {
 };
 
 const resumoIcon = {
-  color: "#71717a",
+  color: "var(--sg-text-subtle)",
   fontSize: "10px",
   lineHeight: "10px",
   flexShrink: 0,
 };
 
 const resumoTexto = {
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   fontSize: "11px",
   fontWeight: 600,
 };
 
 const metaValor = {
-  color: "#f4f4f5",
+  color: "var(--sg-text-primary)",
   fontSize: "11px",
 };
 
@@ -1201,9 +1181,9 @@ const metaChip = {
   display: "inline-flex",
   alignItems: "center",
   gap: "4px",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#e4e4e7",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
+  color: "var(--sg-text-muted)",
   borderRadius: "999px",
   padding: "3px 7px",
   fontSize: "9px",
@@ -1226,7 +1206,7 @@ const prazoBadge = {
 };
 
 const vazio = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "13px",
   textAlign: "center" as const,
   margin: "28px 0 12px",

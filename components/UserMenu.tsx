@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function UserMenu() {
   const router = useRouter();
@@ -14,9 +15,12 @@ export default function UserMenu() {
 
   if (!usuario) {
     return (
-      <Link href="/login" style={loginLink}>
-        Entrar
-      </Link>
+      <div style={box}>
+        <ThemeToggle />
+        <Link href="/login" style={loginLink}>
+          Entrar
+        </Link>
+      </div>
     );
   }
 
@@ -27,9 +31,11 @@ export default function UserMenu() {
 
   return (
     <div style={box}>
+      <ThemeToggle />
+
       <div style={usuarioTexto}>
         <strong style={nome}>{usuario.nome}</strong>
-        <span style={permissoes}>{usuario.funcao || "Usuário"}</span>
+        <span style={permissoes}>{usuario.funcao || "Usuario"}</span>
       </div>
 
       <button type="button" onClick={sair} style={botaoSair}>
@@ -55,7 +61,7 @@ const usuarioTexto = {
 };
 
 const nome = {
-  color: "white",
+  color: "var(--sg-text-primary)",
   fontSize: "13px",
   lineHeight: "18px",
   maxWidth: "150px",
@@ -65,7 +71,7 @@ const nome = {
 };
 
 const permissoes = {
-  color: "#fecaca",
+  color: "var(--sg-brand-subtitle)",
   fontSize: "11px",
   lineHeight: "15px",
   maxWidth: "170px",
@@ -75,9 +81,9 @@ const permissoes = {
 };
 
 const botaoSair = {
-  background: "rgba(15, 23, 42, 0.75)",
-  color: "#fee2e2",
-  border: "1px solid rgba(252, 165, 165, 0.3)",
+  background: "var(--sg-button-neutral-bg)",
+  color: "var(--sg-nav-chip-text)",
+  border: "1px solid var(--sg-nav-chip-border)",
   borderRadius: "8px",
   padding: "8px 10px",
   cursor: "pointer",

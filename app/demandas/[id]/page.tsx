@@ -282,17 +282,17 @@ const workspaceHeader: CSSProperties = {
 };
 
 const backLink: CSSProperties = {
-  color: "#fee2e2",
+  color: "var(--sg-nav-chip-text)",
   textDecoration: "none",
   fontWeight: 700,
 };
 
 const separator: CSSProperties = {
-  color: "rgba(254, 202, 202, 0.55)",
+  color: "var(--sg-text-subtle)",
 };
 
 const headerCurrent: CSSProperties = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };
 
 const conteudo: CSSProperties = {
@@ -316,12 +316,12 @@ const sideSticky: CSSProperties = {
 };
 
 const topo: CSSProperties = {
-  background: "rgba(15, 23, 42, 0.68)",
-  border: "1px solid rgba(252, 165, 165, 0.2)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "22px",
   marginBottom: "14px",
-  boxShadow: "0 14px 34px rgba(0,0,0,0.24)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const tituloLinha: CSSProperties = {
@@ -333,7 +333,7 @@ const tituloLinha: CSSProperties = {
 };
 
 const idBadge: CSSProperties = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "13px",
   fontWeight: 700,
 };
@@ -356,7 +356,7 @@ const tituloPrincipal: CSSProperties = {
 };
 
 const descricaoTopo: CSSProperties = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   maxWidth: "900px",
   lineHeight: "24px",
   margin: 0,
@@ -370,19 +370,19 @@ const painelResumo: CSSProperties = {
 };
 
 const campoResumo: CSSProperties = {
-  background: "rgba(15, 23, 42, 0.72)",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "14px",
   display: "flex",
   flexDirection: "column",
   gap: "6px",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   minWidth: 0,
 };
 
 const googleAgendaLink: CSSProperties = {
-  color: "#bfdbfe",
+  color: "var(--sg-text-muted)",
   fontSize: "12px",
   fontWeight: 700,
   textDecoration: "none",
@@ -391,18 +391,18 @@ const googleAgendaLink: CSSProperties = {
 const tabs: CSSProperties = {
   display: "flex",
   gap: "18px",
-  borderBottom: "1px solid rgba(252, 165, 165, 0.2)",
+  borderBottom: "1px solid var(--sg-border-strong)",
   marginBottom: "14px",
 };
 
 const tab: CSSProperties = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   padding: "12px 0",
   fontSize: "14px",
 };
 
 const tabAtiva: CSSProperties = {
-  color: "white",
+  color: "var(--sg-text-primary)",
   padding: "12px 0",
   fontSize: "14px",
   fontWeight: 700,
@@ -410,12 +410,12 @@ const tabAtiva: CSSProperties = {
 };
 
 const card: CSSProperties = {
-  background: "rgba(15, 23, 42, 0.72)",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "20px",
   marginBottom: "14px",
-  boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const sectionTitle: CSSProperties = {
@@ -431,8 +431,8 @@ const acoesLinha: CSSProperties = {
 };
 
 const acaoBox: CSSProperties = {
-  background: "rgba(2, 6, 23, 0.35)",
-  border: "1px solid rgba(148, 163, 184, 0.18)",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "8px",
   padding: "14px",
 };
@@ -444,14 +444,14 @@ const anexosGrid: CSSProperties = {
 };
 
 const anexoStyle: CSSProperties = {
-  background: "rgba(2, 6, 23, 0.35)",
-  border: "1px solid rgba(148, 163, 184, 0.18)",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "8px",
   padding: "12px",
 };
 
 const anexoLink: CSSProperties = {
-  color: "#93c5fd",
+  color: "var(--sg-text-muted)",
   textDecoration: "none",
   fontSize: "14px",
   overflowWrap: "anywhere",
@@ -462,13 +462,13 @@ const imagemAnexo: CSSProperties = {
   width: "100%",
   height: "160px",
   objectFit: "contain",
-  background: "rgba(2, 6, 23, 0.55)",
+  background: "var(--sg-panel-bg-strong)",
   borderRadius: "8px",
-  border: "1px solid #334155",
+  border: "1px solid var(--sg-border-soft)",
 };
 
 const textoFraco: CSSProperties = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };
 
 const atividadeTitulo: CSSProperties = {
@@ -477,8 +477,8 @@ const atividadeTitulo: CSSProperties = {
 };
 
 const sideCard: CSSProperties = {
-  background: "rgba(15, 23, 42, 0.72)",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "16px",
   marginBottom: "14px",

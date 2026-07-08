@@ -873,10 +873,10 @@ function criarHtmlPdf(args: {
 }
 
 const tooltipStyle = {
-  background: "rgba(15,23,42,.96)",
-  border: "1px solid rgba(252,165,165,.22)",
+  background: "var(--sg-panel-bg-strong)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "10px",
-  color: "#fff",
+  color: "var(--sg-text-primary)",
 };
 
 const hero = {
@@ -888,7 +888,7 @@ const hero = {
 };
 
 const eyebrow = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   textTransform: "uppercase" as const,
   fontSize: "13px",
   letterSpacing: "0.08em",
@@ -901,7 +901,7 @@ const titulo = {
 };
 
 const subtitulo = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   margin: 0,
 };
 
@@ -921,15 +921,15 @@ const filtros = {
 
 const label = {
   display: "block",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "13px",
   marginBottom: "6px",
 };
 
 const campo = {
-  background: "rgba(15,23,42,.85)",
-  border: "1px solid rgba(252,165,165,.25)",
-  color: "white",
+  background: "var(--sg-input-bg)",
+  border: "1px solid var(--sg-input-border)",
+  color: "var(--sg-text-primary)",
   borderRadius: "10px",
   padding: "11px 12px",
 };
@@ -946,9 +946,9 @@ const botao = {
 };
 
 const botaoSecundario = {
-  background: "rgba(15,23,42,.85)",
-  color: "#fee2e2",
-  border: "1px solid rgba(252,165,165,.25)",
+  background: "var(--sg-button-neutral-bg)",
+  color: "var(--sg-nav-chip-text)",
+  border: "1px solid var(--sg-nav-chip-border)",
   padding: "11px 16px",
   borderRadius: "10px",
   cursor: "pointer",
@@ -956,7 +956,7 @@ const botaoSecundario = {
 };
 
 const periodoTexto = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   marginTop: 0,
   marginBottom: "22px",
 };
@@ -969,11 +969,11 @@ const cardsResumo = {
 };
 
 const card = {
-  background: "rgba(15,23,42,.75)",
-  border: "1px solid rgba(252,165,165,.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "20px",
-  boxShadow: "0 12px 30px rgba(0,0,0,.22)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const cardDerivado = {
@@ -984,7 +984,7 @@ const cardDerivado = {
 };
 
 const cardTitulo = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   margin: 0,
   marginBottom: "8px",
   fontSize: "13px",
@@ -1023,11 +1023,11 @@ const layoutDois = {
 };
 
 const painel = {
-  background: "rgba(15,23,42,.75)",
-  border: "1px solid rgba(252,165,165,.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "20px",
-  boxShadow: "0 12px 30px rgba(0,0,0,.22)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const sectionTitle = {
@@ -1046,7 +1046,7 @@ const rankingBloco = {
 };
 
 const rankingTitulo = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "14px",
   marginTop: 0,
 };
@@ -1056,7 +1056,7 @@ const rankingLinha = {
   alignItems: "center",
   gap: "10px",
   padding: "10px 0",
-  borderBottom: "1px solid rgba(148,163,184,.16)",
+  borderBottom: "1px solid var(--sg-border-soft)",
 };
 
 const rankingPosicao = {
@@ -1092,5 +1092,5 @@ const legendaCor = {
 };
 
 const textoFraco = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };

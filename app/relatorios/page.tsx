@@ -190,15 +190,15 @@ const campo = {
   display: "block",
   marginTop: "6px",
   padding: "10px",
-  background: "#111827",
-  color: "white",
-  border: "1px solid #334155",
+  background: "var(--sg-input-bg)",
+  color: "var(--sg-text-primary)",
+  border: "1px solid var(--sg-input-border)",
   borderRadius: "8px",
 };
 
 const botao = {
-  background: "#2563eb",
-  color: "white",
+  background: "var(--sg-button-primary-bg)",
+  color: "var(--sg-button-primary-text)",
   border: "none",
   padding: "11px 20px",
   borderRadius: "8px",
@@ -213,8 +213,8 @@ const grid = {
 };
 
 const card = {
-  background: "#111827",
-  border: "1px solid #334155",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "12px",
   padding: "20px",
 };
@@ -226,12 +226,12 @@ const table = {
 };
 
 const th = {
-  border: "1px solid #334155",
+  border: "1px solid var(--sg-border-soft)",
   padding: "12px",
-  background: "#1f2937",
+  background: "var(--sg-panel-bg-soft)",
 };
 
 const td = {
-  border: "1px solid #334155",
+  border: "1px solid var(--sg-border-soft)",
   padding: "12px",
 };

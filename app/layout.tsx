@@ -16,8 +16,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning data-theme="dark">
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var saved=localStorage.getItem("sgdc-theme");var theme=saved==="light"||saved==="dark"?saved:"dark";document.documentElement.setAttribute("data-theme",theme);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`,
+          }}
+        />
         <AuthProvider>
           <div style={container}>
             <header style={header}>
@@ -71,15 +76,14 @@ export default function RootLayout({
 
 const container = {
   minHeight: "100vh",
-  background:
-    "radial-gradient(circle at top left, #450a0a 0%, #ad1111 35%, #2b0000 100%)",
-  color: "#fff",
+  background: "var(--sg-layout-bg)",
+  color: "var(--sg-text-primary)",
 };
 
 const header = {
   minHeight: "76px",
-  background: "linear-gradient(90deg, #450a0a, #7f1d1d, #991b1b)",
-  borderBottom: "1px solid #ef4444",
+  background: "var(--sg-header-bg)",
+  borderBottom: "1px solid var(--sg-header-border)",
   padding: "10px 28px",
   display: "grid",
   gridTemplateColumns: "240px minmax(0, 1fr) 260px",
@@ -95,7 +99,7 @@ const brand = {
   display: "flex",
   alignItems: "center",
   gap: "12px",
-  color: "white",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
 };
 
@@ -103,7 +107,7 @@ const brandIcon = {
   width: "42px",
   height: "42px",
   borderRadius: "8px",
-  background: "linear-gradient(135deg, #ef4444, #7f1d1d)",
+  background: "var(--sg-brand-icon-bg)",
   border: "1px solid rgba(255,255,255,0.25)",
   display: "flex",
   alignItems: "center",
@@ -119,7 +123,7 @@ const brandTitle = {
 
 const brandSubtitle = {
   margin: 0,
-  color: "#fecaca",
+  color: "var(--sg-brand-subtitle)",
   fontSize: "12px",
 };
 
@@ -137,13 +141,13 @@ const rightSpace = {
 };
 
 const linkStyle = {
-  color: "#fee2e2",
+  color: "var(--sg-nav-chip-text)",
   textDecoration: "none",
   fontSize: "13px",
   padding: "9px 10px",
   borderRadius: "8px",
-  background: "rgba(127, 29, 29, 0.45)",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
+  background: "var(--sg-nav-chip-bg)",
+  border: "1px solid var(--sg-nav-chip-border)",
   whiteSpace: "nowrap" as const,
 };
 

@@ -642,9 +642,9 @@ const botaoIcone = {
   width: "36px",
   height: "36px",
   borderRadius: "8px",
-  border: "1px solid rgba(252,165,165,.25)",
-  background: "rgba(15,23,42,.78)",
-  color: "#fee2e2",
+  border: "1px solid var(--sg-nav-chip-border)",
+  background: "var(--sg-button-neutral-bg)",
+  color: "var(--sg-nav-chip-text)",
   textDecoration: "none",
   display: "grid",
   placeItems: "center",
@@ -652,9 +652,9 @@ const botaoIcone = {
 };
 
 const botaoSecundario = {
-  background: "rgba(15,23,42,.78)",
-  color: "#fee2e2",
-  border: "1px solid rgba(252,165,165,.25)",
+  background: "var(--sg-button-neutral-bg)",
+  color: "var(--sg-nav-chip-text)",
+  border: "1px solid var(--sg-nav-chip-border)",
   padding: "10px 12px",
   borderRadius: "8px",
   cursor: "pointer",
@@ -664,8 +664,8 @@ const botaoSecundario = {
 const abas = {
   display: "flex",
   gap: "6px",
-  background: "rgba(15,23,42,.62)",
-  border: "1px solid rgba(252,165,165,.18)",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "4px",
 };
@@ -673,7 +673,7 @@ const abas = {
 const aba = {
   background: "transparent",
   border: "none",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   padding: "8px 12px",
   borderRadius: "7px",
   cursor: "pointer",
@@ -694,9 +694,9 @@ const filtros = {
 };
 
 const campoBusca = {
-  background: "rgba(15,23,42,.82)",
-  border: "1px solid rgba(252,165,165,.22)",
-  color: "white",
+  background: "var(--sg-input-bg)",
+  border: "1px solid var(--sg-input-border)",
+  color: "var(--sg-text-primary)",
   borderRadius: "8px",
   padding: "11px 12px",
 };
@@ -713,22 +713,22 @@ const resumo = {
 };
 
 const resumoCard = {
-  background: "rgba(15,23,42,.72)",
-  border: "1px solid rgba(252,165,165,.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "12px",
   display: "flex",
   justifyContent: "space-between",
   gap: "12px",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };
 
 const calendarioWrap = {
-  background: "rgba(15,23,42,.72)",
-  border: "1px solid rgba(252,165,165,.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   overflow: "hidden",
-  boxShadow: "0 14px 34px rgba(0,0,0,.22)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const cabecalhoSemana = {
@@ -739,7 +739,7 @@ const cabecalhoSemana = {
 
 const diaSemana = {
   padding: "10px",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   fontWeight: 800,
   textTransform: "uppercase" as const,
@@ -756,7 +756,7 @@ const diaCelula = {
   minHeight: "170px",
   border: "1px solid rgba(148,163,184,.14)",
   padding: "10px",
-  background: "rgba(2,6,23,.22)",
+  background: "var(--sg-card-bg-soft)",
 };
 
 const diaTopo = {
@@ -767,7 +767,7 @@ const diaTopo = {
 };
 
 const diaNumero = {
-  color: "white",
+  color: "var(--sg-text-primary)",
 };
 
 const contador = {
@@ -792,10 +792,10 @@ const cardDemanda = {
   flexDirection: "column" as const,
   gap: "4px",
   minHeight: "72px",
-  color: "white",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
-  background: "rgba(15,23,42,.86)",
-  border: "1px solid rgba(148,163,184,.22)",
+  background: "var(--sg-card-bg)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "8px",
   padding: "8px 8px 8px 11px",
   overflow: "hidden",
@@ -805,13 +805,13 @@ const cardConteudo = {
   display: "flex",
   flexDirection: "column" as const,
   gap: "4px",
-  color: "white",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
 };
 
 const googleAgendaCardLink = {
   alignSelf: "flex-start",
-  color: "#bfdbfe",
+  color: "var(--sg-text-muted)",
   fontSize: "11px",
   fontWeight: 800,
   textDecoration: "none",
@@ -834,19 +834,19 @@ const cardTitulo = {
 };
 
 const cardMeta = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "11px",
   lineHeight: "14px",
 };
 
 const cardFooter = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "11px",
   lineHeight: "14px",
 };
 
 const maisItens = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   padding: "3px 0",
 };
@@ -862,8 +862,8 @@ const linhaLista = {
   gridTemplateColumns: "minmax(0, 1fr) 140px",
   gap: "12px",
   alignItems: "center",
-  background: "rgba(15,23,42,.72)",
-  border: "1px solid rgba(252,165,165,.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "12px",
 };
@@ -873,13 +873,13 @@ const linkLista = {
   gridTemplateColumns: "110px minmax(220px, 1fr) 150px 160px 180px",
   gap: "12px",
   alignItems: "center",
-  color: "white",
+  color: "var(--sg-text-primary)",
   textDecoration: "none",
   minWidth: 0,
 };
 
 const dataLista = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontWeight: 800,
 };
 
@@ -894,12 +894,12 @@ const pill = {
 };
 
 const textoFraco = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "13px",
 };
 
 const googleAgendaLink = {
-  color: "#bfdbfe",
+  color: "var(--sg-text-muted)",
   border: "1px solid rgba(147,197,253,.28)",
   borderRadius: "8px",
   padding: "7px 9px",
@@ -910,5 +910,5 @@ const googleAgendaLink = {
 };
 
 const vazio = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };

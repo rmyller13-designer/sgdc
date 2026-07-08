@@ -657,11 +657,11 @@ const shell = {
 const formCard = {
   width: "100%",
   maxWidth: "980px",
-  background: "linear-gradient(180deg, rgba(28, 17, 32, 0.92), rgba(40, 16, 28, 0.92))",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "16px",
   padding: "clamp(18px, 3vw, 28px)",
-  boxShadow: "0 24px 50px rgba(0,0,0,0.26)",
+  boxShadow: "var(--sg-shadow-strong)",
   display: "grid",
   gap: "18px",
 };
@@ -673,12 +673,12 @@ const cabecalhoForm = {
   gap: "16px",
   flexWrap: "wrap" as const,
   paddingBottom: "18px",
-  borderBottom: "1px solid rgba(252, 165, 165, 0.12)",
+  borderBottom: "1px solid var(--sg-border-strong)",
 };
 
 const secaoMini = {
   margin: 0,
-  color: "#fca5a5",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   fontWeight: 700,
   textTransform: "uppercase" as const,
@@ -692,8 +692,8 @@ const secaoTitulo = {
 
 const statusBox = {
   minWidth: "150px",
-  background: "rgba(15, 23, 42, 0.7)",
-  border: "1px solid rgba(252, 165, 165, 0.14)",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "12px",
   padding: "12px 14px",
   display: "grid",
@@ -701,12 +701,12 @@ const statusBox = {
 };
 
 const statusLabel = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "12px",
 };
 
 const statusValor = {
-  color: "#fff",
+  color: "var(--sg-text-primary)",
   fontSize: "15px",
 };
 
@@ -728,7 +728,7 @@ const campoBlocoFull = {
 };
 
 const labelCampo = {
-  color: "#fee2e2",
+  color: "var(--sg-text-secondary)",
   fontSize: "13px",
   fontWeight: 700,
 };
@@ -738,9 +738,9 @@ const campo = {
   boxSizing: "border-box" as const,
   padding: "12px",
   borderRadius: "10px",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
-  background: "#111827",
-  color: "white",
+  border: "1px solid var(--sg-input-border)",
+  background: "var(--sg-input-bg)",
+  color: "var(--sg-text-primary)",
 };
 
 const inputArquivoOculto = {
@@ -751,9 +751,9 @@ const checkboxBox = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
-  background: "#0f172a",
-  border: "1px solid #334155",
-  color: "#e2e8f0",
+  background: "var(--sg-panel-bg-strong)",
+  border: "1px solid var(--sg-border-soft)",
+  color: "var(--sg-text-muted)",
   padding: "14px",
   borderRadius: "10px",
   fontSize: "14px",
@@ -767,8 +767,8 @@ const checkbox = {
 };
 
 const botao = {
-  background: "linear-gradient(135deg, #dc2626, #991b1b)",
-  color: "white",
+  background: "var(--sg-button-primary-bg)",
+  color: "var(--sg-button-primary-text)",
   border: "none",
   padding: "14px 22px",
   borderRadius: "10px",
@@ -777,9 +777,9 @@ const botao = {
 };
 
 const aviso = {
-  background: "#0f172a",
-  border: "1px solid #334155",
-  color: "#cbd5e1",
+  background: "var(--sg-panel-bg-strong)",
+  border: "1px solid var(--sg-border-soft)",
+  color: "var(--sg-text-muted)",
   padding: "12px",
   borderRadius: "10px",
   fontSize: "14px",
@@ -787,9 +787,9 @@ const aviso = {
 
 const arquivosBox = {
   fontSize: "14px",
-  color: "#cbd5e1",
-  background: "rgba(15, 23, 42, 0.58)",
-  border: "1px solid rgba(252, 165, 165, 0.12)",
+  color: "var(--sg-text-muted)",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "10px",
   padding: "14px",
 };
@@ -813,8 +813,8 @@ const arquivoItem = {
   justifyContent: "space-between",
   gap: "12px",
   flexWrap: "wrap" as const,
-  background: "rgba(2, 6, 23, 0.45)",
-  border: "1px solid rgba(148, 163, 184, 0.16)",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   borderRadius: "10px",
   padding: "10px 12px",
 };
@@ -827,18 +827,18 @@ const arquivoInfo = {
 };
 
 const arquivoNome = {
-  color: "#f8fafc",
+  color: "var(--sg-text-primary)",
   overflowWrap: "anywhere" as const,
 };
 
 const arquivoMeta = {
-  color: "#94a3b8",
+  color: "var(--sg-text-subtle)",
   fontSize: "12px",
 };
 
 const arquivoRemover = {
   background: "rgba(127, 29, 29, 0.65)",
-  color: "#fee2e2",
+  color: "var(--sg-text-primary)",
   border: "1px solid rgba(252,165,165,.25)",
   borderRadius: "8px",
   padding: "8px 10px",
@@ -859,7 +859,7 @@ const acoes = {
 
 const mensagemStyle = {
   margin: 0,
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
 };
 
 function dropzone(ativo: boolean) {
@@ -872,8 +872,8 @@ function dropzone(ativo: boolean) {
       : "1px dashed rgba(252, 165, 165, 0.26)",
     background: ativo
       ? "rgba(127, 29, 29, 0.28)"
-      : "linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.82))",
-    color: "white",
+      : "var(--sg-panel-bg)",
+    color: "var(--sg-text-primary)",
     padding: "18px",
     display: "grid",
     placeItems: "center",
@@ -902,7 +902,7 @@ const dropzoneTitle = {
 };
 
 const dropzoneText = {
-  color: "#cbd5e1",
+  color: "var(--sg-text-muted)",
   fontSize: "13px",
   lineHeight: "20px",
 };

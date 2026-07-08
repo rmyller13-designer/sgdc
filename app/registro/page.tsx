@@ -299,16 +299,16 @@ const page = {
 
 const painel = {
   width: "min(520px, 100%)",
-  background: "rgba(15, 23, 42, 0.78)",
-  border: "1px solid rgba(252, 165, 165, 0.2)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "8px",
   padding: "28px",
-  boxShadow: "0 18px 42px rgba(0,0,0,0.28)",
+  boxShadow: "var(--sg-shadow-strong)",
 };
 
 const eyebrow = {
   margin: 0,
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   fontWeight: 700,
   textTransform: "uppercase" as const,
@@ -321,13 +321,13 @@ const titulo = {
 };
 
 const descricao = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   lineHeight: "22px",
   marginBottom: "22px",
 };
 
 const ajuda = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "12px",
   lineHeight: "18px",
   marginTop: "8px",
@@ -335,7 +335,7 @@ const ajuda = {
 };
 
 const label = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   fontSize: "13px",
   fontWeight: 700,
 };
@@ -350,17 +350,17 @@ const campo = {
   width: "100%",
   boxSizing: "border-box" as const,
   marginTop: "8px",
-  background: "rgba(2, 6, 23, 0.72)",
-  color: "white",
-  border: "1px solid rgba(252, 165, 165, 0.28)",
+  background: "var(--sg-input-bg)",
+  color: "var(--sg-text-primary)",
+  border: "1px solid var(--sg-input-border)",
   borderRadius: "8px",
   padding: "12px",
 };
 
 const botao = {
   width: "100%",
-  background: "linear-gradient(135deg, #dc2626, #991b1b)",
-  color: "white",
+  background: "var(--sg-button-primary-bg)",
+  color: "var(--sg-button-primary-text)",
   border: "none",
   padding: "12px",
   borderRadius: "8px",
@@ -372,8 +372,8 @@ const botao = {
 const botaoSecundario = {
   width: "100%",
   background: "transparent",
-  color: "#fee2e2",
-  border: "1px solid rgba(252, 165, 165, 0.3)",
+  color: "var(--sg-nav-chip-text)",
+  border: "1px solid var(--sg-nav-chip-border)",
   padding: "12px",
   borderRadius: "8px",
   cursor: "pointer",
@@ -382,19 +382,19 @@ const botaoSecundario = {
 };
 
 const rodape = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   marginTop: "16px",
   marginBottom: 0,
   fontSize: "13px",
 };
 
 const link = {
-  color: "white",
+  color: "var(--sg-text-primary)",
   fontWeight: 700,
 };
 
 const mensagemErroStyle = {
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   marginBottom: 0,
 };
 

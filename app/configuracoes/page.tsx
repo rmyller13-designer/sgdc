@@ -270,7 +270,7 @@ const titulo = {
 
 const textoSuporte = {
   margin: "8px 0 0",
-  color: "#fecaca",
+  color: "var(--sg-text-secondary)",
   lineHeight: 1.6,
 };
 
@@ -281,11 +281,11 @@ const grid = {
 };
 
 const bloco = {
-  background: "rgba(24, 24, 35, 0.78)",
-  border: "1px solid rgba(252, 165, 165, 0.16)",
+  background: "var(--sg-panel-bg)",
+  border: "1px solid var(--sg-border-strong)",
   borderRadius: "14px",
   padding: "20px",
-  boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+  boxShadow: "var(--sg-shadow-card)",
 };
 
 const subtitulo = {
@@ -304,7 +304,7 @@ const toggleLinha = {
 const label = {
   display: "block",
   marginBottom: "8px",
-  color: "#fee2e2",
+  color: "var(--sg-text-secondary)",
   fontSize: "14px",
 };
 
@@ -313,9 +313,9 @@ const input = {
   boxSizing: "border-box" as const,
   padding: "12px 14px",
   borderRadius: "10px",
-  border: "1px solid rgba(252,165,165,.18)",
-  background: "rgba(15,23,42,.92)",
-  color: "white",
+  border: "1px solid var(--sg-input-border)",
+  background: "var(--sg-input-bg)",
+  color: "var(--sg-text-primary)",
   marginBottom: "16px",
 };
 
@@ -329,17 +329,17 @@ const botaoPrimario = {
   border: "none",
   borderRadius: "10px",
   padding: "12px 16px",
-  background: "#2563eb",
-  color: "white",
+  background: "var(--sg-button-primary-bg)",
+  color: "var(--sg-button-primary-text)",
   fontWeight: 700,
   cursor: "pointer",
 };
 
 const botaoSecundario = {
   ...botaoPrimario,
-  background: "rgba(15,23,42,.92)",
-  border: "1px solid rgba(252,165,165,.22)",
-  color: "#fee2e2",
+  background: "var(--sg-button-neutral-bg)",
+  border: "1px solid var(--sg-nav-chip-border)",
+  color: "var(--sg-nav-chip-text)",
 };
 
 const botaoTerciario = {
@@ -352,14 +352,14 @@ const botaoTerciario = {
 const mensagemStyle = {
   marginTop: "14px",
   marginBottom: 0,
-  color: "#bfdbfe",
+  color: "var(--sg-text-muted)",
 };
 
 const resumoBox = {
   padding: "16px",
   borderRadius: "12px",
-  background: "rgba(15,23,42,.52)",
-  border: "1px solid rgba(148,163,184,.14)",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
 };
 
 const resumoItem = {
