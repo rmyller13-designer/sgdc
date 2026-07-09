@@ -309,7 +309,8 @@ export default function NovaDemanda() {
       for (const arquivo of arquivos) {
         const caminhoArquivo = criarCaminhoAnexoDemanda(
           demandaCriada.id,
-          arquivo
+          arquivo,
+          "referencia"
         );
 
         const { error: erroUpload } = await supabase.storage
@@ -336,6 +337,7 @@ export default function NovaDemanda() {
             tamanho_arquivo: arquivo.size,
             url_arquivo: urlPublica.publicUrl,
             caminho_storage: caminhoArquivo,
+            categoria: "referencia",
           });
 
         if (erroAnexo) {

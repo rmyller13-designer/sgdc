@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
 import StatusDemanda from "@/components/StatusDemanda";
@@ -9,8 +8,9 @@ import ComentariosDemanda from "@/components/ComentariosDemanda";
 import HistoricoDemanda from "@/components/HistoricoDemanda";
 import EixosProdutosDemanda from "@/components/EixosProdutosDemanda";
 import ChecklistDemanda from "@/components/ChecklistDemanda";
-import UploadAnexo from "@/components/UploadAnexo";
-import ExcluirAnexo from "@/components/ExcluirAnexo";
+import DemandaAnexosSection, {
+  type DemandaAnexoItem,
+} from "@/components/DemandaAnexosSection";
 import EditarDemandaInfo from "@/components/EditarDemandaInfo";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import RichTextContent from "@/components/RichTextContent";
@@ -20,14 +20,6 @@ import {
   corrigirTextoExibicao,
   formatarTituloHumano,
 } from "@/lib/display-text";
-
-type Anexo = {
-  id: number;
-  nome_arquivo: string;
-  url_arquivo: string;
-  tipo_arquivo: string | null;
-  caminho_storage: string;
-};
 
 export default async function DetalheDemanda({
   params,
@@ -40,7 +32,7 @@ export default async function DetalheDemanda({
   const demandaId = Number(id);
 
   if (Number.isNaN(demandaId)) {
-    return <p style={{ color: "red" }}>ID da demanda inválido.</p>;
+    return <p style={{ color: "red" }}>ID da demanda invalido.</p>;
   }
 
   const { data: demanda, error } = await supabase
@@ -63,14 +55,18 @@ export default async function DetalheDemanda({
   });
 
   if (error) {
-    return <p style={{ color: "red" }}>Nao foi possivel carregar a demanda agora.</p>;
+    return (
+      <p style={{ color: "red" }}>
+        Nao foi possivel carregar a demanda agora.
+      </p>
+    );
   }
 
   if (!demanda) {
-    return <p style={{ color: "red" }}>Demanda não encontrada.</p>;
+    return <p style={{ color: "red" }}>Demanda nao encontrada.</p>;
   }
 
-  const anexosLista = (anexos || []) as Anexo[];
+  const anexosLista = (anexos || []) as DemandaAnexoItem[];
   const googleTaskDemanda = {
     id: demanda.id,
     titulo: demanda.titulo,
@@ -105,7 +101,7 @@ export default async function DetalheDemanda({
 
             <RichTextContent
               value={demanda.descricao}
-              emptyText="Sem descrição informada."
+              emptyText="Sem descricao informada."
               style={descricaoTopo}
             />
           </div>
@@ -117,13 +113,17 @@ export default async function DetalheDemanda({
             </div>
 
             <div style={campoResumo}>
-              <span>Responsável</span>
-              <strong>{corrigirTextoExibicao(demanda.responsavel) || "Não definido"}</strong>
+              <span>Responsavel</span>
+              <strong>
+                {corrigirTextoExibicao(demanda.responsavel) || "Nao definido"}
+              </strong>
             </div>
 
             <div style={campoResumo}>
               <span>Prioridade</span>
-                <strong>{formatarTituloHumano(demanda.prioridade) || "Não informada"}</strong>
+              <strong>
+                {formatarTituloHumano(demanda.prioridade) || "Nao informada"}
+              </strong>
             </div>
 
             <div style={campoResumo}>
@@ -131,12 +131,9 @@ export default async function DetalheDemanda({
               <strong>
                 {demanda.data_entrega
                   ? formatarData(demanda.data_entrega)
-                  : "Não informada"}
+                  : "Nao informada"}
               </strong>
-              <GoogleTaskButton
-                demanda={googleTaskDemanda}
-                style={googleAgendaLink}
-              >
+              <GoogleTaskButton demanda={googleTaskDemanda} style={googleAgendaLink}>
                 Adicionar como tarefa no Google Agenda
               </GoogleTaskButton>
             </div>
@@ -184,51 +181,14 @@ export default async function DetalheDemanda({
             <MemoriaEditorialSection
               itens={sugestoesMemoria}
               titulo="Demandas relacionadas"
-              subtitulo="Referências editoriais para reaproveitar conteúdo, estrutura e contexto."
-              vazio="Nenhuma demanda parecida encontrada para esta solicitação."
+              subtitulo="Referencias editoriais para reaproveitar conteudo, estrutura e contexto."
+              vazio="Nenhuma demanda parecida encontrada para esta solicitacao."
             />
           </section>
 
           <section style={card}>
             <h2 style={sectionTitle}>Anexos</h2>
-
-            <UploadAnexo demandaId={demanda.id} />
-
-            {anexosLista.length > 0 ? (
-              <div style={anexosGrid}>
-                {anexosLista.map((anexo) => (
-                  <div key={anexo.id} style={anexoStyle}>
-                    <a
-                      href={anexo.url_arquivo}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={anexoLink}
-                    >
-                      Anexo: {corrigirTextoExibicao(anexo.nome_arquivo)}
-                    </a>
-
-                    {anexo.tipo_arquivo?.startsWith("image/") && (
-                      <Image
-                        src={anexo.url_arquivo}
-                        alt={anexo.nome_arquivo}
-                        width={480}
-                        height={320}
-                        unoptimized
-                        style={imagemAnexo}
-                      />
-                    )}
-
-                    <ExcluirAnexo
-                      demandaId={demanda.id}
-                      anexoId={anexo.id}
-                      caminhoStorage={anexo.caminho_storage}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={textoFraco}>Nenhum anexo cadastrado.</p>
-            )}
+            <DemandaAnexosSection demandaId={demanda.id} anexos={anexosLista} />
           </section>
         </section>
 
@@ -253,10 +213,10 @@ export default async function DetalheDemanda({
 function formatarStatus(status: string) {
   const nomes: Record<string, string> = {
     RECEBIDO: "Recebido",
-    EM_PRODUCAO: "Em Produção",
-    EM_APROVACAO: "Em Aprovação",
+    EM_PRODUCAO: "Em Producao",
+    EM_APROVACAO: "Em Aprovacao",
     AP_PARA_PUBLICAR: "AP. para Publicar",
-    CONCLUIDO: "Concluído",
+    CONCLUIDO: "Concluido",
     CANCELADO: "Cancelado",
   };
 
@@ -435,40 +395,6 @@ const acaoBox: CSSProperties = {
   border: "1px solid var(--sg-border-soft)",
   borderRadius: "8px",
   padding: "14px",
-};
-
-const anexosGrid: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "12px",
-};
-
-const anexoStyle: CSSProperties = {
-  background: "var(--sg-card-bg-soft)",
-  border: "1px solid var(--sg-border-soft)",
-  borderRadius: "8px",
-  padding: "12px",
-};
-
-const anexoLink: CSSProperties = {
-  color: "var(--sg-text-muted)",
-  textDecoration: "none",
-  fontSize: "14px",
-  overflowWrap: "anywhere",
-};
-
-const imagemAnexo: CSSProperties = {
-  marginTop: "12px",
-  width: "100%",
-  height: "160px",
-  objectFit: "contain",
-  background: "var(--sg-panel-bg-strong)",
-  borderRadius: "8px",
-  border: "1px solid var(--sg-border-soft)",
-};
-
-const textoFraco: CSSProperties = {
-  color: "var(--sg-text-secondary)",
 };
 
 const atividadeTitulo: CSSProperties = {
