@@ -35,6 +35,7 @@ export default function MoverCategoriaAnexo({
     try {
       let proximoCaminho = caminhoStorage || null;
       let proximaUrl: string | null = null;
+      let reorganizouStorage = false;
 
       if (caminhoStorage) {
         const caminhoDestino = trocarCategoriaNoCaminhoAnexoDemanda(
@@ -47,16 +48,20 @@ export default function MoverCategoriaAnexo({
             .from("demandas")
             .move(caminhoStorage, caminhoDestino);
 
-          if (erroMove) {
-            alert("Nao foi possivel mover o arquivo de categoria agora.");
-            return;
-          }
+          if (!erroMove) {
+            proximoCaminho = caminhoDestino;
+            reorganizouStorage = true;
 
-          proximoCaminho = caminhoDestino;
-          const { data } = supabase.storage
-            .from("demandas")
-            .getPublicUrl(caminhoDestino);
-          proximaUrl = data.publicUrl;
+            const { data } = supabase.storage
+              .from("demandas")
+              .getPublicUrl(caminhoDestino);
+            proximaUrl = data.publicUrl;
+          } else {
+            console.warn(
+              "Nao foi possivel reorganizar o arquivo no storage. A categoria sera atualizada no sistema mesmo assim.",
+              erroMove.message
+            );
+          }
         }
       }
 
@@ -68,11 +73,11 @@ export default function MoverCategoriaAnexo({
         categoria: categoriaDestino,
       };
 
-      if (proximoCaminho && proximoCaminho !== caminhoStorage) {
+      if (reorganizouStorage && proximoCaminho && proximoCaminho !== caminhoStorage) {
         atualizacao.caminho_storage = proximoCaminho;
       }
 
-      if (proximaUrl) {
+      if (reorganizouStorage && proximaUrl) {
         atualizacao.url_arquivo = proximaUrl;
       }
 
@@ -92,7 +97,7 @@ export default function MoverCategoriaAnexo({
           usuario_id: usuario.id,
           acao: `${usuario.nome} moveu o anexo ${nomeArquivo} para ${
             categoriaDestino === "final" ? "arquivos finais" : "anexos de referencia"
-          }`,
+          }${reorganizouStorage ? "" : " (sem mover pasta no storage)"}`,
         });
       }
 
