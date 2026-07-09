@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState, type CSSProperties } from "react";
+import BaixarAnexoButton from "@/components/BaixarAnexoButton";
 import ExcluirAnexo from "@/components/ExcluirAnexo";
 import MoverCategoriaAnexo from "@/components/MoverCategoriaAnexo";
 import UploadAnexo from "@/components/UploadAnexo";
@@ -290,15 +291,16 @@ function AnexoCard({
         <a href={anexo.url_arquivo} target="_blank" rel="noreferrer" style={acaoAbrir}>
           Abrir arquivo
         </a>
-        <a href={anexo.url_arquivo} download style={acaoBaixar}>
-          Baixar copia
-        </a>
+        <BaixarAnexoButton
+          url={anexo.url_arquivo}
+          nomeArquivo={anexo.nome_arquivo}
+          style={acaoBaixar}
+        />
         <MoverCategoriaAnexo
           demandaId={demandaId}
           anexoId={anexo.id}
           nomeArquivo={anexo.nome_arquivo}
           categoriaAtual={anexo.categoria}
-          caminhoStorage={anexo.caminho_storage}
         />
       </div>
 

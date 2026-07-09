@@ -2,24 +2,18 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/lib/supabase";
-import {
-  trocarCategoriaNoCaminhoAnexoDemanda,
-  type CategoriaAnexoDemanda,
-} from "@/lib/storage-policy";
+import { type CategoriaAnexoDemanda } from "@/lib/storage-policy";
 
 export default function MoverCategoriaAnexo({
   demandaId,
   anexoId,
   nomeArquivo,
   categoriaAtual = "referencia",
-  caminhoStorage,
 }: {
   demandaId: number;
   anexoId: number;
   nomeArquivo: string;
   categoriaAtual?: CategoriaAnexoDemanda | null;
-  caminhoStorage?: string | null;
 }) {
   const { usuario } = useAuth();
   const [movendo, setMovendo] = useState(false);
@@ -30,78 +24,42 @@ export default function MoverCategoriaAnexo({
     categoriaOrigem === "final" ? "referencia" : "final";
 
   async function mover() {
+    if (!usuario) {
+      alert("Usuario nao identificado.");
+      return;
+    }
+
     setMovendo(true);
 
     try {
-      let proximoCaminho = caminhoStorage || null;
-      let proximaUrl: string | null = null;
-      let reorganizouStorage = false;
-
-      if (caminhoStorage) {
-        const caminhoDestino = trocarCategoriaNoCaminhoAnexoDemanda(
-          caminhoStorage,
-          categoriaDestino
-        );
-
-        if (caminhoDestino !== caminhoStorage) {
-          const { error: erroMove } = await supabase.storage
-            .from("demandas")
-            .move(caminhoStorage, caminhoDestino);
-
-          if (!erroMove) {
-            proximoCaminho = caminhoDestino;
-            reorganizouStorage = true;
-
-            const { data } = supabase.storage
-              .from("demandas")
-              .getPublicUrl(caminhoDestino);
-            proximaUrl = data.publicUrl;
-          } else {
-            console.warn(
-              "Nao foi possivel reorganizar o arquivo no storage. A categoria sera atualizada no sistema mesmo assim.",
-              erroMove.message
-            );
-          }
+      const response = await fetch(
+        `/api/demandas/${demandaId}/anexos/${anexoId}/mover`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            categoriaDestino,
+            nomeArquivo,
+            usuario,
+          }),
         }
-      }
+      );
 
-      const atualizacao: {
-        categoria: CategoriaAnexoDemanda;
-        caminho_storage?: string | null;
-        url_arquivo?: string | null;
-      } = {
-        categoria: categoriaDestino,
+      const json = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
       };
 
-      if (reorganizouStorage && proximoCaminho && proximoCaminho !== caminhoStorage) {
-        atualizacao.caminho_storage = proximoCaminho;
-      }
-
-      if (reorganizouStorage && proximaUrl) {
-        atualizacao.url_arquivo = proximaUrl;
-      }
-
-      const { error } = await supabase
-        .from("demanda_anexos")
-        .update(atualizacao)
-        .eq("id", anexoId);
-
-      if (error) {
-        alert("Nao foi possivel atualizar a categoria do anexo agora.");
+      if (!response.ok || !json.ok) {
+        alert(json.error || "Nao foi possivel mover o anexo agora.");
         return;
       }
 
-      if (usuario) {
-        await supabase.from("historico_demanda").insert({
-          demanda_id: demandaId,
-          usuario_id: usuario.id,
-          acao: `${usuario.nome} moveu o anexo ${nomeArquivo} para ${
-            categoriaDestino === "final" ? "arquivos finais" : "anexos de referencia"
-          }${reorganizouStorage ? "" : " (sem mover pasta no storage)"}`,
-        });
-      }
-
       location.reload();
+    } catch {
+      alert("Nao foi possivel mover o anexo agora.");
     } finally {
       setMovendo(false);
     }
