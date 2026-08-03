@@ -164,13 +164,16 @@ export default function ClippingClient() {
       setMensagem("");
     }
 
-    const { data, error } = await supabase
-      .from("clipping_registros")
-      .select("*")
-      .order("data_publicacao", { ascending: false })
-      .order("id", { ascending: false });
+    const response = await fetch("/api/clipping", {
+      cache: "no-store",
+    });
+    const resultado = (await response.json()) as {
+      ok?: boolean;
+      error?: string;
+      registros?: ClippingRegistro[];
+    };
 
-    if (error) {
+    if (!response.ok || !resultado.ok) {
       setMensagem("Não foi possível carregar o clipping agora.");
       setRegistros([]);
       setAnexosPorRegistro({});
@@ -178,7 +181,7 @@ export default function ClippingClient() {
       return [];
     }
 
-    const registrosNormalizados = ((data || []) as ClippingRegistro[]).map(
+    const registrosNormalizados = ((resultado.registros || []) as ClippingRegistro[]).map(
       normalizarRegistro
     );
     setRegistros(registrosNormalizados);
@@ -271,6 +274,7 @@ export default function ClippingClient() {
     const resultado = (await response.json()) as {
       ok?: boolean;
       id?: number;
+      registro?: ClippingRegistro;
       error?: string;
     };
 
@@ -287,17 +291,22 @@ export default function ClippingClient() {
       return;
     }
 
-    const registrosAtualizados = await carregarRegistros(true);
-    const registroSalvo = editandoId
-      ? registrosAtualizados.find((registro) => registro.id === editandoId) || null
-      : registrosAtualizados.find((registro) => registro.id === resultado.id) ||
-        registrosAtualizados.find(
-            (registro) =>
-              registro.titulo === payload.titulo &&
-              registro.canal === payload.canal &&
-              registro.data_publicacao === payload.data_publicacao &&
-              (registro.criado_por_nome || null) === payload.criado_por_nome
-          ) || registrosAtualizados[0] || null;
+    const registroSalvo = resultado.registro
+      ? normalizarRegistro(resultado.registro)
+      : null;
+
+    if (registroSalvo) {
+      setRegistros((atual) => {
+        if (editandoId) {
+          return atual.map((registro) =>
+            registro.id === registroSalvo.id ? registroSalvo : registro
+          );
+        }
+
+        const semDuplicado = atual.filter((registro) => registro.id !== registroSalvo.id);
+        return [registroSalvo, ...semDuplicado];
+      });
+    }
 
     setFormulario(FORMULARIO_INICIAL);
     setEditandoId(null);
@@ -308,6 +317,7 @@ export default function ClippingClient() {
         : "Registro de clipping salvo com sucesso."
     );
     setSalvando(false);
+    void carregarRegistros(true);
   }
 
   function iniciarEdicao(registro: ClippingRegistro) {

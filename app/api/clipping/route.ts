@@ -105,7 +105,7 @@ export async function POST(request: Request) {
         .from("clipping_registros")
         .update(payloadBase)
         .eq("id", body.id)
-        .select("id")
+        .select("*")
         .single();
 
       if (error || !data) {
@@ -115,7 +115,11 @@ export async function POST(request: Request) {
         );
       }
 
-      return NextResponse.json({ ok: true, id: Number(data.id) });
+      return NextResponse.json({
+        ok: true,
+        id: Number(data.id),
+        registro: data,
+      });
     }
 
     const payloadCriacao = {
@@ -131,7 +135,7 @@ export async function POST(request: Request) {
     const { data, error } = await admin
       .from("clipping_registros")
       .insert(payloadCriacao)
-      .select("id")
+      .select("*")
       .single();
 
     if (error || !data) {
@@ -141,10 +145,42 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, id: Number(data.id) });
+    return NextResponse.json({
+      ok: true,
+      id: Number(data.id),
+      registro: data,
+    });
   } catch {
     return NextResponse.json(
       { error: "Não foi possível salvar o clipping agora." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  try {
+    const admin = criarSupabaseAdmin();
+    const { data, error } = await admin
+      .from("clipping_registros")
+      .select("*")
+      .order("data_publicacao", { ascending: false })
+      .order("id", { ascending: false });
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message || "Não foi possível carregar o clipping." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      registros: data || [],
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Não foi possível carregar o clipping agora." },
       { status: 500 }
     );
   }
