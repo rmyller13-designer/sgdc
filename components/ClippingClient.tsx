@@ -17,7 +17,6 @@ import ClippingAnexosManager, {
   type ClippingAnexoItem,
 } from "@/components/ClippingAnexosManager";
 import { useAuth } from "@/components/AuthProvider";
-import type { MetaClippingImportado } from "@/lib/clipping-import";
 import { supabase } from "@/lib/supabase";
 import { corrigirTextoExibicao } from "@/lib/display-text";
 
@@ -111,12 +110,6 @@ type EvolucaoSentimento = {
   naoClassificadas: number;
 };
 
-type ImportacaoHistoricaResumo = {
-  meta: MetaClippingImportado;
-  generatedAt: string;
-  sourceFile: string;
-};
-
 const CORES_SENTIMENTO: Record<SentimentoClipping, string> = {
   POSITIVA: "#22c55e",
   NEUTRA: "#f59e0b",
@@ -160,11 +153,6 @@ export default function ClippingClient() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [clippingSelecionadoId, setClippingSelecionadoId] = useState<number | null>(null);
   const [mensagem, setMensagem] = useState("");
-  const [mensagemImportacao, setMensagemImportacao] = useState("");
-  const [carregandoImportacao, setCarregandoImportacao] = useState(true);
-  const [importandoHistorico, setImportandoHistorico] = useState(false);
-  const [resumoImportacao, setResumoImportacao] =
-    useState<ImportacaoHistoricaResumo | null>(null);
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCanal, setFiltroCanal] = useState<"TODOS" | CanalClipping>("TODOS");
   const [filtroSentimento, setFiltroSentimento] = useState<
@@ -177,38 +165,7 @@ export default function ClippingClient() {
 
   useEffect(() => {
     void carregarRegistros();
-    void carregarResumoImportacao();
   }, []);
-
-  async function carregarResumoImportacao() {
-    setCarregandoImportacao(true);
-
-    try {
-      const response = await fetch("/api/clipping/importar-scms", {
-        cache: "no-store",
-      });
-      const resultado = (await response.json()) as {
-        ok?: boolean;
-        error?: string;
-        meta?: MetaClippingImportado;
-        generatedAt?: string;
-        sourceFile?: string;
-      };
-
-      if (!response.ok || !resultado.ok || !resultado.meta) {
-        setResumoImportacao(null);
-        return;
-      }
-
-      setResumoImportacao({
-        meta: resultado.meta,
-        generatedAt: resultado.generatedAt || "",
-        sourceFile: resultado.sourceFile || "",
-      });
-    } finally {
-      setCarregandoImportacao(false);
-    }
-  }
 
   async function carregarRegistros(preservarMensagem = false) {
     setCarregando(true);
@@ -370,60 +327,6 @@ export default function ClippingClient() {
     );
     setSalvando(false);
     void carregarRegistros(true);
-  }
-
-  async function importarAcervoHistorico() {
-    if (!usuario) {
-      setMensagemImportacao("Faça login para importar o acervo histórico.");
-      return;
-    }
-
-    const confirmou = window.confirm(
-      "Deseja iniciar a importação do acervo histórico SCMS? O sistema vai ignorar automaticamente o que já existir."
-    );
-
-    if (!confirmou) return;
-
-    setImportandoHistorico(true);
-    setMensagemImportacao("");
-
-    try {
-      const response = await fetch("/api/clipping/importar-scms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          usuario: {
-            id: usuario.id,
-            nome: usuario.nome,
-          },
-        }),
-      });
-
-      const resultado = (await response.json()) as {
-        ok?: boolean;
-        error?: string;
-        totalArquivo?: number;
-        inseridos?: number;
-        ignorados?: number;
-      };
-
-      if (!response.ok || !resultado.ok) {
-        setMensagemImportacao(
-          resultado.error || "Não foi possível importar o acervo histórico agora."
-        );
-        return;
-      }
-
-      setMensagemImportacao(
-        `Importação concluída. ${resultado.inseridos || 0} registro(s) entraram agora e ${resultado.ignorados || 0} já existiam.`
-      );
-      await carregarRegistros(true);
-      await carregarResumoImportacao();
-    } finally {
-      setImportandoHistorico(false);
-    }
   }
 
   function iniciarEdicao(registro: ClippingRegistro) {
@@ -710,16 +613,25 @@ export default function ClippingClient() {
   }, [graficoCanais]);
 
   const alertasSupervisor = useMemo<AlertaClipping[]>(
-    () =>
-      [...registrosFiltrados]
+    () => {
+      const unicos = new Map<string, ClippingRegistro>();
+
+      for (const item of [...registrosFiltrados]
         .filter((item) => item.status === "CRISE" || item.sentimento === "NEGATIVA")
         .sort(
           (a, b) =>
             Number(b.status === "CRISE") - Number(a.status === "CRISE") ||
             b.engajamento - a.engajamento ||
             b.views - a.views
-        )
-        .slice(0, 6),
+        )) {
+        const chave = item.titulo.trim().toLocaleLowerCase("pt-BR");
+        if (!unicos.has(chave)) {
+          unicos.set(chave, item);
+        }
+      }
+
+      return [...unicos.values()].slice(0, 6);
+    },
     [registrosFiltrados]
   );
 
@@ -890,59 +802,22 @@ export default function ClippingClient() {
         <ResumoCard título="Positivas" valor={resumo.positivas} cor="#22c55e" />
         <ResumoCard título="Neutras" valor={resumo.neutras} cor="#f59e0b" />
         <ResumoCard título="Negativas" valor={resumo.negativas} cor="#ef4444" />
-        <ResumoCard
-          título="Não classificadas"
-          valor={resumo.naoClassificadas}
-          cor="#94a3b8"
-        />
-        <ResumoCard
-          título="Em monitoramento"
-          valor={resumo.emMonitoramento}
-          cor="#38bdf8"
-        />
-        <ResumoCard título="Fechados" valor={resumo.fechados} cor="#22c55e" />
-        <ResumoCard título="Crise" valor={resumo.crise} cor="#ef4444" />
-        <ResumoCard título="Instagram" valor={resumo.instagram} cor="#8b5cf6" />
-        <ResumoCard título="Facebook" valor={resumo.facebook} cor="#2563eb" />
-        <ResumoCard título="Site" valor={resumo.site} cor="#3b82f6" />
-        <ResumoCard título="Views" valor={formatarNumero(resumo.views)} />
-        <ResumoCard
-          título="Engajamento"
-          valor={formatarNumero(resumo.engajamento)}
-        />
       </div>
 
-      <div style={cardsExecutivos}>
-        <ResumoCard
-          título="Taxa positiva"
-          valor={`${formatarPercentual(taxaPositiva)}%`}
-          cor="#22c55e"
-          destaque
-        />
-        <ResumoCard
-          título="Taxa neutra"
-          valor={`${formatarPercentual(taxaNeutra)}%`}
-          cor="#f59e0b"
-          destaque
-        />
-        <ResumoCard
-          título="Taxa negativa"
-          valor={`${formatarPercentual(taxaNegativa)}%`}
-          cor="#ef4444"
-          destaque
-        />
-        <ResumoCard
+      <div style={resumoCompacto}>
+        <ResumoItemCompacto título="Não classificadas" valor={resumo.naoClassificadas} />
+        <ResumoItemCompacto título="Em monitoramento" valor={resumo.emMonitoramento} />
+        <ResumoItemCompacto título="Fechadas" valor={resumo.fechados} />
+        <ResumoItemCompacto título="Crise" valor={resumo.crise} />
+        <ResumoItemCompacto
           título="Canal com melhor retorno"
           valor={melhorCanal?.nome || "Não definido"}
-          cor={melhorCanal?.cor}
           destaque
         />
-        <ResumoCard
-          título="Taxa de crise"
-          valor={`${formatarPercentual(taxaCrise)}%`}
-          cor="#ef4444"
-          destaque
-        />
+        <ResumoItemCompacto título="Taxa positiva" valor={`${formatarPercentual(taxaPositiva)}%`} />
+        <ResumoItemCompacto título="Taxa neutra" valor={`${formatarPercentual(taxaNeutra)}%`} />
+        <ResumoItemCompacto título="Taxa negativa" valor={`${formatarPercentual(taxaNegativa)}%`} />
+        <ResumoItemCompacto título="Taxa de crise" valor={`${formatarPercentual(taxaCrise)}%`} />
       </div>
 
       <div style={painelPrincipal}>
@@ -1249,60 +1124,6 @@ export default function ClippingClient() {
             </div>
           </Painel>
 
-          <Painel título="Importação histórica SCMS">
-            <div style={listaMetricas}>
-              {carregandoImportacao ? (
-                <span style={canalTexto}>Lendo o acervo preparado para importação...</span>
-              ) : resumoImportacao ? (
-                <>
-                  <div style={blocoOrientacao}>
-                    <strong style={orientacaoTitulo}>Pacote pronto</strong>
-                    <span style={canalTexto}>
-                      {formatarNumero(resumoImportacao.meta.total_registros)} registros
-                      históricos prontos para importação
-                    </span>
-                    <span style={canalTexto}>
-                      Gerado em {new Date(resumoImportacao.generatedAt).toLocaleString("pt-BR")}
-                    </span>
-                  </div>
-
-                  <div style={blocoOrientacao}>
-                    <strong style={orientacaoTitulo}>Recorte autorizado</strong>
-                    {Object.entries(resumoImportacao.meta.por_ano).map(([ano, info]) => (
-                      <span key={ano} style={canalTexto}>
-                        {ano}: {formatarNumero(info.total)} registros
-                      </span>
-                    ))}
-                  </div>
-
-                  <div style={blocoOrientacao}>
-                    <strong style={orientacaoTitulo}>Importação protegida</strong>
-                    <span style={canalTexto}>
-                      Esta carga vai importar somente 2025 e 2026.
-                    </span>
-                    <span style={canalTexto}>Os anos anteriores ficaram fora desta operação.</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={importarAcervoHistorico}
-                    disabled={importandoHistorico}
-                    style={botaoPrimario}
-                  >
-                    {importandoHistorico ? "Importando 2025 e 2026..." : "Importar acervo 2025 e 2026"}
-                  </button>
-                </>
-              ) : (
-                <span style={canalTexto}>
-                  Não foi possível carregar o pacote histórico preparado.
-                </span>
-              )}
-
-              {mensagemImportacao ? (
-                <p style={mensagemStyle}>{corrigirTextoExibicao(mensagemImportacao)}</p>
-              ) : null}
-            </div>
-          </Painel>
         </div>
       </div>
 
@@ -1342,7 +1163,7 @@ export default function ClippingClient() {
           </div>
         </Painel>
 
-        <Painel título="Evolução mensal do sentimento">
+        <Painel título="Evolução mensal">
           <div style={graficoAlturaBaixa}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={evolucaoMensalSentimento}>
@@ -1612,6 +1433,23 @@ function ResumoCard({
     <article style={resumoCard(cor, destaque)}>
       <span style={resumoTitulo}>{título}</span>
       <strong style={resumoValor}>{valor}</strong>
+    </article>
+  );
+}
+
+function ResumoItemCompacto({
+  título,
+  valor,
+  destaque,
+}: {
+  título: string;
+  valor: number | string;
+  destaque?: boolean;
+}) {
+  return (
+    <article style={resumoItemCompacto(destaque)}>
+      <span style={resumoCompactoTitulo}>{título}</span>
+      <strong style={resumoCompactoValor}>{valor}</strong>
     </article>
   );
 }
@@ -2020,7 +1858,7 @@ function criarHtmlExcelClipping(args: {
             </table>
           </td>
           <td class="panel">
-            <h3>Evolução mensal do sentimento</h3>
+            <h3>Evolução mensal</h3>
             <table class="table">
               <thead><tr><th>Mês</th><th>Positivas</th><th>Neutras</th><th>Negativas</th></tr></thead>
               <tbody>
@@ -2205,7 +2043,7 @@ function criarHtmlPdfClipping(args: {
           </table>
         </section>
         <section class="viz">
-          <h2>Evolução mensal do sentimento</h2>
+          <h2>Evolução mensal</h2>
           <table class="table">
             <thead><tr><th>Mês</th><th>Positivas</th><th>Neutras</th><th>Negativas</th></tr></thead>
             <tbody>
@@ -2430,10 +2268,32 @@ const cardsResumo = {
   gap: "12px",
 };
 
-const cardsExecutivos = {
+const resumoCompacto = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "12px",
+  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+  gap: "10px",
+};
+
+const resumoItemCompacto = (destaque?: boolean) => ({
+  display: "grid",
+  gap: "6px",
+  padding: "12px 14px",
+  borderRadius: "12px",
+  background: destaque ? "rgba(127,29,29,.18)" : "var(--sg-panel-bg-soft)",
+  border: destaque
+    ? "1px solid rgba(168,85,247,.34)"
+    : "1px solid var(--sg-border-soft)",
+  boxShadow: destaque ? "var(--sg-shadow-card)" : "none",
+});
+
+const resumoCompactoTitulo = {
+  color: "var(--sg-text-secondary)",
+  fontSize: "12px",
+};
+
+const resumoCompactoValor = {
+  fontSize: "20px",
+  lineHeight: 1.1,
 };
 
 const painelPrincipal = {

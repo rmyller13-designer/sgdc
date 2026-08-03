@@ -133,7 +133,11 @@ def parse_sheet(excel: pd.ExcelFile, sheet: str) -> list[RegistroImportacao]:
             continue
 
         if sheet in {"2019", "2020", "2021"}:
-            parsed_date = parse_explicit_date(first)
+            parsed_date = parse_explicit_date(
+                first,
+                sheet_year=ano,
+                reference_month=current_month,
+            )
             if parsed_date:
                 current_exact_date = parsed_date
                 current_month = current_month or parsed_date.month
@@ -225,7 +229,11 @@ def parse_sheet(excel: pd.ExcelFile, sheet: str) -> list[RegistroImportacao]:
                 continue
 
             data_publicacao, precisao = resolve_date(
-                explicit_date=parse_explicit_date(raw_date),
+                explicit_date=parse_explicit_date(
+                    raw_date,
+                    sheet_year=ano,
+                    reference_month=current_month,
+                ),
                 month=current_month,
                 year=ano,
                 link=link,
@@ -265,7 +273,11 @@ def parse_sheet(excel: pd.ExcelFile, sheet: str) -> list[RegistroImportacao]:
                 continue
 
             data_publicacao, precisao = resolve_date(
-                explicit_date=parse_explicit_date(raw_date),
+                explicit_date=parse_explicit_date(
+                    raw_date,
+                    sheet_year=ano,
+                    reference_month=current_month,
+                ),
                 month=current_month,
                 year=ano,
                 link=link,
@@ -440,10 +452,19 @@ def resolve_date(
     year: int,
     link: Optional[str],
 ) -> tuple[str, str]:
+    inferred = infer_date_from_url(link or "")
+
     if explicit_date:
+        if (
+            inferred
+            and inferred.year == year
+            and explicit_date != inferred
+            and explicit_date.month <= 12
+            and explicit_date.day <= 12
+        ):
+            return inferred.isoformat(), "URL"
         return explicit_date.isoformat(), "EXATA"
 
-    inferred = infer_date_from_url(link or "")
     if inferred:
         return inferred.isoformat(), "URL"
 
@@ -462,19 +483,60 @@ def infer_date_from_url(link: str) -> Optional[date]:
     return None
 
 
-def parse_explicit_date(value: str) -> Optional[date]:
+def parse_explicit_date(
+    value: str,
+    *,
+    sheet_year: Optional[int] = None,
+    reference_month: Optional[int] = None,
+) -> Optional[date]:
     if not value:
         return None
     value = value.strip()
     for fmt in ("%Y-%m-%d %H:%M:%S", "%d/%m/%Y", "%Y-%m-%d"):
         try:
-            return pd.to_datetime(value, format=fmt).date()
+            parsed = pd.to_datetime(value, format=fmt).date()
+            return reconcile_explicit_date(parsed, sheet_year, reference_month)
         except Exception:
             pass
     try:
-        return pd.to_datetime(value).date()
+        parsed = pd.to_datetime(value).date()
+        return reconcile_explicit_date(parsed, sheet_year, reference_month)
     except Exception:
         return None
+
+
+def reconcile_explicit_date(
+    parsed: date,
+    sheet_year: Optional[int],
+    reference_month: Optional[int],
+) -> date:
+    if sheet_year is None:
+        return parsed
+
+    if reference_month and parsed.day == reference_month and parsed.month != reference_month:
+        corrigida = safe_date(sheet_year, reference_month, parsed.month)
+        if corrigida:
+            return corrigida
+
+    if parsed.year == sheet_year:
+        return parsed
+
+    if parsed.year == sheet_year + 1 and reference_month:
+        if parsed.month == reference_month:
+            corrigida = safe_date(sheet_year, parsed.month, parsed.day)
+            if corrigida:
+                return corrigida
+
+        if parsed.day == reference_month:
+            corrigida = safe_date(sheet_year, reference_month, parsed.month)
+            if corrigida:
+                return corrigida
+
+    corrigida = safe_date(sheet_year, parsed.month, parsed.day)
+    if corrigida:
+        return corrigida
+
+    return parsed
 
 
 def safe_date(year: int, month: int, day: int) -> Optional[date]:
