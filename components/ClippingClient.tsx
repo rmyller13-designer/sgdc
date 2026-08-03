@@ -1411,19 +1411,17 @@ export default function ClippingClient() {
       </div>
 
       <div style={gradeGraficos}>
-        <Painel título="Top matérias por engajamento">
-          <RankingMaterias
+        <Painel título="Matérias em destaque">
+          <RankingMateriasDestaque
             registros={topMateriasEngajamento}
-            métrica="engajamento"
-            vazio="Nenhuma matéria com engajamento registrado."
+            vazio="Nenhuma matéria com desempenho registrado."
           />
         </Painel>
 
-        <Painel título="Top matérias por views">
-          <RankingMaterias
-            registros={topMateriasViews}
-            métrica="views"
-            vazio="Nenhuma matéria com views registradas."
+        <Painel título="Atenção editorial">
+          <AlertasSupervisorLista
+            registros={alertasSupervisor}
+            vazio="Nenhum alerta crítico no recorte atual."
           />
         </Painel>
       </div>
@@ -1652,13 +1650,11 @@ function ListaMaterias({
   );
 }
 
-function RankingMaterias({
+function RankingMateriasDestaque({
   registros,
-  métrica,
   vazio,
 }: {
   registros: ClippingRegistro[];
-  métrica: "engajamento" | "views";
   vazio: string;
 }) {
   if (registros.length === 0) {
@@ -1668,7 +1664,7 @@ function RankingMaterias({
   return (
     <div style={rankingLista}>
       {registros.map((registro, index) => (
-        <div key={registro.id} style={rankingLinha}>
+        <div key={registro.id} style={rankingLinhaDestaque}>
           <span style={rankingPosicao}>{index + 1}</span>
           <div style={rankingTexto}>
             <strong>{corrigirTextoExibicao(registro.titulo)}</strong>
@@ -1676,9 +1672,44 @@ function RankingMaterias({
               {formatarCanal(registro.canal)} • {formatarData(registro.data_publicacao)}
             </span>
           </div>
-          <strong style={rankingValor}>
-            {formatarNumero(registro[métrica])}
-          </strong>
+          <div style={rankingMetricas}>
+            <span style={rankingChipMetrica}>
+              Engajamento: {formatarNumero(registro.engajamento)}
+            </span>
+            <span style={rankingChipMetrica}>
+              Views: {formatarNumero(registro.views)}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AlertasSupervisorLista({
+  registros,
+  vazio,
+}: {
+  registros: AlertaClipping[];
+  vazio: string;
+}) {
+  if (registros.length === 0) {
+    return <p style={textoAuxiliar}>{vazio}</p>;
+  }
+
+  return (
+    <div style={rankingLista}>
+      {registros.map((item) => (
+        <div key={item.id} style={alertaItem(item.status)}>
+          <span style={alertaTitulo}>{corrigirTextoExibicao(item.titulo)}</span>
+          <span style={alertaMeta}>
+            {formatarStatusClipping(item.status)} • {formatarSentimento(item.sentimento)} •{" "}
+            {formatarCanal(item.canal)}
+          </span>
+          <span style={alertaMeta}>
+            {formatarData(item.data_publicacao)} • Engajamento:{" "}
+            {formatarNumero(item.engajamento)}
+          </span>
         </div>
       ))}
     </div>
@@ -2600,6 +2631,12 @@ const rankingLinha = {
   borderBottom: "1px solid var(--sg-border-soft)",
 };
 
+const rankingLinhaDestaque = {
+  ...rankingLinha,
+  gridTemplateColumns: "32px minmax(0, 1fr)",
+  alignItems: "start",
+};
+
 const rankingPosicao = {
   width: "28px",
   height: "28px",
@@ -2625,6 +2662,25 @@ const rankingMeta = {
 
 const rankingValor = {
   fontSize: "15px",
+};
+
+const rankingMetricas = {
+  gridColumn: "2 / -1",
+  display: "flex",
+  flexWrap: "wrap" as const,
+  gap: "8px",
+  marginTop: "4px",
+};
+
+const rankingChipMetrica = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "4px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  color: "var(--sg-text-secondary)",
+  background: "rgba(15,23,42,.24)",
+  border: "1px solid var(--sg-border-soft)",
 };
 
 const textoAuxiliar = {
