@@ -39,6 +39,9 @@ export default function RootLayout({
                 <Link href="/relatorios-quantitativos" style={linkStyle}>
                   Indicadores
                 </Link>
+                <Link href="/clipping" style={linkStyle}>
+                  Clipping
+                </Link>
                 <Link href="/" style={linkStyle}>
                   Dashboard
                 </Link>
