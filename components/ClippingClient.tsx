@@ -158,9 +158,11 @@ export default function ClippingClient() {
     void carregarRegistros();
   }, []);
 
-  async function carregarRegistros() {
+  async function carregarRegistros(preservarMensagem = false) {
     setCarregando(true);
-    setMensagem("");
+    if (!preservarMensagem) {
+      setMensagem("");
+    }
 
     const { data, error } = await supabase
       .from("clipping_registros")
@@ -173,7 +175,7 @@ export default function ClippingClient() {
       setRegistros([]);
       setAnexosPorRegistro({});
       setCarregando(false);
-      return;
+      return [];
     }
 
     const registrosNormalizados = ((data || []) as ClippingRegistro[]).map(
@@ -184,7 +186,7 @@ export default function ClippingClient() {
     if (registrosNormalizados.length === 0) {
       setAnexosPorRegistro({});
       setCarregando(false);
-      return;
+      return [];
     }
 
     const { data: anexosData, error: anexosError } = await supabase
@@ -199,7 +201,7 @@ export default function ClippingClient() {
       setMensagem("Os registros foram carregados, mas os anexos falharam.");
       setAnexosPorRegistro({});
       setCarregando(false);
-      return;
+      return registrosNormalizados;
     }
 
     const mapaAnexos = ((anexosData || []) as ClippingAnexoItem[]).reduce<
@@ -214,6 +216,7 @@ export default function ClippingClient() {
 
     setAnexosPorRegistro(mapaAnexos);
     setCarregando(false);
+    return registrosNormalizados;
   }
 
   async function salvarRegistro() {
@@ -246,16 +249,9 @@ export default function ClippingClient() {
       criado_por_nome: usuario?.nome ?? null,
     };
 
-    const operacao = editandoId
-      ? supabase
-          .from("clipping_registros")
-          .update(payload)
-          .eq("id", editandoId)
-          .select("id")
-          .single()
-      : supabase.from("clipping_registros").insert(payload).select("id").single();
-
-    const { data: registroSalvo, error } = await operacao;
+    const { error } = editandoId
+      ? await supabase.from("clipping_registros").update(payload).eq("id", editandoId)
+      : await supabase.from("clipping_registros").insert(payload);
 
     if (error) {
       setMensagem(
@@ -270,6 +266,17 @@ export default function ClippingClient() {
       return;
     }
 
+    const registrosAtualizados = await carregarRegistros(true);
+    const registroSalvo = editandoId
+      ? registrosAtualizados.find((registro) => registro.id === editandoId) || null
+      : registrosAtualizados.find(
+            (registro) =>
+              registro.titulo === payload.titulo &&
+              registro.canal === payload.canal &&
+              registro.data_publicacao === payload.data_publicacao &&
+              (registro.criado_por_nome || null) === payload.criado_por_nome
+          ) || registrosAtualizados[0] || null;
+
     setFormulario(FORMULARIO_INICIAL);
     setEditandoId(null);
     setClippingSelecionadoId(registroSalvo?.id ?? editandoId ?? null);
@@ -279,7 +286,6 @@ export default function ClippingClient() {
         : "Registro de clipping salvo com sucesso."
     );
     setSalvando(false);
-    await carregarRegistros();
   }
 
   function iniciarEdicao(registro: ClippingRegistro) {
@@ -1060,7 +1066,9 @@ export default function ClippingClient() {
           clippingId={registroSelecionado.id}
           titulo={registroSelecionado.titulo}
           anexos={anexosPorRegistro[registroSelecionado.id] || []}
-          onAtualizar={carregarRegistros}
+          onAtualizar={async () => {
+            await carregarRegistros(true);
+          }}
         />
       ) : null}
 
