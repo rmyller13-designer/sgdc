@@ -20,7 +20,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { corrigirTextoExibicao } from "@/lib/display-text";
 
-type CanalClipping = "INSTAGRAM" | "SITE";
+type CanalClipping = "INSTAGRAM" | "FACEBOOK" | "SITE";
 type SentimentoClipping = "POSITIVA" | "NEGATIVA" | "NEUTRA";
 type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
 
@@ -33,7 +33,6 @@ type ClippingRegistro = {
   url: string | null;
   data_publicacao: string;
   autoria: string | null;
-  editoria: string | null;
   views: number;
   comentarios: number;
   likes: number;
@@ -56,6 +55,7 @@ type ResumoClipping = {
   fechados: number;
   crise: number;
   instagram: number;
+  facebook: number;
   site: number;
   views: number;
   comentarios: number;
@@ -112,6 +112,7 @@ const CORES_SENTIMENTO: Record<SentimentoClipping, string> = {
 
 const CORES_CANAIS: Record<CanalClipping, string> = {
   INSTAGRAM: "#8b5cf6",
+  FACEBOOK: "#2563eb",
   SITE: "#3b82f6",
 };
 
@@ -123,7 +124,6 @@ const FORMULARIO_INICIAL = {
   url: "",
   dataPublicacao: new Date().toISOString().slice(0, 10),
   autoria: "",
-  editoria: "",
   views: "0",
   comentarios: "0",
   likes: "0",
@@ -235,7 +235,6 @@ export default function ClippingClient() {
       data_publicacao:
         formulario.dataPublicacao || new Date().toISOString().slice(0, 10),
       autoria: formulario.autoria.trim() || null,
-      editoria: formulario.editoria.trim() || null,
       views: numeroSeguro(formulario.views),
       comentarios: numeroSeguro(formulario.comentarios),
       likes: numeroSeguro(formulario.likes),
@@ -260,9 +259,12 @@ export default function ClippingClient() {
 
     if (error) {
       setMensagem(
-        editandoId
-          ? "Não foi possível atualizar o registro de clipping."
-          : "Não foi possível salvar o registro de clipping."
+        traduzirErroClipping(
+          editandoId
+            ? "Não foi possível atualizar o registro de clipping."
+            : "Não foi possível salvar o registro de clipping.",
+          error.message
+        )
       );
       setSalvando(false);
       return;
@@ -291,7 +293,6 @@ export default function ClippingClient() {
       url: registro.url || "",
       dataPublicacao: registro.data_publicacao || new Date().toISOString().slice(0, 10),
       autoria: registro.autoria || "",
-      editoria: registro.editoria || "",
       views: String(registro.views || 0),
       comentarios: String(registro.comentarios || 0),
       likes: String(registro.likes || 0),
@@ -346,9 +347,7 @@ export default function ClippingClient() {
     return registros.filter((registro) => {
       const textoOk =
         !filtroTexto ||
-        `${registro.titulo} ${registro.observacoes || ""} ${registro.autoria || ""} ${
-          registro.editoria || ""
-        }`
+        `${registro.titulo} ${registro.observacoes || ""} ${registro.autoria || ""}`
           .toLowerCase()
           .includes(filtroTexto.toLowerCase());
       const canalOk = filtroCanal === "TODOS" || registro.canal === filtroCanal;
@@ -380,6 +379,7 @@ export default function ClippingClient() {
       fechados: 0,
       crise: 0,
       instagram: 0,
+      facebook: 0,
       site: 0,
       views: 0,
       comentarios: 0,
@@ -397,6 +397,7 @@ export default function ClippingClient() {
       if (registro.status === "FECHADO") base.fechados += 1;
       if (registro.status === "CRISE") base.crise += 1;
       if (registro.canal === "INSTAGRAM") base.instagram += 1;
+      if (registro.canal === "FACEBOOK") base.facebook += 1;
       if (registro.canal === "SITE") base.site += 1;
       base.views += registro.views;
       base.comentarios += registro.comentarios;
@@ -440,6 +441,16 @@ export default function ClippingClient() {
         cor: CORES_CANAIS.INSTAGRAM,
       },
       {
+        nome: "Facebook",
+        canal: "FACEBOOK",
+        postagens: resumo.facebook,
+        views: somarPorCanal(registrosFiltrados, "FACEBOOK", "views"),
+        comentarios: somarPorCanal(registrosFiltrados, "FACEBOOK", "comentarios"),
+        likes: somarPorCanal(registrosFiltrados, "FACEBOOK", "likes"),
+        engajamento: somarPorCanal(registrosFiltrados, "FACEBOOK", "engajamento"),
+        cor: CORES_CANAIS.FACEBOOK,
+      },
+      {
         nome: "Site",
         canal: "SITE",
         postagens: resumo.site,
@@ -450,7 +461,7 @@ export default function ClippingClient() {
         cor: CORES_CANAIS.SITE,
       },
     ],
-    [registrosFiltrados, resumo.instagram, resumo.site]
+    [registrosFiltrados, resumo.facebook, resumo.instagram, resumo.site]
   );
 
   const topMateriasEngajamento = useMemo(
@@ -481,11 +492,6 @@ export default function ClippingClient() {
 
   const rankingAutores = useMemo(
     () => agruparRanking(registrosFiltrados, (item) => item.autoria || "Não informado"),
-    [registrosFiltrados]
-  );
-
-  const rankingEditorias = useMemo(
-    () => agruparRanking(registrosFiltrados, (item) => item.editoria || "Não informada"),
     [registrosFiltrados]
   );
 
@@ -554,7 +560,6 @@ export default function ClippingClient() {
       topEngajamento: topMateriasEngajamento,
       topViews: topMateriasViews,
       rankingAutores,
-      rankingEditorias,
       positivas: listasPorSentimento.positivas,
       neutras: listasPorSentimento.neutras,
       negativas: listasPorSentimento.negativas,
@@ -586,7 +591,6 @@ export default function ClippingClient() {
         topEngajamento: topMateriasEngajamento,
         topViews: topMateriasViews,
         rankingAutores,
-        rankingEditorias,
         positivas: listasPorSentimento.positivas,
         neutras: listasPorSentimento.neutras,
         negativas: listasPorSentimento.negativas,
@@ -625,7 +629,7 @@ export default function ClippingClient() {
         <input
           value={filtroTexto}
           onChange={(event) => setFiltroTexto(event.target.value)}
-          placeholder="Buscar por título, autoria, editoria ou observação..."
+          placeholder="Buscar por título, veículo ou observação..."
           style={campoPesquisa}
         />
 
@@ -638,6 +642,7 @@ export default function ClippingClient() {
         >
           <option value="TODOS">Todos os canais</option>
           <option value="INSTAGRAM">Instagram</option>
+          <option value="FACEBOOK">Facebook</option>
           <option value="SITE">Site</option>
         </select>
 
@@ -712,6 +717,7 @@ export default function ClippingClient() {
         <ResumoCard título="Fechados" valor={resumo.fechados} cor="#22c55e" />
         <ResumoCard título="Crise" valor={resumo.crise} cor="#ef4444" />
         <ResumoCard título="Instagram" valor={resumo.instagram} cor="#8b5cf6" />
+        <ResumoCard título="Facebook" valor={resumo.facebook} cor="#2563eb" />
         <ResumoCard título="Site" valor={resumo.site} cor="#3b82f6" />
         <ResumoCard título="Views" valor={formatarNumero(resumo.views)} />
         <ResumoCard
@@ -785,6 +791,7 @@ export default function ClippingClient() {
                 style={campo}
               >
                 <option value="INSTAGRAM">Instagram</option>
+                <option value="FACEBOOK">Facebook</option>
                 <option value="SITE">Site</option>
               </select>
             </div>
@@ -853,29 +860,14 @@ export default function ClippingClient() {
             </div>
 
             <div style={campoBloco}>
-              <label style={label}>Autoria</label>
+              <label style={label}>Veículo</label>
               <input
                 value={formulario.autoria}
                 onChange={(event) =>
                   setFormulario((atual) => ({ ...atual, autoria: event.target.value }))
                 }
                 style={campo}
-                placeholder="Ex.: Equipe ASCOM"
-              />
-            </div>
-
-            <div style={campoBloco}>
-              <label style={label}>Editoria</label>
-              <input
-                value={formulario.editoria}
-                onChange={(event) =>
-                  setFormulario((atual) => ({
-                    ...atual,
-                    editoria: event.target.value,
-                  }))
-                }
-                style={campo}
-                placeholder="Ex.: Institucional"
+                placeholder="Ex.: Portal A Crítica"
               />
             </div>
 
@@ -991,7 +983,7 @@ export default function ClippingClient() {
                 <strong style={orientacaoTitulo}>Como vamos usar:</strong>
                 <span style={canalTexto}>1. Cadastrar nova matéria</span>
                 <span style={canalTexto}>2. Editar qualquer registro já lançado</span>
-                <span style={canalTexto}>3. Ajustar autoria, editoria, tom e métricas no próprio painel</span>
+                <span style={canalTexto}>3. Ajustar veículo, tom e métricas no próprio painel</span>
                 <span style={canalTexto}>4. Excluir somente quando realmente precisar</span>
               </div>
               <div style={blocoOrientacao}>
@@ -1176,17 +1168,10 @@ export default function ClippingClient() {
       </div>
 
       <div style={gradeGraficos}>
-        <Painel título="Ranking por autoria">
+        <Painel título="Ranking por veículo">
           <RankingLista
             itens={rankingAutores}
-            vazio="Nenhuma autoria informada até agora."
-          />
-        </Painel>
-
-        <Painel título="Ranking por editoria">
-          <RankingLista
-            itens={rankingEditorias}
-            vazio="Nenhuma editoria informada até agora."
+            vazio="Nenhum veículo informado até agora."
           />
         </Painel>
       </div>
@@ -1223,8 +1208,7 @@ export default function ClippingClient() {
                   <th style={th}>Canal</th>
                   <th style={th}>Tom</th>
                   <th style={th}>Status</th>
-                  <th style={th}>Autoria</th>
-                  <th style={th}>Editoria</th>
+                  <th style={th}>Veículo</th>
                   <th style={th}>Data</th>
                   <th style={th}>Views</th>
                   <th style={th}>Likes</th>
@@ -1265,8 +1249,7 @@ export default function ClippingClient() {
                         {formatarStatusClipping(registro.status)}
                       </span>
                     </td>
-                    <td style={td}>{registro.autoria || "Não informada"}</td>
-                    <td style={td}>{registro.editoria || "Não informada"}</td>
+                    <td style={td}>{registro.autoria || "Não informado"}</td>
                     <td style={td}>{formatarData(registro.data_publicacao)}</td>
                     <td style={td}>{formatarNumero(registro.views)}</td>
                     <td style={td}>{formatarNumero(registro.likes)}</td>
@@ -1461,7 +1444,6 @@ function normalizarRegistro(registro: ClippingRegistro): ClippingRegistro {
     id: Number(registro.id),
     status: (registro.status || "EM_MONITORAMENTO") as StatusClipping,
     autoria: registro.autoria || null,
-    editoria: registro.editoria || null,
     views: Number(registro.views || 0),
     comentarios: Number(registro.comentarios || 0),
     likes: Number(registro.likes || 0),
@@ -1549,7 +1531,9 @@ function formatarPercentual(valor: number) {
 }
 
 function formatarCanal(valor: CanalClipping) {
-  return valor === "INSTAGRAM" ? "Instagram" : "Site";
+  if (valor === "INSTAGRAM") return "Instagram";
+  if (valor === "FACEBOOK") return "Facebook";
+  return "Site";
 }
 
 function formatarSentimento(valor: SentimentoClipping) {
@@ -1562,6 +1546,27 @@ function formatarStatusClipping(valor: StatusClipping) {
   if (valor === "EM_MONITORAMENTO") return "Em monitoramento";
   if (valor === "FECHADO") return "Fechado";
   return "Crise";
+}
+
+function traduzirErroClipping(base: string, detalhe?: string | null) {
+  const texto = (detalhe || "").toLowerCase();
+
+  if (
+    texto.includes("status") &&
+    (texto.includes("column") || texto.includes("schema cache"))
+  ) {
+    return `${base} O banco ainda não recebeu a migration nova do clipping.`;
+  }
+
+  if (texto.includes("violates check constraint") && texto.includes("canal")) {
+    return `${base} O banco ainda não foi atualizado para aceitar o canal Facebook.`;
+  }
+
+  if (!detalhe) {
+    return base;
+  }
+
+  return `${base} Detalhe: ${detalhe}`;
 }
 
 function formatarData(valor?: string | null) {
@@ -1627,7 +1632,6 @@ function criarHtmlExcelClipping(args: {
   topEngajamento: ClippingRegistro[];
   topViews: ClippingRegistro[];
   rankingAutores: RankingItem[];
-  rankingEditorias: RankingItem[];
   positivas: ClippingRegistro[];
   neutras: ClippingRegistro[];
   negativas: ClippingRegistro[];
@@ -1670,6 +1674,8 @@ function criarHtmlExcelClipping(args: {
           <td class="card"><div class="label-sm">Positivas</div><div class="value-lg">${args.resumo.positivas}</div></td>
           <td class="card"><div class="label-sm">Neutras</div><div class="value-lg">${args.resumo.neutras}</div></td>
           <td class="card"><div class="label-sm">Negativas</div><div class="value-lg">${args.resumo.negativas}</div></td>
+          <td class="card"><div class="label-sm">Em monitoramento</div><div class="value-lg">${args.resumo.emMonitoramento}</div></td>
+          <td class="card"><div class="label-sm">Crise</div><div class="value-lg">${args.resumo.crise}</div></td>
           <td class="card"><div class="label-sm">Taxa positiva</div><div class="value-lg">${formatarPercentual(args.taxaPositiva)}%</div></td>
           <td class="card"><div class="label-sm">Views</div><div class="value-lg">${formatarNumero(args.resumo.views)}</div></td>
           <td class="card"><div class="label-sm">Engajamento</div><div class="value-lg">${formatarNumero(args.resumo.engajamento)}</div></td>
@@ -1730,12 +1736,8 @@ function criarHtmlExcelClipping(args: {
       <table class="grid">
         <tr>
           <td class="panel">
-            <h3>Ranking por autoria</h3>
+            <h3>Ranking por veículo</h3>
             ${criarRankingItensHtml(args.rankingAutores)}
-          </td>
-          <td class="panel">
-            <h3>Ranking por editoria</h3>
-            ${criarRankingItensHtml(args.rankingEditorias)}
           </td>
         </tr>
       </table>
@@ -1765,8 +1767,7 @@ function criarHtmlExcelClipping(args: {
               <th>Matéria</th>
               <th>Canal</th>
               <th>Tom</th>
-              <th>Autoria</th>
-              <th>Editoria</th>
+              <th>Veículo</th>
               <th>Data</th>
               <th>Views</th>
               <th>Likes</th>
@@ -1782,8 +1783,7 @@ function criarHtmlExcelClipping(args: {
                     <td>${escaparHtml(corrigirTextoExibicao(registro.titulo))}</td>
                     <td>${escaparHtml(formatarCanal(registro.canal))}</td>
                     <td>${escaparHtml(formatarSentimento(registro.sentimento))}</td>
-                    <td>${escaparHtml(registro.autoria || "Não informada")}</td>
-                    <td>${escaparHtml(registro.editoria || "Não informada")}</td>
+                    <td>${escaparHtml(registro.autoria || "Não informado")}</td>
                     <td>${escaparHtml(formatarData(registro.data_publicacao))}</td>
                     <td>${formatarNumero(registro.views)}</td>
                     <td>${formatarNumero(registro.likes)}</td>
@@ -1811,7 +1811,6 @@ function criarHtmlPdfClipping(args: {
   topEngajamento: ClippingRegistro[];
   topViews: ClippingRegistro[];
   rankingAutores: RankingItem[];
-  rankingEditorias: RankingItem[];
   positivas: ClippingRegistro[];
   neutras: ClippingRegistro[];
   negativas: ClippingRegistro[];
@@ -1862,6 +1861,8 @@ function criarHtmlPdfClipping(args: {
         <div class="card"><div class="label">Positivas</div><div class="value">${args.resumo.positivas}</div></div>
         <div class="card"><div class="label">Neutras</div><div class="value">${args.resumo.neutras}</div></div>
         <div class="card"><div class="label">Negativas</div><div class="value">${args.resumo.negativas}</div></div>
+        <div class="card"><div class="label">Em monitoramento</div><div class="value">${args.resumo.emMonitoramento}</div></div>
+        <div class="card"><div class="label">Crise</div><div class="value">${args.resumo.crise}</div></div>
         <div class="card"><div class="label">Taxa positiva</div><div class="value">${formatarPercentual(args.taxaPositiva)}%</div></div>
         <div class="card"><div class="label">Taxa neutra</div><div class="value">${formatarPercentual(args.taxaNeutra)}%</div></div>
         <div class="card"><div class="label">Taxa negativa</div><div class="value">${formatarPercentual(args.taxaNegativa)}%</div></div>
@@ -1916,12 +1917,8 @@ function criarHtmlPdfClipping(args: {
 
       <section class="grid-2" style="margin-top:14px;">
         <section class="viz">
-          <h2>Ranking por autoria</h2>
+          <h2>Ranking por veículo</h2>
           ${criarRankingItensHtml(args.rankingAutores)}
-        </section>
-        <section class="viz">
-          <h2>Ranking por editoria</h2>
-          ${criarRankingItensHtml(args.rankingEditorias)}
         </section>
       </section>
 
@@ -1939,8 +1936,7 @@ function criarHtmlPdfClipping(args: {
               <th>Matéria</th>
               <th>Canal</th>
               <th>Tom</th>
-              <th>Autoria</th>
-              <th>Editoria</th>
+              <th>Veículo</th>
               <th>Data</th>
               <th>Views</th>
               <th>Likes</th>
@@ -1956,8 +1952,7 @@ function criarHtmlPdfClipping(args: {
                     <td>${escaparHtml(corrigirTextoExibicao(registro.titulo))}</td>
                     <td>${escaparHtml(formatarCanal(registro.canal))}</td>
                     <td>${escaparHtml(formatarSentimento(registro.sentimento))}</td>
-                    <td>${escaparHtml(registro.autoria || "Não informada")}</td>
-                    <td>${escaparHtml(registro.editoria || "Não informada")}</td>
+                    <td>${escaparHtml(registro.autoria || "Não informado")}</td>
                     <td>${escaparHtml(formatarData(registro.data_publicacao))}</td>
                     <td>${formatarNumero(registro.views)}</td>
                     <td>${formatarNumero(registro.likes)}</td>
