@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   Bar,
   BarChart,
@@ -1482,46 +1482,51 @@ export default function ClippingClient() {
                         )}
                       </span>
                     </td>
-                    <td style={td}>{formatarCanal(registro.canal)}</td>
-                    <td style={td}>
+                    <td style={tdCanal}>{formatarCanal(registro.canal)}</td>
+                    <td style={tdTom}>
                       <span style={pillSentimento(registro.sentimento)}>
                         {formatarSentimento(registro.sentimento)}
                       </span>
                     </td>
-                    <td style={td}>
+                    <td style={tdStatus}>
                       <span style={pillStatusClipping(registro.status)}>
                         {formatarStatusClipping(registro.status)}
                       </span>
                     </td>
-                    <td style={td}>{registro.autoria || "Não informado"}</td>
-                    <td style={td}>{formatarData(registro.data_publicacao)}</td>
-                    <td style={td}>{formatarNumero(registro.views)}</td>
-                    <td style={td}>{formatarNumero(registro.likes)}</td>
-                    <td style={td}>{formatarNumero(registro.comentarios)}</td>
-                    <td style={td}>{formatarNumero(registro.engajamento)}</td>
-                    <td style={td}>{anexosPorRegistro[registro.id]?.length || 0}</td>
+                    <td style={tdVeiculo}>{registro.autoria || "Não informado"}</td>
+                    <td style={tdData}>{formatarData(registro.data_publicacao)}</td>
+                    <td style={tdNumero}>{formatarNumero(registro.views)}</td>
+                    <td style={tdNumero}>{formatarNumero(registro.likes)}</td>
+                    <td style={tdNumero}>{formatarNumero(registro.comentarios)}</td>
+                    <td style={tdNumero}>{formatarNumero(registro.engajamento)}</td>
+                    <td style={tdNumero}>{anexosPorRegistro[registro.id]?.length || 0}</td>
                     <td style={tdAcoes}>
-                      <button
-                        type="button"
-                        onClick={() => setClippingSelecionadoId(registro.id)}
-                        style={botaoEditar}
-                      >
-                        Anexos
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => iniciarEdicao(registro)}
-                        style={botaoEditar}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => excluirRegistro(registro.id, registro.titulo)}
-                        style={botaoExcluir}
-                      >
-                        Excluir
-                      </button>
+                      <div style={acoesLista}>
+                        <button
+                          type="button"
+                          onClick={() => setClippingSelecionadoId(registro.id)}
+                          style={botaoEditar}
+                          title="Anexos"
+                        >
+                          Anexos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => iniciarEdicao(registro)}
+                          style={botaoEditar}
+                          title="Editar"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => excluirRegistro(registro.id, registro.titulo)}
+                          style={botaoExcluir}
+                          title="Excluir"
+                        >
+                          Excluir
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1600,13 +1605,15 @@ function ListaMaterias({
   registros: ClippingRegistro[];
   cor: string;
 }) {
+  const exibirRolagem = registros.length > 4;
+
   return (
     <section style={listaSentimento(cor)}>
       <h2 style={subtitulo}>{título}</h2>
       {registros.length === 0 ? (
         <p style={textoAuxiliar}>Nenhuma matéria nesta classificação.</p>
       ) : (
-        <div style={listaItens}>
+        <div style={listaItens(exibirRolagem)}>
           {registros.map((registro) => (
             <article key={registro.id} style={itemLista}>
               <strong style={itemListaTitulo}>
@@ -2523,12 +2530,21 @@ const listaSentimento = (cor: string) => ({
   borderRadius: "14px",
   padding: "20px",
   boxShadow: "var(--sg-shadow-card)",
+  display: "grid",
+  gridTemplateRows: "auto minmax(0, 1fr)",
+  gap: "14px",
+  minHeight: 0,
 });
 
-const listaItens = {
+const listaItens = (exibirRolagem: boolean): CSSProperties => ({
   display: "grid",
   gap: "10px",
-};
+  alignContent: "start",
+  maxHeight: "540px",
+  overflowY: exibirRolagem ? "auto" : "visible",
+  paddingRight: exibirRolagem ? "6px" : 0,
+  scrollbarWidth: "thin",
+});
 
 const itemLista = {
   display: "grid",
@@ -2596,40 +2612,44 @@ const textoAuxiliar = {
 
 const tabelaWrapper = {
   overflowX: "auto" as const,
+  paddingBottom: "6px",
 };
 
 const tabela = {
   width: "100%",
   borderCollapse: "collapse" as const,
-  minWidth: "1180px",
+  minWidth: "1040px",
+  tableLayout: "fixed" as const,
 };
 
 const th = {
   textAlign: "left" as const,
   color: "var(--sg-text-secondary)",
-  fontSize: "12px",
+  fontSize: "11px",
   textTransform: "uppercase" as const,
-  letterSpacing: "0.08em",
-  padding: "12px 10px",
+  letterSpacing: "0.05em",
+  padding: "10px 8px",
   borderBottom: "1px solid var(--sg-border-soft)",
 };
 
 const td = {
-  padding: "14px 10px",
+  padding: "12px 8px",
   borderBottom: "1px solid var(--sg-border-soft)",
   verticalAlign: "top" as const,
+  fontSize: "14px",
 };
 
 const tdTitulo = {
   ...td,
-  minWidth: "280px",
+  width: "280px",
 };
 
 const tdMeta = {
   display: "block",
-  marginTop: "6px",
+  marginTop: "4px",
   color: "var(--sg-text-secondary)",
-  fontSize: "13px",
+  fontSize: "12px",
+  lineHeight: 1.35,
 };
 
 const linkTabela = {
@@ -2718,27 +2738,71 @@ const botaoSecundario = {
 
 const botaoExcluir = {
   border: "1px solid rgba(248,113,113,.32)",
-  borderRadius: "10px",
-  padding: "9px 12px",
+  borderRadius: "9px",
+  padding: "7px 10px",
   background: "rgba(127,29,29,.26)",
   color: "#fecaca",
   cursor: "pointer",
+  fontSize: "12px",
+  lineHeight: 1.1,
+  whiteSpace: "nowrap" as const,
 };
 
 const botaoEditar = {
   border: "1px solid rgba(96,165,250,.34)",
-  borderRadius: "10px",
-  padding: "9px 12px",
+  borderRadius: "9px",
+  padding: "7px 10px",
   background: "rgba(30,64,175,.24)",
   color: "#dbeafe",
   cursor: "pointer",
+  fontSize: "12px",
+  lineHeight: 1.1,
+  whiteSpace: "nowrap" as const,
 };
 
 const tdAcoes = {
   ...td,
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
+  width: "132px",
+};
+
+const acoesLista = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "6px",
+  alignItems: "start",
+};
+
+const tdNumero = {
+  ...td,
+  width: "62px",
+  textAlign: "center" as const,
+};
+
+const tdData = {
+  ...td,
+  width: "96px",
+  whiteSpace: "nowrap" as const,
+};
+
+const tdCanal = {
+  ...td,
+  width: "92px",
+};
+
+const tdTom = {
+  ...td,
+  width: "110px",
+};
+
+const tdStatus = {
+  ...td,
+  width: "92px",
+};
+
+const tdVeiculo = {
+  ...td,
+  width: "128px",
+  lineHeight: 1.35,
 };
 
 const resumoCard = (cor?: string, destaque?: boolean) => ({
