@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Bar,
   BarChart,
@@ -149,6 +149,8 @@ const FORMULARIO_INICIAL = {
 
 export default function ClippingClient() {
   const { usuario } = useAuth();
+  const formularioRef = useRef<HTMLDivElement | null>(null);
+  const tituloInputRef = useRef<HTMLInputElement | null>(null);
   const [registros, setRegistros] = useState<ClippingRegistro[]>([]);
   const [anexosPorRegistro, setAnexosPorRegistro] = useState<
     Record<number, ClippingAnexoItem[]>
@@ -303,8 +305,8 @@ export default function ClippingClient() {
       criado_por_nome: usuario?.nome ?? null,
     };
 
-    const response = await fetch("/api/clipping", {
-      method: "POST",
+    const response = await fetch(editandoId ? `/api/clipping/${editandoId}` : "/api/clipping", {
+      method: editandoId ? "PUT" : "POST",
       headers: {
         "Content-Type": "application/json",
       },
@@ -446,7 +448,16 @@ export default function ClippingClient() {
     setClippingSelecionadoId(registro.id);
 
     if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        formularioRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        window.setTimeout(() => {
+          tituloInputRef.current?.focus();
+          tituloInputRef.current?.select();
+        }, 250);
+      });
     }
   }
 
@@ -935,15 +946,26 @@ export default function ClippingClient() {
       </div>
 
       <div style={painelPrincipal}>
-        <div style={painelFormulario}>
+        <div ref={formularioRef} style={painelFormulario}>
           <h2 style={subtitulo}>
             {editandoId ? "Editar registro de clipping" : "Novo registro de clipping"}
           </h2>
+
+          {editandoId ? (
+            <div style={faixaEdicaoAtiva}>
+              <strong style={faixaEdicaoTitulo}>Edição ativa</strong>
+              <span style={faixaEdicaoTexto}>
+                Ajuste título, veículo, data, views, likes, comentários e todos os
+                demais campos deste registro antes de salvar.
+              </span>
+            </div>
+          ) : null}
 
           <div style={gridFormulario}>
             <div style={campoBlocoGrande}>
               <label style={label}>Título da matéria</label>
               <input
+                ref={tituloInputRef}
                 value={formulario.titulo}
                 onChange={(event) =>
                   setFormulario((atual) => ({ ...atual, titulo: event.target.value }))
@@ -1505,24 +1527,24 @@ export default function ClippingClient() {
                         <button
                           type="button"
                           onClick={() => setClippingSelecionadoId(registro.id)}
-                          style={botaoEditar}
-                          title="Anexos"
+                          style={botaoAcaoSecundaria}
+                          title="Abrir anexos do registro"
                         >
-                          Anexos
+                          Arquivos
                         </button>
                         <button
                           type="button"
                           onClick={() => iniciarEdicao(registro)}
-                          style={botaoEditar}
-                          title="Editar"
+                          style={botaoAcaoPrimaria}
+                          title="Editar registro"
                         >
                           Editar
                         </button>
                         <button
                           type="button"
                           onClick={() => excluirRegistro(registro.id, registro.titulo)}
-                          style={botaoExcluir}
-                          title="Excluir"
+                          style={botaoAcaoPerigo}
+                          title="Excluir registro"
                         >
                           Excluir
                         </button>
@@ -2611,8 +2633,13 @@ const textoAuxiliar = {
 };
 
 const tabelaWrapper = {
+  maxHeight: "740px",
+  overflowY: "auto" as const,
   overflowX: "auto" as const,
   paddingBottom: "6px",
+  border: "1px solid var(--sg-border-soft)",
+  borderRadius: "14px",
+  scrollbarWidth: "thin" as const,
 };
 
 const tabela = {
@@ -2630,6 +2657,10 @@ const th = {
   letterSpacing: "0.05em",
   padding: "10px 8px",
   borderBottom: "1px solid var(--sg-border-soft)",
+  position: "sticky" as const,
+  top: 0,
+  zIndex: 2,
+  background: "var(--sg-panel-bg)",
 };
 
 const td = {
@@ -2650,6 +2681,29 @@ const tdMeta = {
   color: "var(--sg-text-secondary)",
   fontSize: "12px",
   lineHeight: 1.35,
+};
+
+const faixaEdicaoAtiva = {
+  display: "grid",
+  gap: "4px",
+  marginBottom: "18px",
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(96,165,250,.28)",
+  background: "rgba(30,64,175,.14)",
+};
+
+const faixaEdicaoTitulo = {
+  color: "#dbeafe",
+  fontSize: "13px",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+};
+
+const faixaEdicaoTexto = {
+  color: "var(--sg-text-secondary)",
+  fontSize: "13px",
+  lineHeight: 1.45,
 };
 
 const linkTabela = {
@@ -2736,40 +2790,51 @@ const botaoSecundario = {
   border: "1px solid var(--sg-nav-chip-border)",
 };
 
-const botaoExcluir = {
-  border: "1px solid rgba(248,113,113,.32)",
+const botaoAcaoBase = {
   borderRadius: "9px",
-  padding: "7px 10px",
-  background: "rgba(127,29,29,.26)",
-  color: "#fecaca",
+  padding: "8px 10px",
   cursor: "pointer",
   fontSize: "12px",
   lineHeight: 1.1,
   whiteSpace: "nowrap" as const,
+  fontWeight: 700,
+  minHeight: "32px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
-const botaoEditar = {
+const botaoAcaoSecundaria = {
+  ...botaoAcaoBase,
+  border: "1px solid rgba(148,163,184,.28)",
+  background: "rgba(51,65,85,.24)",
+  color: "#e2e8f0",
+};
+
+const botaoAcaoPrimaria = {
+  ...botaoAcaoBase,
   border: "1px solid rgba(96,165,250,.34)",
-  borderRadius: "9px",
-  padding: "7px 10px",
   background: "rgba(30,64,175,.24)",
   color: "#dbeafe",
-  cursor: "pointer",
-  fontSize: "12px",
-  lineHeight: 1.1,
-  whiteSpace: "nowrap" as const,
+};
+
+const botaoAcaoPerigo = {
+  ...botaoAcaoBase,
+  border: "1px solid rgba(248,113,113,.32)",
+  background: "rgba(127,29,29,.26)",
+  color: "#fecaca",
 };
 
 const tdAcoes = {
   ...td,
-  width: "132px",
+  width: "204px",
 };
 
 const acoesLista = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "6px",
-  alignItems: "start",
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+  alignItems: "center",
 };
 
 const tdNumero = {
