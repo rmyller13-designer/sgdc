@@ -230,6 +230,7 @@ export default function ClippingClient() {
     setSalvando(true);
 
     const payload = {
+      id: editandoId,
       titulo: formulario.titulo.trim(),
       canal: formulario.canal,
       sentimento: formulario.sentimento,
@@ -249,17 +250,37 @@ export default function ClippingClient() {
       criado_por_nome: usuario?.nome ?? null,
     };
 
-    const { error } = editandoId
-      ? await supabase.from("clipping_registros").update(payload).eq("id", editandoId)
-      : await supabase.from("clipping_registros").insert(payload);
+    const response = await fetch("/api/clipping", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...payload,
+        usuario: usuario
+          ? {
+              id: usuario.id,
+              nome: usuario.nome,
+              funcao: usuario.funcao,
+              email: usuario.email,
+            }
+          : null,
+      }),
+    });
 
-    if (error) {
+    const resultado = (await response.json()) as {
+      ok?: boolean;
+      id?: number;
+      error?: string;
+    };
+
+    if (!response.ok || !resultado.ok) {
       setMensagem(
         traduzirErroClipping(
           editandoId
             ? "Não foi possível atualizar o registro de clipping."
             : "Não foi possível salvar o registro de clipping.",
-          error.message
+          resultado.error
         )
       );
       setSalvando(false);
@@ -269,7 +290,8 @@ export default function ClippingClient() {
     const registrosAtualizados = await carregarRegistros(true);
     const registroSalvo = editandoId
       ? registrosAtualizados.find((registro) => registro.id === editandoId) || null
-      : registrosAtualizados.find(
+      : registrosAtualizados.find((registro) => registro.id === resultado.id) ||
+        registrosAtualizados.find(
             (registro) =>
               registro.titulo === payload.titulo &&
               registro.canal === payload.canal &&
@@ -329,10 +351,27 @@ export default function ClippingClient() {
 
     setMensagem("");
 
-    const { error } = await supabase.from("clipping_registros").delete().eq("id", id);
+    const response = await fetch(`/api/clipping/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario: usuario
+          ? {
+              nome: usuario.nome,
+            }
+          : null,
+      }),
+    });
 
-    if (error) {
-      setMensagem("Não foi possível excluir este registro.");
+    const resultado = (await response.json()) as {
+      ok?: boolean;
+      error?: string;
+    };
+
+    if (!response.ok || !resultado.ok) {
+      setMensagem(resultado.error || "Não foi possível excluir este registro.");
       return;
     }
 
