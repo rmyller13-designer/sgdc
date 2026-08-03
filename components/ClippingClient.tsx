@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -13,18 +13,23 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ClippingAnexosManager, {
+  type ClippingAnexoItem,
+} from "@/components/ClippingAnexosManager";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { corrigirTextoExibicao } from "@/lib/display-text";
 
 type CanalClipping = "INSTAGRAM" | "SITE";
 type SentimentoClipping = "POSITIVA" | "NEGATIVA" | "NEUTRA";
+type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
 
 type ClippingRegistro = {
   id: number;
   titulo: string;
   canal: CanalClipping;
   sentimento: SentimentoClipping;
+  status: StatusClipping;
   url: string | null;
   data_publicacao: string;
   autoria: string | null;
@@ -47,6 +52,9 @@ type ResumoClipping = {
   positivas: number;
   neutras: number;
   negativas: number;
+  emMonitoramento: number;
+  fechados: number;
+  crise: number;
   instagram: number;
   site: number;
   views: number;
@@ -79,6 +87,16 @@ type RankingItem = {
   valor: number;
 };
 
+type AlertaClipping = {
+  id: number;
+  titulo: string;
+  canal: CanalClipping;
+  sentimento: SentimentoClipping;
+  status: StatusClipping;
+  data_publicacao: string;
+  engajamento: number;
+};
+
 type EvolucaoSentimento = {
   mes: string;
   positivas: number;
@@ -101,6 +119,7 @@ const FORMULARIO_INICIAL = {
   titulo: "",
   canal: "INSTAGRAM" as CanalClipping,
   sentimento: "POSITIVA" as SentimentoClipping,
+  status: "EM_MONITORAMENTO" as StatusClipping,
   url: "",
   dataPublicacao: new Date().toISOString().slice(0, 10),
   autoria: "",
@@ -117,15 +136,20 @@ const FORMULARIO_INICIAL = {
 export default function ClippingClient() {
   const { usuario } = useAuth();
   const [registros, setRegistros] = useState<ClippingRegistro[]>([]);
+  const [anexosPorRegistro, setAnexosPorRegistro] = useState<
+    Record<number, ClippingAnexoItem[]>
+  >({});
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [clippingSelecionadoId, setClippingSelecionadoId] = useState<number | null>(null);
   const [mensagem, setMensagem] = useState("");
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCanal, setFiltroCanal] = useState<"TODOS" | CanalClipping>("TODOS");
   const [filtroSentimento, setFiltroSentimento] = useState<
     "TODOS" | SentimentoClipping
   >("TODOS");
+  const [filtroStatus, setFiltroStatus] = useState<"TODOS" | StatusClipping>("TODOS");
   const [filtroInicio, setFiltroInicio] = useState("");
   const [filtroFim, setFiltroFim] = useState("");
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
@@ -147,11 +171,48 @@ export default function ClippingClient() {
     if (error) {
       setMensagem("Não foi possível carregar o clipping agora.");
       setRegistros([]);
+      setAnexosPorRegistro({});
       setCarregando(false);
       return;
     }
 
-    setRegistros(((data || []) as ClippingRegistro[]).map(normalizarRegistro));
+    const registrosNormalizados = ((data || []) as ClippingRegistro[]).map(
+      normalizarRegistro
+    );
+    setRegistros(registrosNormalizados);
+
+    if (registrosNormalizados.length === 0) {
+      setAnexosPorRegistro({});
+      setCarregando(false);
+      return;
+    }
+
+    const { data: anexosData, error: anexosError } = await supabase
+      .from("clipping_anexos")
+      .select("*")
+      .in(
+        "clipping_id",
+        registrosNormalizados.map((item) => item.id)
+      );
+
+    if (anexosError) {
+      setMensagem("Os registros foram carregados, mas os anexos falharam.");
+      setAnexosPorRegistro({});
+      setCarregando(false);
+      return;
+    }
+
+    const mapaAnexos = ((anexosData || []) as ClippingAnexoItem[]).reduce<
+      Record<number, ClippingAnexoItem[]>
+    >((acc, item) => {
+      if (!acc[item.clipping_id]) {
+        acc[item.clipping_id] = [];
+      }
+      acc[item.clipping_id].push(item);
+      return acc;
+    }, {});
+
+    setAnexosPorRegistro(mapaAnexos);
     setCarregando(false);
   }
 
@@ -169,6 +230,7 @@ export default function ClippingClient() {
       titulo: formulario.titulo.trim(),
       canal: formulario.canal,
       sentimento: formulario.sentimento,
+      status: formulario.status,
       url: formulario.url.trim() || null,
       data_publicacao:
         formulario.dataPublicacao || new Date().toISOString().slice(0, 10),
@@ -186,10 +248,15 @@ export default function ClippingClient() {
     };
 
     const operacao = editandoId
-      ? supabase.from("clipping_registros").update(payload).eq("id", editandoId)
-      : supabase.from("clipping_registros").insert(payload);
+      ? supabase
+          .from("clipping_registros")
+          .update(payload)
+          .eq("id", editandoId)
+          .select("id")
+          .single()
+      : supabase.from("clipping_registros").insert(payload).select("id").single();
 
-    const { error } = await operacao;
+    const { data: registroSalvo, error } = await operacao;
 
     if (error) {
       setMensagem(
@@ -203,6 +270,7 @@ export default function ClippingClient() {
 
     setFormulario(FORMULARIO_INICIAL);
     setEditandoId(null);
+    setClippingSelecionadoId(registroSalvo?.id ?? editandoId ?? null);
     setMensagem(
       editandoId
         ? "Registro de clipping atualizado com sucesso."
@@ -219,6 +287,7 @@ export default function ClippingClient() {
       titulo: registro.titulo,
       canal: registro.canal,
       sentimento: registro.sentimento,
+      status: registro.status,
       url: registro.url || "",
       dataPublicacao: registro.data_publicacao || new Date().toISOString().slice(0, 10),
       autoria: registro.autoria || "",
@@ -231,6 +300,7 @@ export default function ClippingClient() {
       engajamento: String(registro.engajamento || 0),
       observacoes: registro.observacoes || "",
     });
+    setClippingSelecionadoId(registro.id);
 
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -259,6 +329,10 @@ export default function ClippingClient() {
       return;
     }
 
+    if (clippingSelecionadoId === id) {
+      setClippingSelecionadoId(null);
+    }
+
     setMensagem("Registro removido com sucesso.");
     await carregarRegistros();
   }
@@ -280,12 +354,21 @@ export default function ClippingClient() {
       const canalOk = filtroCanal === "TODOS" || registro.canal === filtroCanal;
       const sentimentoOk =
         filtroSentimento === "TODOS" || registro.sentimento === filtroSentimento;
+      const statusOk = filtroStatus === "TODOS" || registro.status === filtroStatus;
       const inicioOk = !filtroInicio || registro.data_publicacao >= filtroInicio;
       const fimOk = !filtroFim || registro.data_publicacao <= filtroFim;
 
-      return textoOk && canalOk && sentimentoOk && inicioOk && fimOk;
+      return textoOk && canalOk && sentimentoOk && statusOk && inicioOk && fimOk;
     });
-  }, [filtroCanal, filtroFim, filtroInicio, filtroSentimento, filtroTexto, registros]);
+  }, [
+    filtroCanal,
+    filtroFim,
+    filtroInicio,
+    filtroSentimento,
+    filtroStatus,
+    filtroTexto,
+    registros,
+  ]);
 
   const resumo = useMemo<ResumoClipping>(() => {
     const base: ResumoClipping = {
@@ -293,6 +376,9 @@ export default function ClippingClient() {
       positivas: 0,
       neutras: 0,
       negativas: 0,
+      emMonitoramento: 0,
+      fechados: 0,
+      crise: 0,
       instagram: 0,
       site: 0,
       views: 0,
@@ -307,6 +393,9 @@ export default function ClippingClient() {
       if (registro.sentimento === "POSITIVA") base.positivas += 1;
       if (registro.sentimento === "NEUTRA") base.neutras += 1;
       if (registro.sentimento === "NEGATIVA") base.negativas += 1;
+      if (registro.status === "EM_MONITORAMENTO") base.emMonitoramento += 1;
+      if (registro.status === "FECHADO") base.fechados += 1;
+      if (registro.status === "CRISE") base.crise += 1;
       if (registro.canal === "INSTAGRAM") base.instagram += 1;
       if (registro.canal === "SITE") base.site += 1;
       base.views += registro.views;
@@ -420,6 +509,11 @@ export default function ClippingClient() {
     [resumo.neutras, resumo.total]
   );
 
+  const taxaCrise = useMemo(
+    () => calcularPercentual(resumo.crise, resumo.total),
+    [resumo.crise, resumo.total]
+  );
+
   const melhorCanal = useMemo(() => {
     return [...graficoCanais].sort(
       (a, b) =>
@@ -428,6 +522,25 @@ export default function ClippingClient() {
         b.postagens - a.postagens
     )[0];
   }, [graficoCanais]);
+
+  const alertasSupervisor = useMemo<AlertaClipping[]>(
+    () =>
+      [...registrosFiltrados]
+        .filter((item) => item.status === "CRISE" || item.sentimento === "NEGATIVA")
+        .sort(
+          (a, b) =>
+            Number(b.status === "CRISE") - Number(a.status === "CRISE") ||
+            b.engajamento - a.engajamento ||
+            b.views - a.views
+        )
+        .slice(0, 6),
+    [registrosFiltrados]
+  );
+
+  const registroSelecionado = useMemo(
+    () => registros.find((item) => item.id === clippingSelecionadoId) || null,
+    [clippingSelecionadoId, registros]
+  );
 
   function exportarExcel() {
     const html = criarHtmlExcelClipping({
@@ -541,6 +654,19 @@ export default function ClippingClient() {
           <option value="NEGATIVA">Negativas</option>
         </select>
 
+        <select
+          value={filtroStatus}
+          onChange={(event) =>
+            setFiltroStatus(event.target.value as "TODOS" | StatusClipping)
+          }
+          style={campoCompacto}
+        >
+          <option value="TODOS">Todos os status</option>
+          <option value="EM_MONITORAMENTO">Em monitoramento</option>
+          <option value="FECHADO">Fechado</option>
+          <option value="CRISE">Crise</option>
+        </select>
+
         <input
           type="date"
           value={filtroInicio}
@@ -561,6 +687,7 @@ export default function ClippingClient() {
             setFiltroTexto("");
             setFiltroCanal("TODOS");
             setFiltroSentimento("TODOS");
+            setFiltroStatus("TODOS");
             setFiltroInicio("");
             setFiltroFim("");
           }}
@@ -577,6 +704,13 @@ export default function ClippingClient() {
         <ResumoCard título="Positivas" valor={resumo.positivas} cor="#22c55e" />
         <ResumoCard título="Neutras" valor={resumo.neutras} cor="#f59e0b" />
         <ResumoCard título="Negativas" valor={resumo.negativas} cor="#ef4444" />
+        <ResumoCard
+          título="Em monitoramento"
+          valor={resumo.emMonitoramento}
+          cor="#38bdf8"
+        />
+        <ResumoCard título="Fechados" valor={resumo.fechados} cor="#22c55e" />
+        <ResumoCard título="Crise" valor={resumo.crise} cor="#ef4444" />
         <ResumoCard título="Instagram" valor={resumo.instagram} cor="#8b5cf6" />
         <ResumoCard título="Site" valor={resumo.site} cor="#3b82f6" />
         <ResumoCard título="Views" valor={formatarNumero(resumo.views)} />
@@ -609,6 +743,12 @@ export default function ClippingClient() {
           título="Canal com melhor retorno"
           valor={melhorCanal?.nome || "Não definido"}
           cor={melhorCanal?.cor}
+          destaque
+        />
+        <ResumoCard
+          título="Taxa de crise"
+          valor={`${formatarPercentual(taxaCrise)}%`}
+          cor="#ef4444"
           destaque
         />
       </div>
@@ -664,6 +804,24 @@ export default function ClippingClient() {
                 <option value="POSITIVA">Positiva</option>
                 <option value="NEUTRA">Neutra</option>
                 <option value="NEGATIVA">Negativa</option>
+              </select>
+            </div>
+
+            <div style={campoBloco}>
+              <label style={label}>Status do clipping</label>
+              <select
+                value={formulario.status}
+                onChange={(event) =>
+                  setFormulario((atual) => ({
+                    ...atual,
+                    status: event.target.value as StatusClipping,
+                  }))
+                }
+                style={campo}
+              >
+                <option value="EM_MONITORAMENTO">Em monitoramento</option>
+                <option value="FECHADO">Fechado</option>
+                <option value="CRISE">Crise</option>
               </select>
             </div>
 
@@ -862,10 +1020,57 @@ export default function ClippingClient() {
               ))}
             </div>
           </Painel>
+
+          <Painel título="Radar executivo do supervisor">
+            <div style={listaMetricas}>
+              <div style={blocoOrientacao}>
+                <strong style={orientacaoTitulo}>Leitura rápida</strong>
+                <span style={canalTexto}>Em monitoramento: {resumo.emMonitoramento}</span>
+                <span style={canalTexto}>Fechados: {resumo.fechados}</span>
+                <span style={canalTexto}>Crise: {resumo.crise}</span>
+                <span style={canalTexto}>
+                  Taxa de crise: {formatarPercentual(taxaCrise)}%
+                </span>
+              </div>
+
+              <div style={blocoOrientacao}>
+                <strong style={orientacaoTitulo}>Itens que pedem atenção</strong>
+                {alertasSupervisor.length > 0 ? (
+                  alertasSupervisor.map((item) => (
+                    <div key={item.id} style={alertaItem(item.status)}>
+                      <span style={alertaTitulo}>
+                        {corrigirTextoExibicao(item.titulo)}
+                      </span>
+                      <span style={alertaMeta}>
+                        {formatarStatusClipping(item.status)} |{" "}
+                        {formatarSentimento(item.sentimento)} |{" "}
+                        {formatarCanal(item.canal)}
+                      </span>
+                      <span style={alertaMeta}>
+                        {formatarData(item.data_publicacao)} | Engajamento:{" "}
+                        {formatarNumero(item.engajamento)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <span style={canalTexto}>Nenhum alerta crítico no recorte atual.</span>
+                )}
+              </div>
+            </div>
+          </Painel>
         </div>
       </div>
 
       {mensagem && <p style={mensagemStyle}>{corrigirTextoExibicao(mensagem)}</p>}
+
+      {registroSelecionado ? (
+        <ClippingAnexosManager
+          clippingId={registroSelecionado.id}
+          titulo={registroSelecionado.titulo}
+          anexos={anexosPorRegistro[registroSelecionado.id] || []}
+          onAtualizar={carregarRegistros}
+        />
+      ) : null}
 
       <div style={gradeGraficos}>
         <Painel título="Tonalidade das matérias">
@@ -1017,6 +1222,7 @@ export default function ClippingClient() {
                   <th style={th}>Matéria</th>
                   <th style={th}>Canal</th>
                   <th style={th}>Tom</th>
+                  <th style={th}>Status</th>
                   <th style={th}>Autoria</th>
                   <th style={th}>Editoria</th>
                   <th style={th}>Data</th>
@@ -1024,7 +1230,8 @@ export default function ClippingClient() {
                   <th style={th}>Likes</th>
                   <th style={th}>Comentários</th>
                   <th style={th}>Engajamento</th>
-                  <th style={th}>Ação</th>
+                  <th style={th}>Anexos</th>
+                  <th style={th}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -1053,6 +1260,11 @@ export default function ClippingClient() {
                         {formatarSentimento(registro.sentimento)}
                       </span>
                     </td>
+                    <td style={td}>
+                      <span style={pillStatusClipping(registro.status)}>
+                        {formatarStatusClipping(registro.status)}
+                      </span>
+                    </td>
                     <td style={td}>{registro.autoria || "Não informada"}</td>
                     <td style={td}>{registro.editoria || "Não informada"}</td>
                     <td style={td}>{formatarData(registro.data_publicacao)}</td>
@@ -1060,7 +1272,15 @@ export default function ClippingClient() {
                     <td style={td}>{formatarNumero(registro.likes)}</td>
                     <td style={td}>{formatarNumero(registro.comentarios)}</td>
                     <td style={td}>{formatarNumero(registro.engajamento)}</td>
+                    <td style={td}>{anexosPorRegistro[registro.id]?.length || 0}</td>
                     <td style={tdAcoes}>
+                      <button
+                        type="button"
+                        onClick={() => setClippingSelecionadoId(registro.id)}
+                        style={botaoEditar}
+                      >
+                        Anexos
+                      </button>
                       <button
                         type="button"
                         onClick={() => iniciarEdicao(registro)}
@@ -1239,6 +1459,7 @@ function normalizarRegistro(registro: ClippingRegistro): ClippingRegistro {
   return {
     ...registro,
     id: Number(registro.id),
+    status: (registro.status || "EM_MONITORAMENTO") as StatusClipping,
     autoria: registro.autoria || null,
     editoria: registro.editoria || null,
     views: Number(registro.views || 0),
@@ -1335,6 +1556,12 @@ function formatarSentimento(valor: SentimentoClipping) {
   if (valor === "POSITIVA") return "Positiva";
   if (valor === "NEGATIVA") return "Negativa";
   return "Neutra";
+}
+
+function formatarStatusClipping(valor: StatusClipping) {
+  if (valor === "EM_MONITORAMENTO") return "Em monitoramento";
+  if (valor === "FECHADO") return "Fechado";
+  return "Crise";
 }
 
 function formatarData(valor?: string | null) {
@@ -2170,6 +2397,56 @@ const pillSentimento = (sentimento: SentimentoClipping) => ({
   fontSize: "12px",
   fontWeight: 700,
 });
+
+const pillStatusClipping = (status: StatusClipping) => {
+  const tema =
+    status === "CRISE"
+      ? { bg: "rgba(239,68,68,.16)", border: "rgba(248,113,113,.34)", color: "#fecaca" }
+      : status === "FECHADO"
+        ? { bg: "rgba(34,197,94,.16)", border: "rgba(74,222,128,.34)", color: "#bbf7d0" }
+        : { bg: "rgba(56,189,248,.16)", border: "rgba(125,211,252,.34)", color: "#bae6fd" };
+
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 10px",
+    borderRadius: "999px",
+    background: tema.bg,
+    border: `1px solid ${tema.border}`,
+    color: tema.color,
+    fontSize: "12px",
+    fontWeight: 700,
+  };
+};
+
+const alertaItem = (status: StatusClipping) => ({
+  display: "grid",
+  gap: "4px",
+  padding: "12px 14px",
+  borderRadius: "10px",
+  background:
+    status === "CRISE"
+      ? "rgba(127,29,29,.22)"
+      : status === "FECHADO"
+        ? "rgba(20,83,45,.18)"
+        : "rgba(15,23,42,.22)",
+  border:
+    status === "CRISE"
+      ? "1px solid rgba(248,113,113,.28)"
+      : status === "FECHADO"
+        ? "1px solid rgba(74,222,128,.24)"
+        : "1px solid var(--sg-border-soft)",
+});
+
+const alertaTitulo = {
+  fontSize: "14px",
+  fontWeight: 700,
+};
+
+const alertaMeta = {
+  color: "var(--sg-text-secondary)",
+  fontSize: "12px",
+};
 
 const botaoPrimario = {
   border: "none",
