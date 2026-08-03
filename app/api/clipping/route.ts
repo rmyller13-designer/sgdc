@@ -3,7 +3,11 @@ import { criarSupabaseAdmin } from "@/lib/supabase-admin";
 import { usuarioEstaAutorizado } from "@/lib/auth";
 
 type CanalClipping = "INSTAGRAM" | "FACEBOOK" | "SITE";
-type SentimentoClipping = "POSITIVA" | "NEGATIVA" | "NEUTRA";
+type SentimentoClipping =
+  | "POSITIVA"
+  | "NEGATIVA"
+  | "NEUTRA"
+  | "NAO_CLASSIFICADO";
 type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
 
 type ClippingBody = {
@@ -31,7 +35,12 @@ type ClippingBody = {
 };
 
 const CANAIS = new Set<CanalClipping>(["INSTAGRAM", "FACEBOOK", "SITE"]);
-const SENTIMENTOS = new Set<SentimentoClipping>(["POSITIVA", "NEGATIVA", "NEUTRA"]);
+const SENTIMENTOS = new Set<SentimentoClipping>([
+  "POSITIVA",
+  "NEGATIVA",
+  "NEUTRA",
+  "NAO_CLASSIFICADO",
+]);
 const STATUS = new Set<StatusClipping>(["EM_MONITORAMENTO", "FECHADO", "CRISE"]);
 
 export async function POST(request: Request) {

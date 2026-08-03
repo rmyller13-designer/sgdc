@@ -17,11 +17,16 @@ import ClippingAnexosManager, {
   type ClippingAnexoItem,
 } from "@/components/ClippingAnexosManager";
 import { useAuth } from "@/components/AuthProvider";
+import type { MetaClippingImportado } from "@/lib/clipping-import";
 import { supabase } from "@/lib/supabase";
 import { corrigirTextoExibicao } from "@/lib/display-text";
 
 type CanalClipping = "INSTAGRAM" | "FACEBOOK" | "SITE";
-type SentimentoClipping = "POSITIVA" | "NEGATIVA" | "NEUTRA";
+type SentimentoClipping =
+  | "POSITIVA"
+  | "NEGATIVA"
+  | "NEUTRA"
+  | "NAO_CLASSIFICADO";
 type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
 
 type ClippingRegistro = {
@@ -51,6 +56,7 @@ type ResumoClipping = {
   positivas: number;
   neutras: number;
   negativas: number;
+  naoClassificadas: number;
   emMonitoramento: number;
   fechados: number;
   crise: number;
@@ -102,12 +108,20 @@ type EvolucaoSentimento = {
   positivas: number;
   neutras: number;
   negativas: number;
+  naoClassificadas: number;
+};
+
+type ImportacaoHistoricaResumo = {
+  meta: MetaClippingImportado;
+  generatedAt: string;
+  sourceFile: string;
 };
 
 const CORES_SENTIMENTO: Record<SentimentoClipping, string> = {
   POSITIVA: "#22c55e",
   NEUTRA: "#f59e0b",
   NEGATIVA: "#ef4444",
+  NAO_CLASSIFICADO: "#94a3b8",
 };
 
 const CORES_CANAIS: Record<CanalClipping, string> = {
@@ -144,6 +158,11 @@ export default function ClippingClient() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [clippingSelecionadoId, setClippingSelecionadoId] = useState<number | null>(null);
   const [mensagem, setMensagem] = useState("");
+  const [mensagemImportacao, setMensagemImportacao] = useState("");
+  const [carregandoImportacao, setCarregandoImportacao] = useState(true);
+  const [importandoHistorico, setImportandoHistorico] = useState(false);
+  const [resumoImportacao, setResumoImportacao] =
+    useState<ImportacaoHistoricaResumo | null>(null);
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCanal, setFiltroCanal] = useState<"TODOS" | CanalClipping>("TODOS");
   const [filtroSentimento, setFiltroSentimento] = useState<
@@ -156,7 +175,38 @@ export default function ClippingClient() {
 
   useEffect(() => {
     void carregarRegistros();
+    void carregarResumoImportacao();
   }, []);
+
+  async function carregarResumoImportacao() {
+    setCarregandoImportacao(true);
+
+    try {
+      const response = await fetch("/api/clipping/importar-scms", {
+        cache: "no-store",
+      });
+      const resultado = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        meta?: MetaClippingImportado;
+        generatedAt?: string;
+        sourceFile?: string;
+      };
+
+      if (!response.ok || !resultado.ok || !resultado.meta) {
+        setResumoImportacao(null);
+        return;
+      }
+
+      setResumoImportacao({
+        meta: resultado.meta,
+        generatedAt: resultado.generatedAt || "",
+        sourceFile: resultado.sourceFile || "",
+      });
+    } finally {
+      setCarregandoImportacao(false);
+    }
+  }
 
   async function carregarRegistros(preservarMensagem = false) {
     setCarregando(true);
@@ -320,6 +370,60 @@ export default function ClippingClient() {
     void carregarRegistros(true);
   }
 
+  async function importarAcervoHistorico() {
+    if (!usuario) {
+      setMensagemImportacao("Faça login para importar o acervo histórico.");
+      return;
+    }
+
+    const confirmou = window.confirm(
+      "Deseja iniciar a importação do acervo histórico SCMS? O sistema vai ignorar automaticamente o que já existir."
+    );
+
+    if (!confirmou) return;
+
+    setImportandoHistorico(true);
+    setMensagemImportacao("");
+
+    try {
+      const response = await fetch("/api/clipping/importar-scms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario: {
+            id: usuario.id,
+            nome: usuario.nome,
+          },
+        }),
+      });
+
+      const resultado = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        totalArquivo?: number;
+        inseridos?: number;
+        ignorados?: number;
+      };
+
+      if (!response.ok || !resultado.ok) {
+        setMensagemImportacao(
+          resultado.error || "Não foi possível importar o acervo histórico agora."
+        );
+        return;
+      }
+
+      setMensagemImportacao(
+        `Importação concluída. ${resultado.inseridos || 0} registro(s) entraram agora e ${resultado.ignorados || 0} já existiam.`
+      );
+      await carregarRegistros(true);
+      await carregarResumoImportacao();
+    } finally {
+      setImportandoHistorico(false);
+    }
+  }
+
   function iniciarEdicao(registro: ClippingRegistro) {
     setEditandoId(registro.id);
     setMensagem("");
@@ -430,6 +534,7 @@ export default function ClippingClient() {
       positivas: 0,
       neutras: 0,
       negativas: 0,
+      naoClassificadas: 0,
       emMonitoramento: 0,
       fechados: 0,
       crise: 0,
@@ -448,6 +553,7 @@ export default function ClippingClient() {
       if (registro.sentimento === "POSITIVA") base.positivas += 1;
       if (registro.sentimento === "NEUTRA") base.neutras += 1;
       if (registro.sentimento === "NEGATIVA") base.negativas += 1;
+      if (registro.sentimento === "NAO_CLASSIFICADO") base.naoClassificadas += 1;
       if (registro.status === "EM_MONITORAMENTO") base.emMonitoramento += 1;
       if (registro.status === "FECHADO") base.fechados += 1;
       if (registro.status === "CRISE") base.crise += 1;
@@ -470,6 +576,9 @@ export default function ClippingClient() {
       positivas: registrosFiltrados.filter((item) => item.sentimento === "POSITIVA"),
       neutras: registrosFiltrados.filter((item) => item.sentimento === "NEUTRA"),
       negativas: registrosFiltrados.filter((item) => item.sentimento === "NEGATIVA"),
+      naoClassificadas: registrosFiltrados.filter(
+        (item) => item.sentimento === "NAO_CLASSIFICADO"
+      ),
     }),
     [registrosFiltrados]
   );
@@ -479,6 +588,11 @@ export default function ClippingClient() {
       { nome: "Positivas", valor: resumo.positivas, cor: CORES_SENTIMENTO.POSITIVA },
       { nome: "Neutras", valor: resumo.neutras, cor: CORES_SENTIMENTO.NEUTRA },
       { nome: "Negativas", valor: resumo.negativas, cor: CORES_SENTIMENTO.NEGATIVA },
+      {
+        nome: "Não classificadas",
+        valor: resumo.naoClassificadas,
+        cor: CORES_SENTIMENTO.NAO_CLASSIFICADO,
+      },
     ],
     [resumo]
   );
@@ -712,6 +826,7 @@ export default function ClippingClient() {
           <option value="POSITIVA">Positivas</option>
           <option value="NEUTRA">Neutras</option>
           <option value="NEGATIVA">Negativas</option>
+          <option value="NAO_CLASSIFICADO">Não classificadas</option>
         </select>
 
         <select
@@ -764,6 +879,11 @@ export default function ClippingClient() {
         <ResumoCard título="Positivas" valor={resumo.positivas} cor="#22c55e" />
         <ResumoCard título="Neutras" valor={resumo.neutras} cor="#f59e0b" />
         <ResumoCard título="Negativas" valor={resumo.negativas} cor="#ef4444" />
+        <ResumoCard
+          título="Não classificadas"
+          valor={resumo.naoClassificadas}
+          cor="#94a3b8"
+        />
         <ResumoCard
           título="Em monitoramento"
           valor={resumo.emMonitoramento}
@@ -866,6 +986,7 @@ export default function ClippingClient() {
                 <option value="POSITIVA">Positiva</option>
                 <option value="NEUTRA">Neutra</option>
                 <option value="NEGATIVA">Negativa</option>
+                <option value="NAO_CLASSIFICADO">Não classificada</option>
               </select>
             </div>
 
@@ -1105,6 +1226,61 @@ export default function ClippingClient() {
               </div>
             </div>
           </Painel>
+
+          <Painel título="Importação histórica SCMS">
+            <div style={listaMetricas}>
+              {carregandoImportacao ? (
+                <span style={canalTexto}>Lendo o acervo preparado para importação...</span>
+              ) : resumoImportacao ? (
+                <>
+                  <div style={blocoOrientacao}>
+                    <strong style={orientacaoTitulo}>Pacote pronto</strong>
+                    <span style={canalTexto}>
+                      {formatarNumero(resumoImportacao.meta.total_registros)} registros
+                      históricos prontos para importação
+                    </span>
+                    <span style={canalTexto}>
+                      Gerado em {new Date(resumoImportacao.generatedAt).toLocaleString("pt-BR")}
+                    </span>
+                  </div>
+
+                  <div style={blocoOrientacao}>
+                    <strong style={orientacaoTitulo}>Recorte autorizado</strong>
+                    {Object.entries(resumoImportacao.meta.por_ano).map(([ano, info]) => (
+                      <span key={ano} style={canalTexto}>
+                        {ano}: {formatarNumero(info.total)} registros
+                      </span>
+                    ))}
+                  </div>
+
+                  <div style={blocoOrientacao}>
+                    <strong style={orientacaoTitulo}>Importação protegida</strong>
+                    <span style={canalTexto}>
+                      Esta carga vai importar somente 2025 e 2026.
+                    </span>
+                    <span style={canalTexto}>Os anos anteriores ficaram fora desta operação.</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={importarAcervoHistorico}
+                    disabled={importandoHistorico}
+                    style={botaoPrimario}
+                  >
+                    {importandoHistorico ? "Importando 2025 e 2026..." : "Importar acervo 2025 e 2026"}
+                  </button>
+                </>
+              ) : (
+                <span style={canalTexto}>
+                  Não foi possível carregar o pacote histórico preparado.
+                </span>
+              )}
+
+              {mensagemImportacao ? (
+                <p style={mensagemStyle}>{corrigirTextoExibicao(mensagemImportacao)}</p>
+              ) : null}
+            </div>
+          </Painel>
         </div>
       </div>
 
@@ -1155,6 +1331,12 @@ export default function ClippingClient() {
                 <Bar dataKey="positivas" name="Positivas" fill="#22c55e" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="neutras" name="Neutras" fill="#f59e0b" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="negativas" name="Negativas" fill="#ef4444" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="naoClassificadas"
+                  name="Não classificadas"
+                  fill="#94a3b8"
+                  radius={[6, 6, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -1248,6 +1430,11 @@ export default function ClippingClient() {
           título={`Matérias negativas (${listasPorSentimento.negativas.length})`}
           registros={listasPorSentimento.negativas}
           cor="#ef4444"
+        />
+        <ListaMaterias
+          título={`Não classificadas (${listasPorSentimento.naoClassificadas.length})`}
+          registros={listasPorSentimento.naoClassificadas}
+          cor="#94a3b8"
         />
       </div>
 
@@ -1539,7 +1726,12 @@ function agruparRanking(
 function agruparEvolucaoSentimento(registros: ClippingRegistro[]) {
   const mapa = new Map<
     string,
-    { positivas: number; neutras: number; negativas: number }
+    {
+      positivas: number;
+      neutras: number;
+      negativas: number;
+      naoClassificadas: number;
+    }
   >();
 
   for (const registro of registros) {
@@ -1550,11 +1742,13 @@ function agruparEvolucaoSentimento(registros: ClippingRegistro[]) {
       positivas: 0,
       neutras: 0,
       negativas: 0,
+      naoClassificadas: 0,
     };
 
     if (registro.sentimento === "POSITIVA") atual.positivas += 1;
     if (registro.sentimento === "NEUTRA") atual.neutras += 1;
     if (registro.sentimento === "NEGATIVA") atual.negativas += 1;
+    if (registro.sentimento === "NAO_CLASSIFICADO") atual.naoClassificadas += 1;
 
     mapa.set(chave, atual);
   }
@@ -1596,6 +1790,7 @@ function formatarCanal(valor: CanalClipping) {
 function formatarSentimento(valor: SentimentoClipping) {
   if (valor === "POSITIVA") return "Positiva";
   if (valor === "NEGATIVA") return "Negativa";
+  if (valor === "NAO_CLASSIFICADO") return "Não classificada";
   return "Neutra";
 }
 
@@ -1617,6 +1812,10 @@ function traduzirErroClipping(base: string, detalhe?: string | null) {
 
   if (texto.includes("violates check constraint") && texto.includes("canal")) {
     return `${base} O banco ainda não foi atualizado para aceitar o canal Facebook.`;
+  }
+
+  if (texto.includes("violates check constraint") && texto.includes("sentimento")) {
+    return `${base} O banco ainda não foi atualizado para aceitar matérias não classificadas.`;
   }
 
   if (!detalhe) {
