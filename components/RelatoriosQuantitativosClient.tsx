@@ -34,6 +34,12 @@ type EvolucaoItem = {
   demandas: number;
 };
 
+type EvolucaoOrigemItem = {
+  mes: string;
+  ascom: number;
+  externo: number;
+};
+
 type TipoGrafico = "produto" | "eixo" | "canal" | "setor" | "livre";
 
 const cores = ["#ef4444", "#f97316", "#22c55e", "#3b82f6", "#a855f7", "#eab308"];
@@ -50,6 +56,9 @@ export default function RelatoriosQuantitativosClient({
   setores,
   responsaveis,
   evolucaoMensal,
+  totalPostagensAscom,
+  totalClippingExterno,
+  evolucaoPostagensAscom,
 }: {
   inicio: string;
   fim: string;
@@ -62,6 +71,9 @@ export default function RelatoriosQuantitativosClient({
   setores: Item[];
   responsaveis: Item[];
   evolucaoMensal: EvolucaoItem[];
+  totalPostagensAscom: number;
+  totalClippingExterno: number;
+  evolucaoPostagensAscom: EvolucaoOrigemItem[];
 }) {
   const totalProdutos = produtos.reduce((soma, item) => soma + item.valor, 0);
   const totalCanais = canais.reduce((soma, item) => soma + item.valor, 0);
@@ -195,6 +207,8 @@ export default function RelatoriosQuantitativosClient({
           valor={formatarMedia(mediaEixosPorDemanda)}
           derivado
         />
+        <Card titulo="Postagens ASCOM" valor={totalPostagensAscom} />
+        <Card titulo="Clipping externo" valor={totalClippingExterno} />
       </div>
 
       <div style={layoutDois}>
@@ -262,6 +276,56 @@ export default function RelatoriosQuantitativosClient({
           </div>
 
           <Legenda dados={status} />
+        </Painel>
+      </div>
+
+      <div style={layoutDois}>
+        <Painel titulo="Evolução das postagens ASCOM">
+          <div style={graficoAltura}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={evolucaoPostagensAscom}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="ascomFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.08} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.12)" />
+                <XAxis dataKey="mes" stroke="#ddd6fe" />
+                <YAxis stroke="#ddd6fe" allowDecimals={false} width={34} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="ascom"
+                  name="Postagens ASCOM"
+                  stroke="#8b5cf6"
+                  strokeWidth={3}
+                  fill="url(#ascomFill)"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="externo"
+                  name="Clipping externo"
+                  stroke="#94a3b8"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#94a3b8" }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Painel>
+
+        <Painel titulo="Leitura rápida do clipping">
+          <Ranking
+            titulo="Origem dos registros"
+            dados={[
+              { titulo: "Postagens ASCOM", valor: totalPostagensAscom },
+              { titulo: "Clipping externo", valor: totalClippingExterno },
+            ]}
+          />
         </Painel>
       </div>
 

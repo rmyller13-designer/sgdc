@@ -9,11 +9,13 @@ type SentimentoClipping =
   | "NEUTRA"
   | "NAO_CLASSIFICADO";
 type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
+type OrigemClipping = "EXTERNO" | "ASCOM";
 
 type ClippingBody = {
   id?: number | null;
   titulo?: string;
   canal?: CanalClipping;
+  origem?: OrigemClipping;
   sentimento?: SentimentoClipping;
   status?: StatusClipping;
   url?: string | null;
@@ -35,6 +37,7 @@ type ClippingBody = {
 };
 
 const CANAIS = new Set<CanalClipping>(["INSTAGRAM", "FACEBOOK", "SITE"]);
+const ORIGENS = new Set<OrigemClipping>(["EXTERNO", "ASCOM"]);
 const SENTIMENTOS = new Set<SentimentoClipping>([
   "POSITIVA",
   "NEGATIVA",
@@ -50,40 +53,48 @@ export async function POST(request: Request) {
 
     if (!usuarioNome || !usuarioEstaAutorizado(usuarioNome)) {
       return NextResponse.json(
-        { error: "Usuário inválido para salvar o clipping." },
+        { error: "UsuÃ¡rio invÃ¡lido para salvar o clipping." },
         { status: 401 }
       );
     }
 
     const titulo = body.titulo?.trim() || "";
     const canal = body.canal;
+    const origem = body.origem || "EXTERNO";
     const sentimento = body.sentimento;
     const status = body.status;
 
     if (!titulo) {
       return NextResponse.json(
-        { error: "Informe o título da matéria." },
+        { error: "Informe o tÃ­tulo da matÃ©ria." },
         { status: 400 }
       );
     }
 
     if (!canal || !CANAIS.has(canal)) {
       return NextResponse.json(
-        { error: "Informe um canal válido." },
+        { error: "Informe um canal vÃ¡lido." },
+        { status: 400 }
+      );
+    }
+
+    if (!ORIGENS.has(origem)) {
+      return NextResponse.json(
+        { error: "Informe uma origem vÃ¡lida para o registro." },
         { status: 400 }
       );
     }
 
     if (!sentimento || !SENTIMENTOS.has(sentimento)) {
       return NextResponse.json(
-        { error: "Informe um sentimento válido." },
+        { error: "Informe um sentimento vÃ¡lido." },
         { status: 400 }
       );
     }
 
     if (!status || !STATUS.has(status)) {
       return NextResponse.json(
-        { error: "Informe um status válido." },
+        { error: "Informe um status vÃ¡lido." },
         { status: 400 }
       );
     }
@@ -94,6 +105,7 @@ export async function POST(request: Request) {
     const payloadBase = {
       titulo,
       canal,
+      origem,
       sentimento,
       status,
       url: limparTexto(body.url),
@@ -119,7 +131,7 @@ export async function POST(request: Request) {
 
       if (error || !data) {
         return NextResponse.json(
-          { error: error?.message || "Não foi possível atualizar o clipping." },
+          { error: error?.message || "NÃ£o foi possÃ­vel atualizar o clipping." },
           { status: 500 }
         );
       }
@@ -149,7 +161,7 @@ export async function POST(request: Request) {
 
     if (error || !data) {
       return NextResponse.json(
-        { error: error?.message || "Não foi possível salvar o clipping." },
+        { error: error?.message || "NÃ£o foi possÃ­vel salvar o clipping." },
         { status: 500 }
       );
     }
@@ -161,7 +173,7 @@ export async function POST(request: Request) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível salvar o clipping agora." },
+      { error: "NÃ£o foi possÃ­vel salvar o clipping agora." },
       { status: 500 }
     );
   }
@@ -178,7 +190,7 @@ export async function GET() {
 
     if (error) {
       return NextResponse.json(
-        { error: error.message || "Não foi possível carregar o clipping." },
+        { error: error.message || "NÃ£o foi possÃ­vel carregar o clipping." },
         { status: 500 }
       );
     }
@@ -189,7 +201,7 @@ export async function GET() {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível carregar o clipping agora." },
+      { error: "NÃ£o foi possÃ­vel carregar o clipping agora." },
       { status: 500 }
     );
   }

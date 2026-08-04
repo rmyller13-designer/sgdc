@@ -13,6 +13,7 @@ type SentimentoClipping =
   | "NEUTRA"
   | "NAO_CLASSIFICADO";
 type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
+type OrigemClipping = "EXTERNO" | "ASCOM";
 
 type UsuarioBody = {
   nome?: string | null;
@@ -25,6 +26,7 @@ type DeleteBody = {
 type UpdateBody = {
   titulo?: string;
   canal?: CanalClipping;
+  origem?: OrigemClipping;
   sentimento?: SentimentoClipping;
   status?: StatusClipping;
   url?: string | null;
@@ -41,6 +43,7 @@ type UpdateBody = {
 };
 
 const CANAIS = new Set<CanalClipping>(["INSTAGRAM", "FACEBOOK", "SITE"]);
+const ORIGENS = new Set<OrigemClipping>(["EXTERNO", "ASCOM"]);
 const SENTIMENTOS = new Set<SentimentoClipping>([
   "POSITIVA",
   "NEGATIVA",
@@ -53,7 +56,7 @@ export async function PUT(request: Request, { params }: Params) {
   const clippingId = await obterClippingId(params);
 
   if (!clippingId) {
-    return NextResponse.json({ error: "ID do clipping inválido." }, { status: 400 });
+    return NextResponse.json({ error: "ID do clipping invÃ¡lido." }, { status: 400 });
   }
 
   let body: UpdateBody;
@@ -61,40 +64,48 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     body = (await request.json()) as UpdateBody;
   } catch {
-    return NextResponse.json({ error: "Requisição inválida." }, { status: 400 });
+    return NextResponse.json({ error: "RequisiÃ§Ã£o invÃ¡lida." }, { status: 400 });
   }
 
   const usuarioNome = body.usuario?.nome?.trim() || "";
 
   if (!usuarioNome || !usuarioEstaAutorizado(usuarioNome)) {
     return NextResponse.json(
-      { error: "Usuário inválido para editar o clipping." },
+      { error: "UsuÃ¡rio invÃ¡lido para editar o clipping." },
       { status: 401 }
     );
   }
 
   const titulo = body.titulo?.trim() || "";
+  const origem = body.origem || "EXTERNO";
 
   if (!titulo) {
     return NextResponse.json(
-      { error: "Informe o título da matéria." },
+      { error: "Informe o tÃ­tulo da matÃ©ria." },
       { status: 400 }
     );
   }
 
   if (!body.canal || !CANAIS.has(body.canal)) {
-    return NextResponse.json({ error: "Informe um canal válido." }, { status: 400 });
+    return NextResponse.json({ error: "Informe um canal vÃ¡lido." }, { status: 400 });
+  }
+
+  if (!ORIGENS.has(origem)) {
+    return NextResponse.json(
+      { error: "Informe uma origem vÃ¡lida para o registro." },
+      { status: 400 }
+    );
   }
 
   if (!body.sentimento || !SENTIMENTOS.has(body.sentimento)) {
     return NextResponse.json(
-      { error: "Informe um sentimento válido." },
+      { error: "Informe um sentimento vÃ¡lido." },
       { status: 400 }
     );
   }
 
   if (!body.status || !STATUS.has(body.status)) {
-    return NextResponse.json({ error: "Informe um status válido." }, { status: 400 });
+    return NextResponse.json({ error: "Informe um status vÃ¡lido." }, { status: 400 });
   }
 
   try {
@@ -106,6 +117,7 @@ export async function PUT(request: Request, { params }: Params) {
       .update({
         titulo,
         canal: body.canal,
+        origem,
         sentimento: body.sentimento,
         status: body.status,
         url: limparTexto(body.url),
@@ -126,7 +138,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     if (error || !data) {
       return NextResponse.json(
-        { error: error?.message || "Não foi possível atualizar o clipping." },
+        { error: error?.message || "NÃ£o foi possÃ­vel atualizar o clipping." },
         { status: 500 }
       );
     }
@@ -138,7 +150,7 @@ export async function PUT(request: Request, { params }: Params) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível atualizar o clipping agora." },
+      { error: "NÃ£o foi possÃ­vel atualizar o clipping agora." },
       { status: 500 }
     );
   }
@@ -148,7 +160,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const clippingId = await obterClippingId(params);
 
   if (!clippingId) {
-    return NextResponse.json({ error: "ID do clipping inválido." }, { status: 400 });
+    return NextResponse.json({ error: "ID do clipping invÃ¡lido." }, { status: 400 });
   }
 
   let body: DeleteBody;
@@ -156,14 +168,14 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     body = (await request.json()) as DeleteBody;
   } catch {
-    return NextResponse.json({ error: "Requisição inválida." }, { status: 400 });
+    return NextResponse.json({ error: "RequisiÃ§Ã£o invÃ¡lida." }, { status: 400 });
   }
 
   const usuarioNome = body.usuario?.nome?.trim() || "";
 
   if (!usuarioNome || !usuarioEstaAutorizado(usuarioNome)) {
     return NextResponse.json(
-      { error: "Usuário inválido para excluir o clipping." },
+      { error: "UsuÃ¡rio invÃ¡lido para excluir o clipping." },
       { status: 401 }
     );
   }
@@ -171,14 +183,11 @@ export async function DELETE(request: Request, { params }: Params) {
   try {
     const admin = criarSupabaseAdmin();
 
-    const { error } = await admin
-      .from("clipping_registros")
-      .delete()
-      .eq("id", clippingId);
+    const { error } = await admin.from("clipping_registros").delete().eq("id", clippingId);
 
     if (error) {
       return NextResponse.json(
-        { error: error.message || "Não foi possível excluir o clipping." },
+        { error: error.message || "NÃ£o foi possÃ­vel excluir o clipping." },
         { status: 500 }
       );
     }
@@ -186,7 +195,7 @@ export async function DELETE(request: Request, { params }: Params) {
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível excluir o clipping agora." },
+      { error: "NÃ£o foi possÃ­vel excluir o clipping agora." },
       { status: 500 }
     );
   }

@@ -44,9 +44,20 @@ type EixoDemanda = {
     | null;
 };
 
+type ClippingResumo = {
+  origem: string | null;
+  data_publicacao: string | null;
+};
+
 type Item = {
   titulo: string;
   valor: number;
+};
+
+type EvolucaoOrigemItem = {
+  mes: string;
+  ascom: number;
+  externo: number;
 };
 
 export default async function RelatoriosQuantitativos({
@@ -67,30 +78,43 @@ export default async function RelatoriosQuantitativos({
   if (periodo.inicio) query = query.gte("data_solicitacao", periodo.inicio);
   if (periodo.fim) query = query.lte("data_solicitacao", periodo.fim);
 
-  const { data: demandasData } = await query;
+  let clippingQuery = supabase
+    .from("clipping_registros")
+    .select("origem, data_publicacao")
+    .order("data_publicacao", { ascending: true });
+
+  if (periodo.inicio) clippingQuery = clippingQuery.gte("data_publicacao", periodo.inicio);
+  if (periodo.fim) clippingQuery = clippingQuery.lte("data_publicacao", periodo.fim);
+
+  const [{ data: demandasData }, { data: clippingData }] = await Promise.all([
+    query,
+    clippingQuery,
+  ]);
+
   const demandas = (demandasData || []) as DemandaResumo[];
+  const clipping = (clippingData || []) as ClippingResumo[];
   const ids = demandas.map((demanda) => demanda.id);
 
-  const [produtosRaw, canaisRaw, eixosRaw] = ids.length
-    ? await Promise.all([
-        supabase
+  const [produtosRaw, canaisRaw, eixosRaw] = await Promise.all([
+    ids.length
+      ? supabase
           .from("demanda_produtos_quantidade")
           .select("quantidade, produtos(nome)")
-          .in("demanda_id", ids),
-        supabase
+          .in("demanda_id", ids)
+      : Promise.resolve({ data: [] as ProdutoQuantidade[] }),
+    ids.length
+      ? supabase
           .from("demanda_canais")
           .select("canais_comunicacao(nome)")
-          .in("demanda_id", ids),
-        supabase
+          .in("demanda_id", ids)
+      : Promise.resolve({ data: [] as CanalDemanda[] }),
+    ids.length
+      ? supabase
           .from("demanda_eixos")
           .select("eixos_comunicacao(nome)")
-          .in("demanda_id", ids),
-      ])
-    : [
-        { data: [] as ProdutoQuantidade[] },
-        { data: [] as CanalDemanda[] },
-        { data: [] as EixoDemanda[] },
-      ];
+          .in("demanda_id", ids)
+      : Promise.resolve({ data: [] as EixoDemanda[] }),
+  ]);
 
   const produtos = agruparSoma(
     ((produtosRaw.data || []) as ProdutoQuantidade[]).filter(
@@ -114,9 +138,12 @@ export default async function RelatoriosQuantitativos({
   const setores = agruparContagem(demandas, (item) => item.setor);
   const responsaveis = agruparContagem(
     demandas,
-    (item) => corrigirTextoExibicao(item.responsavel) || "Não atribuído"
+    (item) => corrigirTextoExibicao(item.responsavel) || "NÃ£o atribuÃ­do"
   );
   const evolucaoMensal = agruparEvolucaoMensal(demandas, periodo);
+  const totalPostagensAscom = clipping.filter((item) => item.origem === "ASCOM").length;
+  const totalClippingExterno = clipping.filter((item) => item.origem !== "ASCOM").length;
+  const evolucaoPostagensAscom = agruparEvolucaoOrigemClipping(clipping, periodo);
 
   return (
     <RelatoriosQuantitativosClient
@@ -131,6 +158,9 @@ export default async function RelatoriosQuantitativos({
       setores={setores}
       responsaveis={responsaveis}
       evolucaoMensal={evolucaoMensal}
+      totalPostagensAscom={totalPostagensAscom}
+      totalClippingExterno={totalClippingExterno}
+      evolucaoPostagensAscom={evolucaoPostagensAscom}
     />
   );
 }
@@ -157,9 +187,9 @@ function resolverPeriodo(params: SearchParams) {
 function pegarNome(
   valor: { nome: string | null } | { nome: string | null }[] | null
 ) {
-  if (!valor) return "Não informado";
-  if (Array.isArray(valor)) return valor[0]?.nome || "Não informado";
-  return valor.nome || "Não informado";
+  if (!valor) return "NÃ£o informado";
+  if (Array.isArray(valor)) return valor[0]?.nome || "NÃ£o informado";
+  return valor.nome || "NÃ£o informado";
 }
 
 function agruparSoma<T>(
@@ -170,7 +200,7 @@ function agruparSoma<T>(
   const mapa: Record<string, number> = {};
 
   lista.forEach((item) => {
-    const titulo = getTitulo(item) || "Não informado";
+    const titulo = getTitulo(item) || "NÃ£o informado";
     mapa[titulo] = (mapa[titulo] || 0) + getValor(item);
   });
 
@@ -184,7 +214,7 @@ function agruparContagem<T>(
   const mapa: Record<string, number> = {};
 
   lista.forEach((item) => {
-    const titulo = getTitulo(item) || "Não informado";
+    const titulo = getTitulo(item) || "NÃ£o informado";
     mapa[titulo] = (mapa[titulo] || 0) + 1;
   });
 
@@ -203,18 +233,20 @@ function ordenarItens(mapa: Record<string, number>) {
 function formatarTituloRelatorio(valor: string) {
   const texto = corrigirTextoExibicao(valor);
 
-  if (!texto) return "Não informado";
+  if (!texto) return "NÃ£o informado";
   if (texto === "Sem setor") return texto;
-  if (texto === "Não atribuído") return texto;
+  if (texto === "NÃ£o atribuÃ­do") return texto;
 
-  if (texto in {
-    RECEBIDO: true,
-    EM_PRODUCAO: true,
-    EM_APROVACAO: true,
-    AP_PARA_PUBLICAR: true,
-    CONCLUIDO: true,
-    CANCELADO: true,
-  }) {
+  if (
+    texto in {
+      RECEBIDO: true,
+      EM_PRODUCAO: true,
+      EM_APROVACAO: true,
+      AP_PARA_PUBLICAR: true,
+      CONCLUIDO: true,
+      CANCELADO: true,
+    }
+  ) {
     return formatarStatusExibicao(texto);
   }
 
@@ -253,6 +285,40 @@ function agruparEvolucaoMensal(
     mes: formatarMes(mes),
     demandas: mapa[mes] || 0,
   }));
+}
+
+function agruparEvolucaoOrigemClipping(
+  registros: ClippingResumo[],
+  periodo: { inicio: string; fim: string; mes: string }
+): EvolucaoOrigemItem[] {
+  const mapa = new Map<string, { ascom: number; externo: number }>();
+
+  for (const registro of registros) {
+    const data = registro.data_publicacao;
+    if (!data) continue;
+
+    const chave = data.slice(0, 7);
+    const atual = mapa.get(chave) || { ascom: 0, externo: 0 };
+
+    if (registro.origem === "ASCOM") {
+      atual.ascom += 1;
+    } else {
+      atual.externo += 1;
+    }
+
+    mapa.set(chave, atual);
+  }
+
+  const meses = montarJanelaMensal([...mapa.keys()], periodo);
+
+  return meses.map((mes) => {
+    const atual = mapa.get(mes) || { ascom: 0, externo: 0 };
+    return {
+      mes: formatarMes(mes),
+      ascom: atual.ascom,
+      externo: atual.externo,
+    };
+  });
 }
 
 function formatarMes(mes: string) {

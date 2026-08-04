@@ -27,11 +27,13 @@ type SentimentoClipping =
   | "NEUTRA"
   | "NAO_CLASSIFICADO";
 type StatusClipping = "EM_MONITORAMENTO" | "FECHADO" | "CRISE";
+type OrigemClipping = "EXTERNO" | "ASCOM";
 
 type ClippingRegistro = {
   id: number;
   titulo: string;
   canal: CanalClipping;
+  origem: OrigemClipping;
   sentimento: SentimentoClipping;
   status: StatusClipping;
   url: string | null;
@@ -62,6 +64,8 @@ type ResumoClipping = {
   instagram: number;
   facebook: number;
   site: number;
+  externos: number;
+  ascom: number;
   views: number;
   comentarios: number;
   likes: number;
@@ -126,6 +130,7 @@ const CORES_CANAIS: Record<CanalClipping, string> = {
 const FORMULARIO_INICIAL = {
   titulo: "",
   canal: "INSTAGRAM" as CanalClipping,
+  origem: "EXTERNO" as OrigemClipping,
   sentimento: "POSITIVA" as SentimentoClipping,
   status: "EM_MONITORAMENTO" as StatusClipping,
   url: "",
@@ -245,6 +250,7 @@ export default function ClippingClient() {
       id: editandoId,
       titulo: formulario.titulo.trim(),
       canal: formulario.canal,
+      origem: formulario.origem,
       sentimento: formulario.sentimento,
       status: formulario.status,
       url: formulario.url.trim() || null,
@@ -335,6 +341,7 @@ export default function ClippingClient() {
     setFormulario({
       titulo: registro.titulo,
       canal: registro.canal,
+      origem: registro.origem,
       sentimento: registro.sentimento,
       status: registro.status,
       url: registro.url || "",
@@ -455,6 +462,8 @@ export default function ClippingClient() {
       instagram: 0,
       facebook: 0,
       site: 0,
+      externos: 0,
+      ascom: 0,
       views: 0,
       comentarios: 0,
       likes: 0,
@@ -474,6 +483,8 @@ export default function ClippingClient() {
       if (registro.canal === "INSTAGRAM") base.instagram += 1;
       if (registro.canal === "FACEBOOK") base.facebook += 1;
       if (registro.canal === "SITE") base.site += 1;
+      if (registro.origem === "ASCOM") base.ascom += 1;
+      if (registro.origem === "EXTERNO") base.externos += 1;
       base.views += registro.views;
       base.comentarios += registro.comentarios;
       base.likes += registro.likes;
@@ -865,6 +876,23 @@ export default function ClippingClient() {
                 <option value="INSTAGRAM">Instagram</option>
                 <option value="FACEBOOK">Facebook</option>
                 <option value="SITE">Site</option>
+              </select>
+            </div>
+
+            <div style={campoBloco}>
+              <label style={label}>Tipo de registro</label>
+              <select
+                value={formulario.origem}
+                onChange={(event) =>
+                  setFormulario((atual) => ({
+                    ...atual,
+                    origem: event.target.value as OrigemClipping,
+                  }))
+                }
+                style={campo}
+              >
+                <option value="EXTERNO">Clipping externo</option>
+                <option value="ASCOM">Postagem ASCOM</option>
               </select>
             </div>
 
@@ -1291,6 +1319,7 @@ export default function ClippingClient() {
                 <tr>
                   <th style={th}>Matéria</th>
                   <th style={th}>Canal</th>
+                  <th style={th}>Origem</th>
                   <th style={th}>Tom</th>
                   <th style={th}>Status</th>
                   <th style={th}>Veículo</th>
@@ -1324,6 +1353,11 @@ export default function ClippingClient() {
                       </span>
                     </td>
                     <td style={tdCanal}>{formatarCanal(registro.canal)}</td>
+                    <td style={tdOrigem}>
+                      <span style={pillOrigem(registro.origem)}>
+                        {formatarOrigem(registro.origem)}
+                      </span>
+                    </td>
                     <td style={tdTom}>
                       <span style={pillSentimento(registro.sentimento)}>
                         {formatarSentimento(registro.sentimento)}
@@ -1584,6 +1618,7 @@ function normalizarRegistro(registro: ClippingRegistro): ClippingRegistro {
   return {
     ...registro,
     id: Number(registro.id),
+    origem: (registro.origem || "EXTERNO") as OrigemClipping,
     status: (registro.status || "EM_MONITORAMENTO") as StatusClipping,
     autoria: registro.autoria || null,
     views: Number(registro.views || 0),
@@ -1685,6 +1720,11 @@ function formatarCanal(valor: CanalClipping) {
   return "Site";
 }
 
+function formatarOrigem(valor: OrigemClipping) {
+  if (valor === "ASCOM") return "Postagem ASCOM";
+  return "Clipping externo";
+}
+
 function formatarSentimento(valor: SentimentoClipping) {
   if (valor === "POSITIVA") return "Positiva";
   if (valor === "NEGATIVA") return "Negativa";
@@ -1714,6 +1754,10 @@ function traduzirErroClipping(base: string, detalhe?: string | null) {
 
   if (texto.includes("violates check constraint") && texto.includes("sentimento")) {
     return `${base} O banco ainda não foi atualizado para aceitar matérias não classificadas.`;
+  }
+
+  if (texto.includes("origem")) {
+    return `${base} O banco ainda não recebeu a atualização da origem do clipping.`;
   }
 
   if (!detalhe) {
@@ -2660,6 +2704,33 @@ const pillStatusClipping = (status: StatusClipping) => {
   };
 };
 
+const pillOrigem = (origem: OrigemClipping) => {
+  const tema =
+    origem === "ASCOM"
+      ? {
+          bg: "rgba(168,85,247,.16)",
+          border: "rgba(196,181,253,.36)",
+          color: "#ddd6fe",
+        }
+      : {
+          bg: "rgba(148,163,184,.14)",
+          border: "rgba(203,213,225,.28)",
+          color: "#e2e8f0",
+        };
+
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 10px",
+    borderRadius: "999px",
+    background: tema.bg,
+    border: `1px solid ${tema.border}`,
+    color: tema.color,
+    fontSize: "12px",
+    fontWeight: 700,
+  };
+};
+
 const alertaItem = (status: StatusClipping) => ({
   display: "grid",
   gap: "4px",
@@ -2768,6 +2839,11 @@ const tdData = {
 const tdCanal = {
   ...td,
   width: "92px",
+};
+
+const tdOrigem = {
+  ...td,
+  width: "128px",
 };
 
 const tdTom = {
