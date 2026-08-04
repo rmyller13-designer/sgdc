@@ -167,66 +167,77 @@ export default function ComentariosDemanda({
 
   return (
     <div>
-      <h2 style={titulo}>Comentários</h2>
-
-      <textarea
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        placeholder="Digite um comentário..."
-        style={campoTexto}
-      />
-
-      <div style={barraAcoes}>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept={TIPOS_ACEITOS_UPLOAD.join(",")}
-          onChange={(e) => selecionarArquivos(e.target.files)}
-          style={{ display: "none" }}
-        />
-
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          style={botaoSecundario}
-        >
-          Anexar arquivo
-        </button>
-
-        <button
-          type="button"
-          onClick={enviarComentario}
-          style={botao}
-          disabled={enviando}
-        >
-          {enviando ? "Enviando..." : "Enviar"}
-        </button>
+      <div style={header}>
+        <h2 style={titulo}>Comentários</h2>
+        <span style={contador}>{comentarios.length}</span>
       </div>
 
-      {arquivos.length > 0 && (
-        <div style={arquivosBox}>
-          {arquivos.map((arquivo) => (
-            <span key={`${arquivo.name}-${arquivo.size}`} style={arquivoPill}>
-              {arquivo.name}
-            </span>
-          ))}
+      <div style={composer}>
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Escreva uma atualização, contexto ou observação..."
+          style={campoTexto}
+        />
+
+        <div style={barraAcoes}>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            accept={TIPOS_ACEITOS_UPLOAD.join(",")}
+            onChange={(e) => selecionarArquivos(e.target.files)}
+            style={{ display: "none" }}
+          />
+
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            style={botaoSecundario}
+            className="sg-interactive sg-pressable"
+          >
+            Anexar arquivo
+          </button>
+
+          <button
+            type="button"
+            onClick={enviarComentario}
+            style={botao}
+            className="sg-interactive sg-pressable"
+            disabled={enviando}
+          >
+            {enviando ? "Enviando..." : "Enviar"}
+          </button>
         </div>
-      )}
 
-      <p style={regraUpload}>
-        Anexos até {LIMITE_UPLOAD_MB} MB, organizados na pasta da demanda.
-      </p>
+        {arquivos.length > 0 && (
+          <div style={arquivosBox}>
+            {arquivos.map((arquivo) => (
+              <span key={`${arquivo.name}-${arquivo.size}`} style={arquivoPill}>
+                {arquivo.name}
+              </span>
+            ))}
+          </div>
+        )}
 
-      {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
+        <p style={regraUpload}>
+          Anexos até {LIMITE_UPLOAD_MB} MB, organizados na pasta da demanda.
+        </p>
 
-      <div style={lista}>
+        {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
+      </div>
+
+      <div style={lista} className="sg-scroll-y">
         {comentarios.map((comentario) => (
           <div key={comentario.id} style={cardComentario}>
+            <div style={comentarioHeader}>
+              <strong style={comentarioLabel}>Atualização</strong>
+              <small style={dataTexto}>
+                {new Date(comentario.criado_em).toLocaleString("pt-BR")}
+              </small>
+            </div>
+
             <p style={comentarioTexto}>{comentario.comentario}</p>
-            <small style={dataTexto}>
-              {new Date(comentario.criado_em).toLocaleString("pt-BR")}
-            </small>
 
             {comentario.comentario_anexos &&
               comentario.comentario_anexos.length > 0 && (
@@ -251,19 +262,49 @@ export default function ComentariosDemanda({
   );
 }
 
+const header = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  marginBottom: "14px",
+};
+
 const titulo = {
-  marginTop: 0,
+  margin: 0,
+  fontSize: "18px",
+};
+
+const contador = {
+  minWidth: "28px",
+  height: "28px",
+  borderRadius: "999px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(255,255,255,.08)",
+  border: "1px solid rgba(255,255,255,.1)",
+  color: "var(--sg-text-muted)",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const composer = {
+  background: "rgba(2,6,23,.24)",
+  border: "1px solid rgba(148,163,184,.16)",
+  borderRadius: "14px",
+  padding: "12px",
 };
 
 const campoTexto = {
   width: "100%",
-  minHeight: "84px",
+  minHeight: "96px",
   boxSizing: "border-box" as const,
-  padding: "10px",
+  padding: "12px",
   background: "#111827",
   color: "white",
   border: "1px solid #334155",
-  borderRadius: "8px",
+  borderRadius: "10px",
   resize: "vertical" as const,
 };
 
@@ -279,7 +320,7 @@ const botao = {
   color: "white",
   border: "none",
   padding: "10px 16px",
-  borderRadius: "8px",
+  borderRadius: "10px",
   cursor: "pointer",
   fontWeight: 700,
 };
@@ -319,25 +360,41 @@ const mensagemStyle = {
 };
 
 const lista = {
-  marginTop: "18px",
+  marginTop: "14px",
+  maxHeight: "420px",
+  overflowY: "auto" as const,
+  paddingRight: "4px",
 };
 
 const cardComentario = {
-  border: "1px solid rgba(148,163,184,.22)",
-  background: "rgba(2,6,23,.32)",
+  border: "1px solid rgba(148,163,184,.16)",
+  background: "rgba(2,6,23,.28)",
   padding: "12px",
-  borderRadius: "8px",
+  borderRadius: "12px",
   marginBottom: "10px",
 };
 
+const comentarioHeader = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "8px",
+};
+
+const comentarioLabel = {
+  color: "var(--sg-text-primary)",
+  fontSize: "13px",
+};
+
 const comentarioTexto = {
-  margin: 0,
-  marginBottom: "8px",
+  margin: "8px 0 0",
   whiteSpace: "pre-wrap" as const,
+  lineHeight: "20px",
 };
 
 const dataTexto = {
   color: "#94a3b8",
+  fontSize: "11px",
 };
 
 const anexosLista = {

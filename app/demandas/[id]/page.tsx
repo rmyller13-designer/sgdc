@@ -47,6 +47,16 @@ export default async function DetalheDemanda({
     .select("*")
     .eq("demanda_id", demandaId);
 
+  const { count: totalComentarios = 0 } = await supabase
+    .from("comentarios_demanda")
+    .select("*", { count: "exact", head: true })
+    .eq("demanda_id", demandaId);
+
+  const { count: totalHistorico = 0 } = await supabase
+    .from("historico_demanda")
+    .select("*", { count: "exact", head: true })
+    .eq("demanda_id", demandaId);
+
   const sugestoesMemoria = await buscarMemoriaEditorial({
     titulo: demanda?.titulo,
     descricao: demanda?.descricao,
@@ -67,6 +77,7 @@ export default async function DetalheDemanda({
   }
 
   const anexosLista = (anexos || []) as DemandaAnexoItem[];
+  const totalAnexos = anexosLista.length;
   const googleTaskDemanda = {
     id: demanda.id,
     titulo: demanda.titulo,
@@ -159,17 +170,40 @@ export default async function DetalheDemanda({
             </div>
           </div>
 
-          <div style={tabs}>
-            <span style={tabAtiva}>Detalhes</span>
-            <span style={tab}>Eixos e Produtos</span>
-            <span style={tab}>Anexos</span>
+          <div style={operationalStrip}>
+            <div style={operationalCard}>
+              <span style={operationalLabel}>Anexos</span>
+              <strong style={operationalValue}>{totalAnexos}</strong>
+            </div>
+
+            <div style={operationalCard}>
+              <span style={operationalLabel}>Comentários</span>
+              <strong style={operationalValue}>{totalComentarios}</strong>
+            </div>
+
+            <div style={operationalCard}>
+              <span style={operationalLabel}>Histórico</span>
+              <strong style={operationalValue}>{totalHistorico}</strong>
+            </div>
+
+            <div style={operationalCard}>
+              <span style={operationalLabel}>Relacionadas</span>
+              <strong style={operationalValue}>{sugestoesMemoria.length}</strong>
+            </div>
           </div>
 
-          <section style={card}>
+          <div style={tabs}>
+            <a href="#detalhes" style={tabAtiva}>Detalhes</a>
+            <a href="#fluxo" style={tab}>Fluxo</a>
+            <a href="#producao" style={tab}>Eixos e Produtos</a>
+            <a href="#anexos" style={tab}>Anexos</a>
+          </div>
+
+          <section id="detalhes" style={card}>
             <EditarDemandaInfo demandaId={demanda.id} />
           </section>
 
-          <section style={card}>
+          <section id="fluxo" style={card}>
             <h2 style={sectionTitle}>Fluxo da demanda</h2>
 
             <div style={acoesLinha}>
@@ -189,7 +223,7 @@ export default async function DetalheDemanda({
             </div>
           </section>
 
-          <section style={card}>
+          <section id="producao" style={card}>
             <EixosProdutosDemanda demandaId={demanda.id} />
           </section>
 
@@ -206,7 +240,7 @@ export default async function DetalheDemanda({
             />
           </section>
 
-          <section style={card}>
+          <section id="anexos" style={card}>
             <h2 style={sectionTitle}>Anexos</h2>
             <DemandaAnexosSection demandaId={demanda.id} anexos={anexosLista} />
           </section>
@@ -387,7 +421,37 @@ const painelResumo: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(160px, 1fr))",
   gap: "12px",
+  marginBottom: "12px",
+};
+
+const operationalStrip: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(120px, 1fr))",
+  gap: "10px",
   marginBottom: "18px",
+};
+
+const operationalCard: CSSProperties = {
+  background: "rgba(2,6,23,.3)",
+  border: "1px solid rgba(255,255,255,.08)",
+  borderRadius: "14px",
+  padding: "12px 14px",
+  display: "grid",
+  gap: "6px",
+};
+
+const operationalLabel: CSSProperties = {
+  color: "var(--sg-text-subtle)",
+  fontSize: "10px",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+};
+
+const operationalValue: CSSProperties = {
+  color: "var(--sg-text-primary)",
+  fontSize: "18px",
+  lineHeight: "22px",
 };
 
 const campoResumo: CSSProperties = {
@@ -443,6 +507,7 @@ const tab: CSSProperties = {
   borderRadius: "999px",
   border: "1px solid var(--sg-border-soft)",
   background: "rgba(15,23,42,.38)",
+  textDecoration: "none",
 };
 
 const tabAtiva: CSSProperties = {
@@ -453,6 +518,7 @@ const tabAtiva: CSSProperties = {
   borderRadius: "999px",
   border: "1px solid rgba(255,255,255,.12)",
   background: "rgba(255,255,255,.08)",
+  textDecoration: "none",
 };
 
 const card: CSSProperties = {
@@ -488,6 +554,7 @@ const atividadeTitulo: CSSProperties = {
   marginTop: 0,
   marginBottom: "16px",
   fontSize: "20px",
+  letterSpacing: "0.01em",
 };
 
 const sideCard: CSSProperties = {

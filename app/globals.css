@@ -176,3 +176,33 @@ textarea {
 .kanban-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--sg-scroll-thumb-hover);
 }
+
+.sg-scroll-y {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sg-scroll-thumb) transparent;
+}
+
+.sg-scroll-y::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sg-scroll-y::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sg-scroll-y::-webkit-scrollbar-thumb {
+  background: var(--sg-scroll-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.sg-scroll-y::-webkit-scrollbar-thumb:hover {
+  background: var(--sg-scroll-thumb-hover);
+  background-clip: padding-box;
+}
+
+.sg-sidebar-item:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+}

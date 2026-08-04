@@ -34,12 +34,15 @@ export default function HistoricoDemanda({
 
   return (
     <div>
-      <h2 style={titulo}>Histórico</h2>
+      <div style={header}>
+        <h2 style={titulo}>Histórico</h2>
+        <span style={contador}>{historico.length}</span>
+      </div>
 
       {historico.length === 0 ? (
         <p style={vazio}>Nenhum registro ainda.</p>
       ) : (
-        <div style={timeline}>
+        <div style={timeline} className="sg-scroll-y">
           {historico.map((item, index) => {
             const tipo = classificarAcao(item.acao);
 
@@ -54,7 +57,7 @@ export default function HistoricoDemanda({
 
                 <div style={conteudo}>
                   <div style={cabecalho}>
-                    <strong>{tipo.titulo}</strong>
+                    <strong style={tipoTitulo}>{tipo.titulo}</strong>
                     <time style={dataTexto}>
                       {new Date(item.criado_em).toLocaleString("pt-BR")}
                     </time>
@@ -96,13 +99,40 @@ function classificarAcao(acao: string) {
   return { titulo: "Atividade", sigla: "H", cor: "#ef4444" };
 }
 
+const header = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  marginBottom: "14px",
+};
+
 const titulo = {
-  marginTop: 0,
+  margin: 0,
+  fontSize: "18px",
+};
+
+const contador = {
+  minWidth: "28px",
+  height: "28px",
+  borderRadius: "999px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(255,255,255,.08)",
+  border: "1px solid rgba(255,255,255,.1)",
+  color: "var(--sg-text-muted)",
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
 const timeline = {
   display: "flex",
   flexDirection: "column" as const,
+  gap: "0",
+  maxHeight: "520px",
+  overflowY: "auto" as const,
+  paddingRight: "4px",
 };
 
 const linhaTimeline = {
@@ -133,15 +163,15 @@ const marcador = {
 const linha = {
   width: "1px",
   flex: 1,
-  minHeight: "34px",
-  background: "rgba(148,163,184,.24)",
+  minHeight: "32px",
+  background: "rgba(148,163,184,.22)",
 };
 
 const conteudo = {
-  background: "rgba(2,6,23,.32)",
-  border: "1px solid rgba(148,163,184,.2)",
-  borderRadius: "8px",
-  padding: "10px",
+  background: "rgba(2,6,23,.28)",
+  border: "1px solid rgba(148,163,184,.16)",
+  borderRadius: "12px",
+  padding: "12px",
   marginBottom: "10px",
 };
 
@@ -152,9 +182,15 @@ const cabecalho = {
   alignItems: "center",
 };
 
+const tipoTitulo = {
+  color: "var(--sg-text-primary)",
+  fontSize: "13px",
+};
+
 const dataTexto = {
   color: "#94a3b8",
   fontSize: "11px",
+  whiteSpace: "nowrap" as const,
 };
 
 const acaoTexto = {
@@ -166,4 +202,5 @@ const acaoTexto = {
 
 const vazio = {
   color: "#fecaca",
+  margin: 0,
 };
