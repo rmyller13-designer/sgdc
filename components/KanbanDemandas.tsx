@@ -1,7 +1,7 @@
 ﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DragDropContext,
@@ -92,6 +92,19 @@ export default function KanbanDemandas({
 
     return passaTexto && passaSetor && passaResponsavel && passaPrioridade;
   });
+
+  const chipsAtivos = useMemo(() => {
+    const chips: string[] = [];
+    if (filtroTexto.trim()) chips.push(`Busca: ${filtroTexto.trim()}`);
+    if (filtroSetor) chips.push(`Setor: ${formatarSetorExibicao(filtroSetor)}`);
+    if (filtroResponsavel) {
+      chips.push(`Responsável: ${corrigirTextoExibicao(filtroResponsavel)}`);
+    }
+    if (filtroPrioridade) {
+      chips.push(`Prioridade: ${formatarTituloHumano(filtroPrioridade)}`);
+    }
+    return chips;
+  }, [filtroPrioridade, filtroResponsavel, filtroSetor, filtroTexto]);
 
   function limparFiltros() {
     setFiltroTexto("");
@@ -197,98 +210,128 @@ export default function KanbanDemandas({
 
   return (
     <div style={raiz}>
-      <div style={toolbar}>
-        <div style={buscaWrap}>
-          <span style={toolbarIcon}>Q</span>
-          <input
-            type="text"
-            placeholder="Pesquisar"
-            value={filtroTexto}
-            onChange={(e) => setFiltroTexto(e.target.value)}
-            style={campoBuscaCompacto}
-          />
+      <div style={boardShell}>
+        <div style={boardHeader}>
+          <div style={boardTitleWrap}>
+            <span style={boardEyebrow}>Quadro Kanban</span>
+            <h2 style={boardTitle}>Fluxo de produção</h2>
+          </div>
+
+          <div style={boardSummary}>
+            <span style={boardSummaryChip}>
+              {listaFiltrada.length} demanda{listaFiltrada.length === 1 ? "" : "s"}
+            </span>
+            <span style={boardSummaryChip}>
+              {filtrosAtivos} filtro{filtrosAtivos === 1 ? "" : "s"} ativo
+              {filtrosAtivos === 1 ? "" : "s"}
+            </span>
+          </div>
         </div>
 
-        <div style={controlesWrap}>
-          <label style={filtroChip}>
-            <span style={chipLabel}>Setor</span>
-            <select
-              value={filtroSetor}
-              onChange={(e) => setFiltroSetor(e.target.value)}
-              style={selectCompacto}
-            >
-              <option value="" style={optionCompacto}>
-                Todos
-              </option>
-                  {setores.map((setor) => (
-                    <option key={setor} value={setor} style={optionCompacto}>
-                      {formatarSetorExibicao(setor)}
-                    </option>
-                  ))}
-            </select>
-          </label>
+        <div style={toolbar}>
+          <div style={buscaWrap}>
+            <span style={toolbarIcon}>Q</span>
+            <input
+              type="text"
+              placeholder="Pesquisar título, descrição, responsável ou etiqueta"
+              value={filtroTexto}
+              onChange={(e) => setFiltroTexto(e.target.value)}
+              style={campoBuscaCompacto}
+            />
+          </div>
 
-          <label style={filtroChip}>
-            <span style={chipLabel}>Responsável</span>
-            <select
-              value={filtroResponsavel}
-              onChange={(e) => setFiltroResponsavel(e.target.value)}
-              style={selectCompacto}
-            >
-              <option value="" style={optionCompacto}>
-                Todos
-              </option>
-                  {responsaveis.map((responsavel) => (
-                    <option
-                      key={responsavel}
-                      value={responsavel}
-                      style={optionCompacto}
-                    >
-                      {corrigirTextoExibicao(responsavel)}
-                    </option>
-                  ))}
-            </select>
-          </label>
-
-          <label style={filtroChip}>
-            <span style={chipLabel}>Prioridade</span>
-            <select
-              value={filtroPrioridade}
-              onChange={(e) => setFiltroPrioridade(e.target.value)}
-              style={selectCompacto}
-            >
-              <option value="" style={optionCompacto}>
-                Todas
-              </option>
-              {prioridades.map((prioridade) => (
-                <option
-                  key={prioridade}
-                  value={prioridade}
-                  style={optionCompacto}
-                >
-                  {prioridade}
+          <div style={controlesWrap}>
+            <label style={filtroChip}>
+              <span style={chipLabel}>Setor</span>
+              <select
+                value={filtroSetor}
+                onChange={(e) => setFiltroSetor(e.target.value)}
+                style={selectCompacto}
+              >
+                <option value="" style={optionCompacto}>
+                  Todos
                 </option>
-              ))}
-            </select>
-          </label>
+                {setores.map((setor) => (
+                  <option key={setor} value={setor} style={optionCompacto}>
+                    {formatarSetorExibicao(setor)}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <button
-            type="button"
-            onClick={limparFiltros}
-            style={{
-              ...botaoLimpar,
-              ...(filtrosAtivos > 0 ? botaoLimparAtivo : null),
-            }}
-          >
-            Limpar{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
-          </button>
+            <label style={filtroChip}>
+              <span style={chipLabel}>Responsável</span>
+              <select
+                value={filtroResponsavel}
+                onChange={(e) => setFiltroResponsavel(e.target.value)}
+                style={selectCompacto}
+              >
+                <option value="" style={optionCompacto}>
+                  Todos
+                </option>
+                {responsaveis.map((responsavel) => (
+                  <option
+                    key={responsavel}
+                    value={responsavel}
+                    style={optionCompacto}
+                  >
+                    {corrigirTextoExibicao(responsavel)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={filtroChip}>
+              <span style={chipLabel}>Prioridade</span>
+              <select
+                value={filtroPrioridade}
+                onChange={(e) => setFiltroPrioridade(e.target.value)}
+                style={selectCompacto}
+              >
+                <option value="" style={optionCompacto}>
+                  Todas
+                </option>
+                {prioridades.map((prioridade) => (
+                  <option
+                    key={prioridade}
+                    value={prioridade}
+                    style={optionCompacto}
+                  >
+                    {formatarTituloHumano(prioridade)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={limparFiltros}
+              className="sg-interactive sg-pressable"
+              style={{
+                ...botaoLimpar,
+                ...(filtrosAtivos > 0 ? botaoLimparAtivo : null),
+              }}
+            >
+              Limpar{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
+            </button>
+          </div>
         </div>
-      </div>
-      <div style={quadroArea}>
-        <DragDropContext onDragEnd={aoArrastar}>
-          <div className="kanban-scroll" style={kanbanViewport}>
-            <div style={kanbanTrack}>
-              {STATUS.map((status) => {
+
+        {chipsAtivos.length > 0 ? (
+          <div style={chipsAtivosWrap}>
+            {chipsAtivos.map((chip) => (
+              <span key={chip} style={chipAtivo}>
+                {chip}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div style={quadroArea}>
+          <DragDropContext onDragEnd={aoArrastar}>
+            <div className="kanban-scroll" style={kanbanViewport}>
+              <div style={kanbanTrack}>
+                {STATUS.map((status) => {
                 const demandasDaColuna = listaFiltrada.filter(
                   (demanda) => demanda.status === status.nome
                 );
@@ -374,18 +417,20 @@ export default function KanbanDemandas({
                                       <a
                                         href={`/demandas/${demanda.id}`}
                                         style={botaoAcao}
+                                        className="sg-interactive sg-pressable"
                                         title="Abrir demanda"
                                         onClick={(event) =>
                                           event.stopPropagation()
                                         }
                                       >
-                                        +
+                                        <ActionIcon kind="open" />
                                       </a>
 
                                       <button
                                         type="button"
                                         title="Ações"
                                         aria-label={`Ações da demanda #${demanda.id}`}
+                                        className="sg-interactive sg-pressable"
                                         onClick={(event) => {
                                           event.preventDefault();
                                           event.stopPropagation();
@@ -393,7 +438,7 @@ export default function KanbanDemandas({
                                         }}
                                         style={botaoAcao}
                                       >
-                                        ...
+                                        <ActionIcon kind="menu" />
                                       </button>
 
                                       {menuAbertoId === demanda.id && (
@@ -429,6 +474,7 @@ export default function KanbanDemandas({
                                     <a
                                       href={`/demandas/${demanda.id}`}
                                       style={cardLink}
+                                      className="sg-interactive sg-kanban-card"
                                       onClick={() => setMenuAbertoId(null)}
                                     >
                                       {demanda.preview_image_url ? (
@@ -471,63 +517,50 @@ export default function KanbanDemandas({
                                           {corrigirTextoExibicao(demanda.titulo) || "Sem título"}
                                         </strong>
 
-                                        <div style={resumoLinha}>
-                                          <span style={resumoItem}>
-                                            <span
-                                              style={{
-                                                ...responsavelDot,
-                                                background: possuiResponsavel
-                                                  ? "#22c55e"
-                                                  : "#94a3b8",
-                                                boxShadow: possuiResponsavel
-                                                  ? "0 0 0 3px rgba(34, 197, 94, 0.16)"
-                                                  : "0 0 0 3px rgba(148, 163, 184, 0.12)",
-                                              }}
-                                            />
-                                            <strong style={metaValor}>
-                                              {corrigirTextoExibicao(responsavel)}
-                                            </strong>
-                                          </span>
+                                        <div style={infoGrid}>
+                                          <div style={infoBloco}>
+                                            <span style={infoLabel}>Responsável</span>
+                                            <span style={infoValorWrap}>
+                                              <span
+                                                style={{
+                                                  ...responsavelDot,
+                                                  background: possuiResponsavel
+                                                    ? "#22c55e"
+                                                    : "#94a3b8",
+                                                  boxShadow: possuiResponsavel
+                                                    ? "0 0 0 3px rgba(34, 197, 94, 0.16)"
+                                                    : "0 0 0 3px rgba(148, 163, 184, 0.12)",
+                                                }}
+                                              />
+                                              <strong style={metaValor}>
+                                                {corrigirTextoExibicao(responsavel)}
+                                              </strong>
+                                            </span>
+                                          </div>
 
-                                          <span style={resumoItem}>
-                                            <span style={resumoIcon}>@</span>
+                                          <div style={infoBloco}>
+                                            <span style={infoLabel}>Data final</span>
                                             <span style={resumoTexto}>
                                               {demanda.data_entrega
-                                                ? formatarData(
-                                                    demanda.data_entrega
-                                                  )
+                                                ? formatarData(demanda.data_entrega)
                                                 : "Sem prazo"}
                                             </span>
-                                          </span>
+                                          </div>
                                         </div>
 
                                         <div style={rodapeCard}>
                                           <div style={rodapeMeta}>
                                             <span style={metaChip}>
                                               <span style={metaIcon}>#</span>
-                                              <span style={metaChipText}>
-                                                {etiqueta}
-                                              </span>
+                                              <span style={metaChipText}>{etiqueta}</span>
                                             </span>
 
                                             <span style={metaChip}>
-                                              <span style={metaIcon}>@</span>
-                                              <span style={metaChipText}>
-                                                {demanda.data_entrega
-                                                  ? formatarData(
-                                                      demanda.data_entrega
-                                                    )
-                                                  : "Sem prazo"}
+                                              <span style={metaIcon}>
+                                                <ActionIcon kind="attachment" compact />
                                               </span>
-                                            </span>
-
-                                            <span style={metaChip}>
-                                              <span style={metaIcon}>[]</span>
                                               <span style={metaChipText}>
-                                                {anexosCount} anexo
-                                                {anexosCount === 1
-                                                  ? ""
-                                                  : "s"}
+                                                {anexosCount} anexo{anexosCount === 1 ? "" : "s"}
                                               </span>
                                             </span>
                                           </div>
@@ -556,11 +589,84 @@ export default function KanbanDemandas({
                   </section>
                 );
               })}
+              </div>
             </div>
-          </div>
-        </DragDropContext>
+          </DragDropContext>
+        </div>
       </div>
     </div>
+  );
+}
+
+function ActionIcon({
+  kind,
+  compact = false,
+}: {
+  kind: "open" | "menu" | "attachment";
+  compact?: boolean;
+}) {
+  const size = compact ? 10 : 12;
+
+  if (kind === "menu") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle cx="5" cy="12" r="1.8" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+        <circle cx="19" cy="12" r="1.8" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (kind === "attachment") {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M8.5 12.5 14 7a3 3 0 1 1 4.2 4.2l-7.4 7.4a5 5 0 1 1-7.1-7.1l8-8"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M8 8h8v8M8 16l8-8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 6h5M6 6v5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.65"
+      />
+    </svg>
   );
 }
 
@@ -789,13 +895,70 @@ const raiz = {
   height: "100%",
 };
 
+const boardShell = {
+  display: "grid",
+  gap: "10px",
+  flex: 1,
+  minHeight: 0,
+  background: "linear-gradient(180deg, rgba(10, 10, 12, 0.32), rgba(15, 23, 42, 0.18))",
+  border: "1px solid var(--sg-border-strong)",
+  borderRadius: "18px",
+  padding: "14px",
+  boxShadow: "var(--sg-shadow-card)",
+};
+
+const boardHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "end",
+  gap: "14px",
+  flexWrap: "wrap" as const,
+};
+
+const boardTitleWrap = {
+  display: "grid",
+  gap: "4px",
+};
+
+const boardEyebrow = {
+  color: "var(--sg-text-subtle)",
+  fontSize: "11px",
+  fontWeight: 700,
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.06em",
+};
+
+const boardTitle = {
+  margin: 0,
+  fontSize: "22px",
+  lineHeight: 1.1,
+};
+
+const boardSummary = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const boardSummaryChip = {
+  display: "inline-flex",
+  alignItems: "center",
+  height: "30px",
+  padding: "0 12px",
+  borderRadius: "999px",
+  background: "var(--sg-button-neutral-bg)",
+  border: "1px solid var(--sg-border-soft)",
+  color: "var(--sg-text-muted)",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
 const toolbar = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "8px",
   flexWrap: "wrap" as const,
-  marginBottom: "8px",
 };
 
 const buscaWrap = {
@@ -830,7 +993,7 @@ const campoBuscaCompacto = {
   border: "none",
   color: "var(--sg-text-primary)",
   outline: "none",
-  width: "180px",
+  width: "300px",
   fontSize: "12px",
 };
 
@@ -890,6 +1053,24 @@ const quadroArea = {
   overflow: "hidden" as const,
 };
 
+const chipsAtivosWrap = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const chipAtivo = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "6px 10px",
+  borderRadius: "999px",
+  background: "rgba(139, 92, 246, 0.12)",
+  border: "1px solid rgba(196, 181, 253, 0.24)",
+  color: "#ddd6fe",
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
 const kanbanViewport = {
   flex: 1,
   width: "100%",
@@ -909,7 +1090,7 @@ const kanbanTrack = {
 };
 
 const coluna = {
-  flex: "0 0 248px",
+  flex: "0 0 262px",
   background: "var(--sg-panel-bg-soft)",
   border: "1px solid var(--sg-border-soft)",
   borderRadius: "14px",
@@ -983,7 +1164,7 @@ const card = {
   borderRadius: "12px",
   color: "var(--sg-text-primary)",
   textDecoration: "none",
-  boxShadow: "0 6px 14px rgba(0,0,0,0.2)",
+  boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
   cursor: "grab",
   overflow: "hidden",
 };
@@ -1005,15 +1186,15 @@ const acoesTopo = {
 };
 
 const botaoAcao = {
-  width: "26px",
-  height: "26px",
+  width: "22px",
+  height: "22px",
   borderRadius: "999px",
   border: "1px solid var(--sg-border-soft)",
   background: "var(--sg-panel-bg-strong)",
   color: "var(--sg-text-primary)",
   cursor: "pointer",
-  fontSize: "12px",
-  lineHeight: "12px",
+  fontSize: "11px",
+  lineHeight: "11px",
   fontWeight: 800,
   display: "grid",
   placeItems: "center",
@@ -1056,7 +1237,7 @@ const itemMenuBotao = {
 
 const previewWrap = {
   width: "100%",
-  height: "74px",
+  height: "58px",
   background: "var(--sg-panel-bg-strong)",
   overflow: "hidden",
   borderBottom: "1px solid var(--sg-border-soft)",
@@ -1071,7 +1252,7 @@ const previewImage = {
 
 const previewPlaceholder = {
   width: "100%",
-  height: "74px",
+  height: "58px",
   background: "var(--sg-panel-bg)",
   display: "grid",
   placeItems: "center",
@@ -1088,7 +1269,7 @@ const previewPlaceholderText = {
 };
 
 const cardBody = {
-  padding: "9px 10px 10px",
+  padding: "9px 10px 9px",
   display: "grid",
   gap: "7px",
 };
@@ -1123,18 +1304,30 @@ const titulo = {
   overflowWrap: "anywhere" as const,
 };
 
-const resumoLinha = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "8px",
-  flexWrap: "wrap" as const,
+const infoGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "7px",
 };
 
-const resumoItem = {
+const infoBloco = {
+  display: "grid",
+  gap: "4px",
+  minWidth: 0,
+};
+
+const infoLabel = {
+  color: "var(--sg-text-subtle)",
+  fontSize: "10px",
+  fontWeight: 700,
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+};
+
+const infoValorWrap = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "5px",
+  gap: "6px",
   minWidth: 0,
 };
 
@@ -1146,28 +1339,24 @@ const responsavelDot = {
   flexShrink: 0,
 };
 
-const resumoIcon = {
-  color: "var(--sg-text-subtle)",
-  fontSize: "10px",
-  lineHeight: "10px",
-  flexShrink: 0,
-};
-
 const resumoTexto = {
-  color: "var(--sg-text-muted)",
+  color: "var(--sg-text-primary)",
   fontSize: "11px",
-  fontWeight: 600,
+  fontWeight: 700,
 };
 
 const metaValor = {
   color: "var(--sg-text-primary)",
   fontSize: "11px",
+  whiteSpace: "nowrap" as const,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const rodapeCard = {
   display: "grid",
   gap: "6px",
-  paddingTop: "1px",
+  paddingTop: "2px",
 };
 
 const rodapeMeta = {
@@ -1180,7 +1369,7 @@ const rodapeMeta = {
 const metaChip = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "4px",
+  gap: "5px",
   background: "var(--sg-card-bg-soft)",
   border: "1px solid var(--sg-border-soft)",
   color: "var(--sg-text-muted)",
@@ -1191,8 +1380,11 @@ const metaChip = {
 };
 
 const metaIcon = {
-  fontSize: "10px",
-  lineHeight: "10px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "10px",
+  height: "10px",
   opacity: 0.82,
 };
 

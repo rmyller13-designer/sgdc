@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   corrigirTextoExibicao,
   formatarSetorExibicao,
@@ -71,108 +72,231 @@ export default function DashboardClient({
   cargaResponsaveis: Item[];
   setoresTop: Item[];
 }) {
+  const totalCriticos =
+    alertas.atrasadas + alertas.hoje + alertas.semResponsavel + alertas.emAprovacao;
+
+  const filaDoDia = [
+    {
+      titulo: "Resolver atrasos",
+      valor: alertas.atrasadas,
+      descricao: "Demandas vencidas que precisam de resposta rápida.",
+      tom: "critico" as const,
+    },
+    {
+      titulo: "Vence hoje",
+      valor: alertas.hoje,
+      descricao: "Entregas com prazo do dia pedindo execução ou retorno.",
+      tom: "urgente" as const,
+    },
+    {
+      titulo: "Aprovação pendente",
+      valor: alertas.emAprovacao,
+      descricao: "Peças aguardando validação antes de seguir no fluxo.",
+      tom: "roxo" as const,
+    },
+    {
+      titulo: "Prontas para publicar",
+      valor: alertas.prontasPublicar,
+      descricao: "Conteúdos que já podem avançar para publicação.",
+      tom: "verde" as const,
+    },
+  ];
+
   return (
     <div style={page}>
       <section style={hero}>
-        <div>
-          <p style={eyebrow}>Central operacional</p>
-          <h1 style={title}>Visão geral da ASCOM</h1>
+        <div style={heroCopy}>
+          <p style={eyebrow}>Home operacional</p>
+          <h1 style={title}>Central de comando da ASCOM</h1>
           <p style={subtitle}>
-            Acompanhe prioridades, demandas que exigem ação e os últimos movimentos da equipe.
+            Uma visão viva do fluxo: prioridades do dia, gargalos, últimas movimentações
+            e atalhos para a equipe agir rápido.
           </p>
+
+          <div style={heroSignals}>
+            <SignalChip
+              label="Atenção imediata"
+              value={totalCriticos}
+              tone="critico"
+            />
+            <SignalChip
+              label="Em andamento"
+              value={resumo.abertas}
+              tone="neutro"
+            />
+            <SignalChip
+              label="Fechadas"
+              value={resumo.concluidas}
+              tone="verde"
+            />
+          </div>
         </div>
 
-        <div style={actions}>
+        <div style={heroActions}>
           <Link href="/nova-demanda" style={primaryAction}>
             Nova demanda
           </Link>
           <Link href="/demandas" style={secondaryAction}>
-            Abrir Kanban
+            Abrir quadro
           </Link>
           <Link href="/relatorios-quantitativos" style={ghostAction}>
-            Indicadores
+            Ver indicadores
           </Link>
         </div>
       </section>
 
-      <section style={summaryGrid}>
-        <ResumoCard titulo="Demandas totais" valor={resumo.total} destaque />
-        <ResumoCard titulo="Abertas" valor={resumo.abertas} />
-        <ResumoCard titulo="Concluídas" valor={resumo.concluidas} />
-        <ResumoCard titulo="Canceladas" valor={resumo.canceladas} />
+      <section style={snapshotGrid}>
+        <SnapshotCard
+          titulo="Total cadastrado"
+          valor={resumo.total}
+          detalhe="Base geral de demandas registradas no sistema."
+          destaque
+        />
+        <SnapshotCard
+          titulo="Fluxo ativo"
+          valor={resumo.abertas}
+          detalhe="Tudo que ainda está em produção, aprovação ou publicação."
+        />
+        <SnapshotCard
+          titulo="Concluídas"
+          valor={resumo.concluidas}
+          detalhe="Entregas já finalizadas e fechadas pela equipe."
+        />
+        <SnapshotCard
+          titulo="Canceladas"
+          valor={resumo.canceladas}
+          detalhe="Solicitações encerradas sem execução."
+        />
       </section>
 
-      <section style={alertsGrid}>
-        <AlertaCard titulo="Atrasadas" valor={alertas.atrasadas} tom="critico" />
-        <AlertaCard titulo="Vencem hoje" valor={alertas.hoje} tom="urgente" />
-        <AlertaCard titulo="Próximas 72h" valor={alertas.proximas} tom="atencao" />
-        <AlertaCard titulo="Sem responsável" valor={alertas.semResponsavel} tom="neutro" />
-        <AlertaCard titulo="Em aprovação" valor={alertas.emAprovacao} tom="roxo" />
-        <AlertaCard titulo="Prontas para publicar" valor={alertas.prontasPublicar} tom="verde" />
-      </section>
-
-      <section style={mainGrid}>
+      <section style={commandGrid}>
         <Panel
-          titulo="Demandas que exigem ação"
-          subtitulo="Recortes operacionais para a equipe atacar primeiro."
+          titulo="Painel do dia"
+          subtitulo="O que merece atenção agora, sem precisar garimpar o sistema."
         >
-          <div style={attentionGrid}>
-            <ListaDemandas
+          <div style={focusGrid}>
+            {filaDoDia.map((item) => (
+              <FocusCard
+                key={item.titulo}
+                titulo={item.titulo}
+                valor={item.valor}
+                descricao={item.descricao}
+                tom={item.tom}
+              />
+            ))}
+          </div>
+        </Panel>
+
+        <Panel
+          titulo="Atalhos rápidos"
+          subtitulo="Entradas úteis para não perder tempo no fluxo."
+        >
+          <div style={shortcutGrid}>
+            <Shortcut
+              href="/nova-demanda"
+              eyebrow="Solicitação"
+              titulo="Cadastrar uma nova demanda"
+              descricao="Abrir o formulário completo com anexos, briefing e memória editorial."
+            />
+            <Shortcut
+              href="/demandas"
+              eyebrow="Produção"
+              titulo="Trabalhar no quadro Kanban"
+              descricao="Mover cards, revisar responsáveis e acompanhar prazos sem sair da operação."
+            />
+            <Shortcut
+              href="/calendario-editorial"
+              eyebrow="Agenda"
+              titulo="Visualizar o calendário editorial"
+              descricao="Enxergar distribuição por datas e antecipar entregas da semana."
+            />
+            <Shortcut
+              href="/clipping"
+              eyebrow="Imagem"
+              titulo="Monitorar clipping e repercussão"
+              descricao="Acompanhar produção ASCOM, clipping externo e leitura executiva."
+            />
+          </div>
+        </Panel>
+      </section>
+
+      <section style={contentGrid}>
+        <Panel
+          titulo="Listas de ação"
+          subtitulo="Recortes práticos para a equipe atacar primeiro."
+          destaque
+        >
+          <div style={laneGrid}>
+            <DemandLane
               titulo="Atrasadas"
-              demandas={demandasAtrasadas}
-              vazio="Nenhuma demanda atrasada."
+              badge={demandasAtrasadas.length}
               tom="critico"
+              demandas={demandasAtrasadas}
+              emptyText="Nenhuma demanda atrasada."
             />
-            <ListaDemandas
+            <DemandLane
               titulo="Sem responsável"
-              demandas={demandasSemResponsavel}
-              vazio="Todas as demandas já têm responsável."
+              badge={demandasSemResponsavel.length}
               tom="neutro"
+              demandas={demandasSemResponsavel}
+              emptyText="Todas as demandas já têm responsável."
             />
-            <ListaDemandas
+            <DemandLane
               titulo="Em aprovação"
-              demandas={demandasEmAprovacao}
-              vazio="Nenhuma demanda aguardando aprovação."
+              badge={demandasEmAprovacao.length}
               tom="roxo"
+              demandas={demandasEmAprovacao}
+              emptyText="Nenhuma demanda aguardando aprovação."
             />
-            <ListaDemandas
+            <DemandLane
               titulo="Prontas para publicar"
-              demandas={demandasProntas}
-              vazio="Nenhuma demanda pronta para publicar."
+              badge={demandasProntas.length}
               tom="verde"
+              demandas={demandasProntas}
+              emptyText="Nada pronto para publicar no momento."
             />
           </div>
         </Panel>
 
-        <Panel titulo="Atalhos rápidos" subtitulo="Acessos diretos para o fluxo diário da equipe.">
-          <div style={shortcutList}>
-            <Shortcut href="/nova-demanda" titulo="Cadastrar solicitação" descricao="Abrir uma nova demanda com anexos e descrição completa." />
-            <Shortcut href="/demandas" titulo="Gerenciar no Kanban" descricao="Mover cards, revisar responsáveis e acompanhar prazos." />
-            <Shortcut href="/calendario-editorial" titulo="Ver calendário" descricao="Consultar a agenda editorial e a distribuição das entregas." />
-            <Shortcut href="/relatorios" titulo="Consultar relatórios" descricao="Abrir visão tabular para conferência e exportação." />
-          </div>
-        </Panel>
+        <div style={stackColumn}>
+          <Panel
+            titulo="Últimas demandas"
+            subtitulo="As entradas mais recentes no SGDC."
+          >
+            <CompactDemandList
+              demandas={ultimasDemandas}
+              emptyText="Nenhuma demanda cadastrada ainda."
+            />
+          </Panel>
 
-        <Panel titulo="Últimas demandas criadas" subtitulo="As entradas mais recentes no sistema.">
-          <ListaDemandasCompacta demandas={ultimasDemandas} vazio="Nenhuma demanda cadastrada ainda." />
-        </Panel>
+          <Panel
+            titulo="Últimas movimentações"
+            subtitulo="O que aconteceu agora há pouco no fluxo."
+          >
+            <Timeline itens={atividadesRecentes} />
+          </Panel>
+        </div>
+      </section>
 
-        <Panel titulo="Últimas movimentações" subtitulo="O que acabou de acontecer na operação.">
-          <TimelineAtividades itens={atividadesRecentes} />
-        </Panel>
-
-        <Panel titulo="Carga por responsável" subtitulo="Quem está com mais demandas abertas agora.">
+      <section style={rankingGrid}>
+        <Panel
+          titulo="Carga por responsável"
+          subtitulo="Quem está segurando mais demandas abertas neste momento."
+        >
           <RankingOperacional
             itens={cargaResponsaveis}
-            vazio="Nenhuma demanda aberta no momento."
+            emptyText="Nenhuma demanda aberta no momento."
             cor="linear-gradient(90deg, #8b5cf6, #c084fc)"
           />
         </Panel>
 
-        <Panel titulo="Setores mais demandantes" subtitulo="Origem das solicitações mais frequentes.">
+        <Panel
+          titulo="Setores mais demandantes"
+          subtitulo="Origem das solicitações com maior volume."
+        >
           <RankingOperacional
             itens={setoresTop}
-            vazio="Nenhum setor com demandas registradas."
+            emptyText="Nenhum setor com demandas registradas."
             cor="linear-gradient(90deg, #22c55e, #86efac)"
           />
         </Panel>
@@ -181,47 +305,82 @@ export default function DashboardClient({
   );
 }
 
-function ResumoCard({
+function SnapshotCard({
   titulo,
   valor,
+  detalhe,
   destaque,
 }: {
   titulo: string;
   valor: number;
+  detalhe: string;
   destaque?: boolean;
 }) {
   return (
-    <div style={destaque ? summaryCardMain : summaryCard}>
-      <p style={summaryTitle}>{titulo}</p>
-      <strong style={summaryValue}>{valor}</strong>
+    <div
+      style={destaque ? snapshotCardMain : snapshotCard}
+      className="sg-hover-lift"
+    >
+      <span style={snapshotLabel}>{titulo}</span>
+      <strong style={snapshotValue}>{valor}</strong>
+      <p style={snapshotDetail}>{detalhe}</p>
     </div>
   );
 }
 
-function AlertaCard({
+function SignalChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: keyof typeof signalThemes;
+}) {
+  const theme = signalThemes[tone];
+
+  return (
+    <span
+      style={{
+        ...signalChip,
+        background: theme.background,
+        borderColor: theme.border,
+        color: theme.color,
+      }}
+    >
+      <span style={{ ...signalDot, background: theme.dot }} />
+      {label}: {value}
+    </span>
+  );
+}
+
+function FocusCard({
   titulo,
   valor,
+  descricao,
   tom,
 }: {
   titulo: string;
   valor: number;
-  tom: keyof typeof alertThemes;
+  descricao: string;
+  tom: keyof typeof signalThemes;
 }) {
-  const tema = alertThemes[tom];
+  const theme = signalThemes[tom];
 
   return (
     <div
       style={{
-        ...alertCard,
-        borderColor: tema.border,
-        background: tema.background,
+        ...focusCard,
+        borderColor: theme.border,
+        background: theme.panel,
       }}
+      className="sg-hover-lift"
     >
-      <div style={alertHeader}>
-        <span style={{ ...alertDot, background: tema.dot }} />
-        <span style={alertTitle}>{titulo}</span>
+      <div style={focusHeader}>
+        <span style={focusTitle}>{titulo}</span>
+        <strong style={{ ...focusValue, color: theme.color }}>{valor}</strong>
       </div>
-      <strong style={alertValue}>{valor}</strong>
+      <p style={focusDescription}>{descricao}</p>
     </div>
   );
 }
@@ -230,13 +389,15 @@ function Panel({
   titulo,
   subtitulo,
   children,
+  destaque,
 }: {
   titulo: string;
   subtitulo?: string;
-  children: React.ReactNode;
+  children: ReactNode;
+  destaque?: boolean;
 }) {
   return (
-    <section style={panel}>
+    <section style={destaque ? panelHighlight : panel}>
       <div style={panelHeader}>
         <h2 style={panelTitle}>{titulo}</h2>
         {subtitulo ? <p style={panelSubtitle}>{subtitulo}</p> : null}
@@ -246,42 +407,83 @@ function Panel({
   );
 }
 
-function ListaDemandas({
+function Shortcut({
+  href,
+  eyebrow,
   titulo,
-  demandas,
-  vazio,
+  descricao,
+}: {
+  href: string;
+  eyebrow: string;
+  titulo: string;
+  descricao: string;
+}) {
+  return (
+    <Link href={href} style={shortcutCard} className="sg-interactive sg-card-lift">
+      <span style={shortcutEyebrow}>{eyebrow}</span>
+      <strong style={shortcutTitle}>{titulo}</strong>
+      <p style={shortcutDescription}>{descricao}</p>
+    </Link>
+  );
+}
+
+function DemandLane({
+  titulo,
+  badge,
   tom,
+  demandas,
+  emptyText,
 }: {
   titulo: string;
+  badge: number;
+  tom: keyof typeof signalThemes;
   demandas: DemandaResumo[];
-  vazio: string;
-  tom: keyof typeof alertThemes;
+  emptyText: string;
 }) {
-  const tema = alertThemes[tom];
+  const theme = signalThemes[tom];
 
   return (
-    <div style={listBlock}>
-      <div style={listHeader}>
-        <span style={{ ...listPill, background: tema.pill }}>{titulo}</span>
-        <span style={listCount}>{demandas.length}</span>
+    <div style={lane}>
+      <div style={laneHeader}>
+        <span
+          style={{
+            ...lanePill,
+            background: theme.background,
+            borderColor: theme.border,
+            color: theme.color,
+          }}
+        >
+          <span style={{ ...signalDot, background: theme.dot }} />
+          {titulo}
+        </span>
+        <span style={laneCount}>{badge}</span>
       </div>
 
       {demandas.length === 0 ? (
-        <p style={emptyText}>{vazio}</p>
+        <p style={emptyTextStyle}>{emptyText}</p>
       ) : (
-        <div style={listStack}>
+        <div style={laneList}>
           {demandas.map((demanda) => (
-            <Link key={demanda.id} href={`/demandas/${demanda.id}`} style={demandCard}>
-              <div style={demandTop}>
-                <span style={demandId}>#{demanda.id}</span>
-                <span style={priorityBadge}>{formatarTituloHumano(demanda.prioridade || "Normal")}</span>
+            <Link
+              key={demanda.id}
+              href={`/demandas/${demanda.id}`}
+              style={laneCard}
+              className="sg-interactive sg-card-lift"
+            >
+              <div style={laneCardTop}>
+                <span style={laneId}>#{demanda.id}</span>
+                <span style={priorityBadge(demanda.prioridade)}>
+                  {formatarTituloHumano(demanda.prioridade || "NORMAL")}
+                </span>
               </div>
-              <strong style={demandTitle}>{corrigirTextoExibicao(demanda.titulo) || "Sem título"}</strong>
-              <div style={metaWrap}>
-                <span style={metaChip}>{formatarSetorExibicao(demanda.setor)}</span>
-                <span style={metaChip}>{formatarResponsavel(demanda.responsavel)}</span>
+              <strong style={laneCardTitle}>
+                {corrigirTextoExibicao(demanda.titulo) || "Sem título"}
+              </strong>
+              <div style={laneMetaRow}>
+                <span style={laneMetaChip}>{formatarSetorExibicao(demanda.setor)}</span>
+                <span style={laneMetaChip}>{formatarResponsavel(demanda.responsavel)}</span>
               </div>
-              <div style={metaFooter}>
+              <div style={laneFooter}>
                 <span>{formatarStatusExibicao(demanda.status)}</span>
                 <span>{formatarPrazoExibicao(demanda.data_entrega)}</span>
               </div>
@@ -293,26 +495,33 @@ function ListaDemandas({
   );
 }
 
-function ListaDemandasCompacta({
+function CompactDemandList({
   demandas,
-  vazio,
+  emptyText,
 }: {
   demandas: DemandaResumo[];
-  vazio: string;
+  emptyText: string;
 }) {
   if (demandas.length === 0) {
-    return <p style={emptyText}>{vazio}</p>;
+    return <p style={emptyTextStyle}>{emptyText}</p>;
   }
 
   return (
     <div style={compactList}>
       {demandas.map((demanda) => (
-        <Link key={demanda.id} href={`/demandas/${demanda.id}`} style={compactCard}>
-          <div style={compactHeader}>
-            <strong style={compactTitle}>{corrigirTextoExibicao(demanda.titulo) || "Sem título"}</strong>
+        <Link
+          key={demanda.id}
+          href={`/demandas/${demanda.id}`}
+          style={compactCard}
+          className="sg-interactive sg-card-lift"
+        >
+          <div style={compactTop}>
+            <strong style={compactTitle}>
+              {corrigirTextoExibicao(demanda.titulo) || "Sem título"}
+            </strong>
             <span style={compactId}>#{demanda.id}</span>
           </div>
-          <div style={compactMeta}>
+          <div style={compactFooter}>
             <span>{formatarSetorExibicao(demanda.setor)}</span>
             <span>{formatarStatusExibicao(demanda.status)}</span>
             <span>{formatarPrazoExibicao(demanda.data_entrega)}</span>
@@ -323,9 +532,9 @@ function ListaDemandasCompacta({
   );
 }
 
-function TimelineAtividades({ itens }: { itens: AtividadeResumo[] }) {
+function Timeline({ itens }: { itens: AtividadeResumo[] }) {
   if (itens.length === 0) {
-    return <p style={emptyText}>Nenhuma atividade recente encontrada.</p>;
+    return <p style={emptyTextStyle}>Nenhuma atividade recente encontrada.</p>;
   }
 
   return (
@@ -339,7 +548,11 @@ function TimelineAtividades({ itens }: { itens: AtividadeResumo[] }) {
           <div style={timelineCard}>
             <div style={timelineHeader}>
               {item.demandaId ? (
-                <Link href={`/demandas/${item.demandaId}`} style={timelineLink}>
+                <Link
+                  href={`/demandas/${item.demandaId}`}
+                  style={timelineLink}
+                  className="sg-interactive"
+                >
                   {corrigirTextoExibicao(item.demandaTitulo)}
                 </Link>
               ) : (
@@ -357,18 +570,18 @@ function TimelineAtividades({ itens }: { itens: AtividadeResumo[] }) {
 
 function RankingOperacional({
   itens,
-  vazio,
+  emptyText,
   cor,
 }: {
   itens: Item[];
-  vazio: string;
+  emptyText: string;
   cor: string;
 }) {
   const lista = itens.slice(0, 6);
   const maximo = Math.max(...lista.map((item) => item.valor), 1);
 
   if (lista.length === 0) {
-    return <p style={emptyText}>{vazio}</p>;
+    return <p style={emptyTextStyle}>{emptyText}</p>;
   }
 
   return (
@@ -396,23 +609,6 @@ function RankingOperacional({
   );
 }
 
-function Shortcut({
-  href,
-  titulo,
-  descricao,
-}: {
-  href: string;
-  titulo: string;
-  descricao: string;
-}) {
-  return (
-    <Link href={href} style={shortcutCard}>
-      <strong style={shortcutTitle}>{titulo}</strong>
-      <p style={shortcutDescription}>{descricao}</p>
-    </Link>
-  );
-}
-
 function formatarResponsavel(valor?: string | null) {
   return corrigirTextoExibicao(valor) || "Não definido";
 }
@@ -427,56 +623,97 @@ function formatarDataHora(valor: string) {
   return new Date(valor).toLocaleString("pt-BR");
 }
 
-const alertThemes = {
+function priorityBadge(prioridade?: string | null) {
+  const valor = (prioridade || "NORMAL").toUpperCase();
+
+  if (valor === "ALTA" || valor === "URGENTE") {
+    return {
+      ...priorityBase,
+      background: "rgba(239,68,68,.16)",
+      border: "1px solid rgba(248,113,113,.32)",
+      color: "#fecaca",
+    };
+  }
+
+  if (valor === "MEDIA") {
+    return {
+      ...priorityBase,
+      background: "rgba(245,158,11,.16)",
+      border: "1px solid rgba(251,191,36,.28)",
+      color: "#fde68a",
+    };
+  }
+
+  if (valor === "BAIXA") {
+    return {
+      ...priorityBase,
+      background: "rgba(34,197,94,.16)",
+      border: "1px solid rgba(74,222,128,.28)",
+      color: "#bbf7d0",
+    };
+  }
+
+  return {
+    ...priorityBase,
+    background: "rgba(59,130,246,.16)",
+    border: "1px solid rgba(147,197,253,.22)",
+    color: "#bfdbfe",
+  };
+}
+
+const signalThemes = {
   critico: {
-    background: "linear-gradient(135deg, rgba(127,29,29,.92), rgba(239,68,68,.24))",
-    border: "rgba(248,113,113,.34)",
+    background: "rgba(127,29,29,.26)",
+    border: "rgba(248,113,113,.32)",
+    color: "#fecaca",
     dot: "#ef4444",
-    pill: "rgba(127,29,29,.72)",
+    panel: "linear-gradient(135deg, rgba(127,29,29,.24), rgba(15,23,42,.58))",
   },
   urgente: {
-    background: "linear-gradient(135deg, rgba(120,53,15,.92), rgba(251,146,60,.2))",
-    border: "rgba(251,146,60,.34)",
+    background: "rgba(120,53,15,.22)",
+    border: "rgba(251,146,60,.32)",
+    color: "#fdba74",
     dot: "#fb923c",
-    pill: "rgba(120,53,15,.72)",
-  },
-  atencao: {
-    background: "linear-gradient(135deg, rgba(113,63,18,.92), rgba(250,204,21,.16))",
-    border: "rgba(250,204,21,.28)",
-    dot: "#facc15",
-    pill: "rgba(113,63,18,.72)",
-  },
-  neutro: {
-    background: "linear-gradient(135deg, rgba(30,41,59,.92), rgba(148,163,184,.12))",
-    border: "rgba(148,163,184,.22)",
-    dot: "#94a3b8",
-    pill: "rgba(51,65,85,.72)",
+    panel: "linear-gradient(135deg, rgba(120,53,15,.22), rgba(15,23,42,.58))",
   },
   roxo: {
-    background: "linear-gradient(135deg, rgba(88,28,135,.92), rgba(168,85,247,.14))",
-    border: "rgba(192,132,252,.28)",
-    dot: "#c084fc",
-    pill: "rgba(88,28,135,.72)",
+    background: "rgba(88,28,135,.22)",
+    border: "rgba(196,181,253,.3)",
+    color: "#ddd6fe",
+    dot: "#a855f7",
+    panel: "linear-gradient(135deg, rgba(88,28,135,.2), rgba(15,23,42,.58))",
   },
   verde: {
-    background: "linear-gradient(135deg, rgba(20,83,45,.92), rgba(34,197,94,.14))",
+    background: "rgba(20,83,45,.24)",
     border: "rgba(74,222,128,.28)",
-    dot: "#4ade80",
-    pill: "rgba(20,83,45,.72)",
+    color: "#bbf7d0",
+    dot: "#22c55e",
+    panel: "linear-gradient(135deg, rgba(20,83,45,.2), rgba(15,23,42,.58))",
+  },
+  neutro: {
+    background: "rgba(51,65,85,.26)",
+    border: "rgba(148,163,184,.24)",
+    color: "#e2e8f0",
+    dot: "#94a3b8",
+    panel: "linear-gradient(135deg, rgba(51,65,85,.18), rgba(15,23,42,.58))",
   },
 } as const;
 
 const page = {
   display: "grid",
-  gap: "16px",
+  gap: "18px",
 };
 
 const hero = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.3fr) auto",
   gap: "18px",
-  flexWrap: "wrap" as const,
+  alignItems: "end",
+};
+
+const heroCopy = {
+  display: "grid",
+  gap: "10px",
 };
 
 const eyebrow = {
@@ -489,27 +726,53 @@ const eyebrow = {
 };
 
 const title = {
-  margin: "8px 0",
-  fontSize: "30px",
+  margin: 0,
+  fontSize: "34px",
+  lineHeight: 1.05,
 };
 
 const subtitle = {
   margin: 0,
   color: "var(--sg-text-secondary)",
-  maxWidth: "720px",
+  maxWidth: "780px",
   lineHeight: "22px",
 };
 
-const actions = {
+const heroSignals = {
   display: "flex",
   gap: "10px",
   flexWrap: "wrap" as const,
 };
 
+const signalChip = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  border: "1px solid transparent",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const signalDot = {
+  width: "8px",
+  height: "8px",
+  borderRadius: "999px",
+  flexShrink: 0,
+};
+
+const heroActions = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+  justifyContent: "flex-end",
+};
+
 const actionBase = {
   textDecoration: "none",
-  borderRadius: "9px",
-  padding: "10px 14px",
+  borderRadius: "10px",
+  padding: "11px 15px",
   fontWeight: 700,
   border: "1px solid rgba(255,255,255,.12)",
   fontSize: "13px",
@@ -533,74 +796,62 @@ const ghostAction = {
   color: "var(--sg-text-secondary)",
 };
 
-const summaryGrid = {
+const snapshotGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(168px, 1fr))",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   gap: "12px",
 };
 
-const summaryCard = {
+const snapshotCard = {
+  display: "grid",
+  gap: "8px",
+  padding: "18px",
+  borderRadius: "16px",
   background: "var(--sg-panel-bg)",
   border: "1px solid var(--sg-border-strong)",
-  borderRadius: "12px",
-  padding: "16px",
   boxShadow: "var(--sg-shadow-card)",
 };
 
-const summaryCardMain = {
-  ...summaryCard,
-  background: "linear-gradient(135deg, rgba(220,38,38,.96), rgba(127,29,29,.96))",
+const snapshotCardMain = {
+  ...snapshotCard,
+  background:
+    "linear-gradient(135deg, rgba(15,23,42,.92), rgba(127,29,29,.38), rgba(220,38,38,.34))",
+  border: "1px solid rgba(248,113,113,.24)",
 };
 
-const summaryTitle = {
-  margin: 0,
-  marginBottom: "6px",
-  fontSize: "12px",
+const snapshotLabel = {
   color: "var(--sg-text-secondary)",
-};
-
-const summaryValue = {
-  fontSize: "30px",
-};
-
-const alertsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))",
-  gap: "10px",
-};
-
-const alertCard = {
-  borderRadius: "12px",
-  border: "1px solid transparent",
-  padding: "14px",
-  boxShadow: "0 10px 24px rgba(0,0,0,.14)",
-};
-
-const alertHeader = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  marginBottom: "8px",
-};
-
-const alertDot = {
-  width: "8px",
-  height: "8px",
-  borderRadius: "999px",
-};
-
-const alertTitle = {
   fontSize: "12px",
-  color: "var(--sg-text-primary)",
 };
 
-const alertValue = {
-  fontSize: "26px",
+const snapshotValue = {
+  fontSize: "34px",
+  lineHeight: 1,
 };
 
-const mainGrid = {
+const snapshotDetail = {
+  margin: 0,
+  color: "var(--sg-text-muted)",
+  fontSize: "12px",
+  lineHeight: "18px",
+};
+
+const commandGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, .8fr)",
+  gap: "16px",
+};
+
+const contentGrid = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.35fr) minmax(320px, .85fr)",
+  gap: "16px",
+  alignItems: "start",
+};
+
+const rankingGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "16px",
 };
 
@@ -612,13 +863,19 @@ const panel = {
   boxShadow: "var(--sg-shadow-card)",
 };
 
+const panelHighlight = {
+  ...panel,
+  background:
+    "linear-gradient(180deg, rgba(15,23,42,.88), rgba(15,23,42,.72), rgba(127,29,29,.18))",
+};
+
 const panelHeader = {
   marginBottom: "14px",
 };
 
 const panelTitle = {
   margin: 0,
-  fontSize: "17px",
+  fontSize: "18px",
 };
 
 const panelSubtitle = {
@@ -628,101 +885,186 @@ const panelSubtitle = {
   lineHeight: "18px",
 };
 
-const attentionGrid = {
+const focusGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "12px",
 };
 
-const listBlock = {
+const focusCard = {
+  display: "grid",
+  gap: "10px",
+  padding: "14px",
+  borderRadius: "14px",
+  border: "1px solid transparent",
+};
+
+const focusHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "baseline",
+};
+
+const focusTitle = {
+  fontSize: "13px",
+  color: "var(--sg-text-primary)",
+  fontWeight: 700,
+};
+
+const focusValue = {
+  fontSize: "26px",
+  lineHeight: 1,
+};
+
+const focusDescription = {
+  margin: 0,
+  color: "var(--sg-text-muted)",
+  fontSize: "12px",
+  lineHeight: "18px",
+};
+
+const shortcutGrid = {
   display: "grid",
   gap: "10px",
 };
 
-const listHeader = {
+const shortcutCard = {
+  display: "grid",
+  gap: "6px",
+  padding: "14px",
+  borderRadius: "14px",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
+  textDecoration: "none",
+  color: "var(--sg-text-primary)",
+};
+
+const shortcutEyebrow = {
+  fontSize: "11px",
+  fontWeight: 700,
+  color: "var(--sg-text-subtle)",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.05em",
+};
+
+const shortcutTitle = {
+  fontSize: "15px",
+  lineHeight: "21px",
+};
+
+const shortcutDescription = {
+  margin: 0,
+  color: "var(--sg-text-muted)",
+  fontSize: "12px",
+  lineHeight: "18px",
+};
+
+const laneGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "12px",
+};
+
+const lane = {
+  display: "grid",
+  gap: "10px",
+  minWidth: 0,
+};
+
+const laneHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+  gap: "8px",
 };
 
-const listPill = {
+const lanePill = {
   display: "inline-flex",
   alignItems: "center",
-  padding: "5px 9px",
+  gap: "7px",
+  padding: "6px 10px",
   borderRadius: "999px",
-  fontSize: "11px",
+  border: "1px solid transparent",
+  fontSize: "12px",
   fontWeight: 700,
 };
 
-const listCount = {
-  color: "var(--sg-text-muted)",
+const laneCount = {
+  color: "var(--sg-text-subtle)",
   fontSize: "12px",
 };
 
-const listStack = {
+const laneList = {
   display: "grid",
   gap: "8px",
 };
 
-const demandCard = {
+const laneCard = {
   display: "grid",
   gap: "8px",
   background: "var(--sg-card-bg-alt)",
   border: "1px solid var(--sg-border-soft)",
-  borderRadius: "12px",
+  borderRadius: "14px",
   padding: "12px",
   textDecoration: "none",
   color: "var(--sg-text-primary)",
 };
 
-const demandTop = {
+const laneCardTop = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: "8px",
 };
 
-const demandId = {
+const laneId = {
   color: "var(--sg-text-subtle)",
-  fontSize: "12px",
-};
-
-const priorityBadge = {
-  background: "rgba(37,99,235,.16)",
-  border: "1px solid rgba(96,165,250,.2)",
-  color: "#dbeafe",
-  borderRadius: "999px",
-  padding: "4px 8px",
   fontSize: "11px",
   fontWeight: 700,
 };
 
-const demandTitle = {
+const priorityBase = {
+  borderRadius: "999px",
+  padding: "4px 8px",
+  fontSize: "10px",
+  fontWeight: 700,
+};
+
+const laneCardTitle = {
   fontSize: "14px",
   lineHeight: "20px",
 };
 
-const metaWrap = {
+const laneMetaRow = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap" as const,
 };
 
-const metaChip = {
-  background: "var(--sg-card-bg-soft)",
-  borderRadius: "999px",
+const laneMetaChip = {
+  display: "inline-flex",
+  alignItems: "center",
   padding: "4px 8px",
+  borderRadius: "999px",
+  background: "var(--sg-card-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
   color: "var(--sg-text-muted)",
-  fontSize: "10px",
+  fontSize: "11px",
 };
 
-const metaFooter = {
+const laneFooter = {
   display: "flex",
   justifyContent: "space-between",
   gap: "8px",
-  color: "var(--sg-text-muted)",
-  fontSize: "12px",
   flexWrap: "wrap" as const,
+  color: "var(--sg-text-subtle)",
+  fontSize: "12px",
+};
+
+const stackColumn = {
+  display: "grid",
+  gap: "16px",
 };
 
 const compactList = {
@@ -731,20 +1073,21 @@ const compactList = {
 };
 
 const compactCard = {
-  textDecoration: "none",
-  color: "var(--sg-text-primary)",
+  display: "grid",
+  gap: "8px",
+  padding: "12px",
+  borderRadius: "14px",
   background: "var(--sg-card-bg-soft)",
   border: "1px solid var(--sg-border-soft)",
-  borderRadius: "12px",
-  padding: "12px",
+  textDecoration: "none",
+  color: "var(--sg-text-primary)",
 };
 
-const compactHeader = {
+const compactTop = {
   display: "flex",
   justifyContent: "space-between",
   gap: "10px",
   alignItems: "flex-start",
-  marginBottom: "6px",
 };
 
 const compactTitle = {
@@ -754,10 +1097,11 @@ const compactTitle = {
 
 const compactId = {
   color: "var(--sg-text-subtle)",
-  fontSize: "12px",
+  fontSize: "11px",
+  fontWeight: 700,
 };
 
-const compactMeta = {
+const compactFooter = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap" as const,
@@ -772,7 +1116,7 @@ const timeline = {
 
 const timelineRow = {
   display: "grid",
-  gridTemplateColumns: "20px 1fr",
+  gridTemplateColumns: "18px 1fr",
   gap: "10px",
 };
 
@@ -793,7 +1137,7 @@ const timelineDot = {
 const timelineLine = {
   flex: 1,
   width: "1px",
-  minHeight: "22px",
+  minHeight: "24px",
   background: "var(--sg-border-soft)",
   marginTop: "5px",
 };
@@ -801,7 +1145,7 @@ const timelineLine = {
 const timelineCard = {
   background: "var(--sg-card-bg-soft)",
   border: "1px solid var(--sg-border-soft)",
-  borderRadius: "12px",
+  borderRadius: "14px",
   padding: "12px",
 };
 
@@ -822,13 +1166,13 @@ const timelineLink = {
 
 const timelineTime = {
   color: "var(--sg-text-subtle)",
-  fontSize: "12px",
+  fontSize: "11px",
 };
 
 const timelineText = {
   margin: 0,
   color: "var(--sg-text-muted)",
-  lineHeight: "20px",
+  lineHeight: "19px",
   fontSize: "13px",
 };
 
@@ -871,35 +1215,7 @@ const rankingFill = {
   borderRadius: "999px",
 };
 
-const shortcutList = {
-  display: "grid",
-  gap: "10px",
-};
-
-const shortcutCard = {
-  display: "block",
-  background: "var(--sg-card-bg-soft)",
-  border: "1px solid var(--sg-border-soft)",
-  borderRadius: "12px",
-  padding: "14px",
-  textDecoration: "none",
-  color: "var(--sg-text-primary)",
-};
-
-const shortcutTitle = {
-  display: "block",
-  marginBottom: "4px",
-  fontSize: "14px",
-};
-
-const shortcutDescription = {
-  margin: 0,
-  color: "var(--sg-text-muted)",
-  lineHeight: "19px",
-  fontSize: "12px",
-};
-
-const emptyText = {
+const emptyTextStyle = {
   margin: 0,
   color: "var(--sg-text-subtle)",
   fontSize: "13px",

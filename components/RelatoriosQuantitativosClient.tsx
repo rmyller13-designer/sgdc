@@ -207,8 +207,8 @@ export default function RelatoriosQuantitativosClient({
           valor={formatarMedia(mediaEixosPorDemanda)}
           derivado
         />
-        <Card titulo="Postagens ASCOM" valor={totalPostagensAscom} />
-        <Card titulo="Clipping externo" valor={totalClippingExterno} />
+        <Card titulo="Produção ASCOM" valor={totalPostagensAscom} />
+        <Card titulo="Repercussão externa" valor={totalClippingExterno} />
       </div>
 
       <div style={layoutDois}>
@@ -280,7 +280,7 @@ export default function RelatoriosQuantitativosClient({
       </div>
 
       <div style={layoutDois}>
-        <Painel titulo="Evolução das postagens ASCOM">
+        <Painel titulo="Evolução da produção ASCOM">
           <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
@@ -300,7 +300,7 @@ export default function RelatoriosQuantitativosClient({
                 <Area
                   type="monotone"
                   dataKey="ascom"
-                  name="Postagens ASCOM"
+                  name="Produção ASCOM"
                   stroke="#8b5cf6"
                   strokeWidth={3}
                   fill="url(#ascomFill)"
@@ -308,7 +308,7 @@ export default function RelatoriosQuantitativosClient({
                 <Line
                   type="monotone"
                   dataKey="externo"
-                  name="Clipping externo"
+                  name="Repercussão externa"
                   stroke="#94a3b8"
                   strokeWidth={2}
                   dot={{ r: 3, fill: "#94a3b8" }}
@@ -320,10 +320,10 @@ export default function RelatoriosQuantitativosClient({
 
         <Painel titulo="Leitura rápida do clipping">
           <Ranking
-            titulo="Origem dos registros"
+            titulo="Distribuição editorial"
             dados={[
-              { titulo: "Postagens ASCOM", valor: totalPostagensAscom },
-              { titulo: "Clipping externo", valor: totalClippingExterno },
+              { titulo: "Produção ASCOM", valor: totalPostagensAscom },
+              { titulo: "Repercussão externa", valor: totalClippingExterno },
             ]}
           />
         </Painel>

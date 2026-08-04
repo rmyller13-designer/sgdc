@@ -90,6 +90,69 @@ body {
   transition: background 0.25s ease, color 0.25s ease;
 }
 
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.sg-interactive {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.sg-interactive:hover {
+  transform: translateY(-1px);
+}
+
+.sg-interactive:active {
+  transform: translateY(0);
+}
+
+.sg-pressable:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.14);
+}
+
+.sg-card-lift:hover,
+.sg-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+}
+
+.sg-kanban-card:hover {
+  filter: saturate(1.04);
+}
+
+.sg-nav-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sg-brand-hover:hover {
+  opacity: 0.96;
+}
+
+.sg-nav-scroll {
+  scrollbar-width: none;
+}
+
+.sg-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .kanban-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--sg-scroll-thumb) var(--sg-scroll-track);

@@ -30,6 +30,7 @@ export default function ThemeToggle() {
       <button
         type="button"
         onClick={() => selecionar("light")}
+        className="sg-interactive sg-pressable"
         style={{
           ...buttonBase,
           ...(theme === "light" ? activeLight : null),
@@ -41,6 +42,7 @@ export default function ThemeToggle() {
       <button
         type="button"
         onClick={() => selecionar("dark")}
+        className="sg-interactive sg-pressable"
         style={{
           ...buttonBase,
           ...(theme === "dark" ? activeDark : null),

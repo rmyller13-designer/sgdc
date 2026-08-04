@@ -880,7 +880,7 @@ export default function ClippingClient() {
             </div>
 
             <div style={campoBloco}>
-              <label style={label}>Tipo de registro</label>
+              <label style={label}>Classificação do registro</label>
               <select
                 value={formulario.origem}
                 onChange={(event) =>
@@ -891,8 +891,8 @@ export default function ClippingClient() {
                 }
                 style={campo}
               >
-                <option value="EXTERNO">Clipping externo</option>
-                <option value="ASCOM">Postagem ASCOM</option>
+                <option value="EXTERNO">Repercussão externa</option>
+                <option value="ASCOM">Produção ASCOM</option>
               </select>
             </div>
 
@@ -1721,8 +1721,8 @@ function formatarCanal(valor: CanalClipping) {
 }
 
 function formatarOrigem(valor: OrigemClipping) {
-  if (valor === "ASCOM") return "Postagem ASCOM";
-  return "Clipping externo";
+  if (valor === "ASCOM") return "Produção ASCOM";
+  return "Repercussão externa";
 }
 
 function formatarSentimento(valor: SentimentoClipping) {

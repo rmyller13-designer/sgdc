@@ -17,7 +17,7 @@ export default function UserMenu() {
     return (
       <div style={box}>
         <ThemeToggle />
-        <Link href="/login" style={loginLink}>
+        <Link href="/login" style={loginLink} className="sg-interactive sg-pressable">
           Entrar
         </Link>
       </div>
@@ -38,7 +38,12 @@ export default function UserMenu() {
         <span style={permissoes}>{usuario.funcao || "Usuario"}</span>
       </div>
 
-      <button type="button" onClick={sair} style={botaoSair}>
+      <button
+        type="button"
+        onClick={sair}
+        style={botaoSair}
+        className="sg-interactive sg-pressable"
+      >
         Sair
       </button>
     </div>
