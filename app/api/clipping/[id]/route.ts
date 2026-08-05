@@ -24,6 +24,7 @@ type DeleteBody = {
 };
 
 type UpdateBody = {
+  editoria?: string | null;
   titulo?: string;
   canal?: CanalClipping;
   origem?: OrigemClipping;
@@ -115,6 +116,7 @@ export async function PUT(request: Request, { params }: Params) {
     const { data, error } = await admin
       .from("clipping_registros")
       .update({
+        editoria: limparTexto(body.editoria),
         titulo,
         canal: body.canal,
         origem,

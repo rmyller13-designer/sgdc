@@ -13,6 +13,7 @@ type OrigemClipping = "EXTERNO" | "ASCOM";
 
 type ClippingBody = {
   id?: number | null;
+  editoria?: string | null;
   titulo?: string;
   canal?: CanalClipping;
   origem?: OrigemClipping;
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
     const agora = new Date().toISOString();
 
     const payloadBase = {
+      editoria: limparTexto(body.editoria),
       titulo,
       canal,
       origem,

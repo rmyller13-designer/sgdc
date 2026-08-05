@@ -31,6 +31,7 @@ type OrigemClipping = "EXTERNO" | "ASCOM";
 
 type ClippingRegistro = {
   id: number;
+  editoria: string | null;
   titulo: string;
   canal: CanalClipping;
   origem: OrigemClipping;
@@ -98,6 +99,7 @@ type RankingItem = {
 
 type AlertaClipping = {
   id: number;
+  editoria: string | null;
   titulo: string;
   canal: CanalClipping;
   sentimento: SentimentoClipping;
@@ -128,6 +130,7 @@ const CORES_CANAIS: Record<CanalClipping, string> = {
 };
 
 const FORMULARIO_INICIAL = {
+  editoria: "",
   titulo: "",
   canal: "INSTAGRAM" as CanalClipping,
   origem: "EXTERNO" as OrigemClipping,
@@ -248,6 +251,7 @@ export default function ClippingClient() {
 
     const payload = {
       id: editandoId,
+      editoria: formulario.editoria.trim() || null,
       titulo: formulario.titulo.trim(),
       canal: formulario.canal,
       origem: formulario.origem,
@@ -339,6 +343,7 @@ export default function ClippingClient() {
     setEditandoId(registro.id);
     setMensagem("");
     setFormulario({
+      editoria: registro.editoria || "",
       titulo: registro.titulo,
       canal: registro.canal,
       origem: registro.origem,
@@ -427,7 +432,7 @@ export default function ClippingClient() {
     return registros.filter((registro) => {
       const textoOk =
         !filtroTexto ||
-        `${registro.titulo} ${registro.observacoes || ""} ${registro.autoria || ""}`
+        `${registro.editoria || ""} ${registro.titulo} ${registro.observacoes || ""} ${registro.autoria || ""}`
           .toLowerCase()
           .includes(filtroTexto.toLowerCase());
       const canalOk = filtroCanal === "TODOS" || registro.canal === filtroCanal;
@@ -848,6 +853,18 @@ export default function ClippingClient() {
           ) : null}
 
           <div style={gridFormulario}>
+            <div style={campoBlocoGrande}>
+              <label style={label}>Retranca</label>
+              <input
+                value={formulario.editoria}
+                onChange={(event) =>
+                  setFormulario((atual) => ({ ...atual, editoria: event.target.value }))
+                }
+                style={campo}
+                placeholder="Ex.: Saúde, Institucional, Campanha"
+              />
+            </div>
+
             <div style={campoBlocoGrande}>
               <label style={label}>Título da matéria</label>
               <input
@@ -1336,6 +1353,11 @@ export default function ClippingClient() {
                 {registrosFiltrados.map((registro) => (
                   <tr key={registro.id}>
                     <td style={tdTitulo}>
+                      {registro.editoria ? (
+                        <span style={retrancaTabela}>
+                          {corrigirTextoExibicao(registro.editoria)}
+                        </span>
+                      ) : null}
                       <strong>{corrigirTextoExibicao(registro.titulo)}</strong>
                       <span style={tdMeta}>
                         {registro.url ? (
@@ -1508,6 +1530,9 @@ function ListaMaterias({
         <div style={listaItens(exibirRolagem)}>
           {registros.map((registro) => (
             <article key={registro.id} style={itemLista}>
+              {registro.editoria ? (
+                <span style={retrancaLista}>{corrigirTextoExibicao(registro.editoria)}</span>
+              ) : null}
               <strong style={itemListaTitulo}>
                 {corrigirTextoExibicao(registro.titulo)}
               </strong>
@@ -1539,6 +1564,9 @@ function RankingMateriasDestaque({
         <div key={registro.id} style={rankingLinhaDestaque}>
           <span style={rankingPosicao}>{index + 1}</span>
           <div style={rankingTexto}>
+            {registro.editoria ? (
+              <span style={retrancaLista}>{corrigirTextoExibicao(registro.editoria)}</span>
+            ) : null}
             <strong>{corrigirTextoExibicao(registro.titulo)}</strong>
             <span style={rankingMeta}>
               {formatarCanal(registro.canal)} • {formatarData(registro.data_publicacao)}
@@ -1573,6 +1601,9 @@ function AlertasSupervisorLista({
     <div style={rankingLista}>
       {registros.map((item) => (
         <div key={item.id} style={alertaItem(item.status)}>
+          {item.editoria ? (
+            <span style={retrancaAlerta}>{corrigirTextoExibicao(item.editoria)}</span>
+          ) : null}
           <span style={alertaTitulo}>{corrigirTextoExibicao(item.titulo)}</span>
           <span style={alertaMeta}>
             {formatarStatusClipping(item.status)} • {formatarSentimento(item.sentimento)} •{" "}
@@ -1620,6 +1651,7 @@ function normalizarRegistro(registro: ClippingRegistro): ClippingRegistro {
     id: Number(registro.id),
     origem: (registro.origem || "EXTERNO") as OrigemClipping,
     status: (registro.status || "EM_MONITORAMENTO") as StatusClipping,
+    editoria: registro.editoria || null,
     autoria: registro.autoria || null,
     views: Number(registro.views || 0),
     comentarios: Number(registro.comentarios || 0),
@@ -2516,6 +2548,14 @@ const itemListaTitulo = {
   fontSize: "15px",
 };
 
+const retrancaLista = {
+  color: "#fca5a5",
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
+};
+
 const itemListaMeta = {
   color: "var(--sg-text-secondary)",
   fontSize: "13px",
@@ -2633,6 +2673,16 @@ const td = {
 const tdTitulo = {
   ...td,
   width: "280px",
+};
+
+const retrancaTabela = {
+  display: "block",
+  marginBottom: "6px",
+  color: "#fca5a5",
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
 };
 
 const tdMeta = {
@@ -2753,6 +2803,14 @@ const alertaItem = (status: StatusClipping) => ({
 const alertaTitulo = {
   fontSize: "14px",
   fontWeight: 700,
+};
+
+const retrancaAlerta = {
+  color: "#fca5a5",
+  fontSize: "11px",
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
 };
 
 const alertaMeta = {
