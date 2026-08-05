@@ -99,6 +99,8 @@ export function cargoDoUsuario(nome: string) {
 }
 
 export function nomeDoUsuario(nome: string) {
+  if (normalizar(nome) === "renata") return "Direção";
+
   const usuarioAutorizado = usuariosAutorizados.find(
     (usuario) => normalizarUsuarioAutorizado(nome) === normalizar(usuario)
   );
@@ -132,6 +134,7 @@ function ordemUsuarioAutorizado(nome: string) {
 
 function normalizarUsuarioAutorizado(nome: string) {
   const texto = normalizar(nome);
+  if (texto === "direcao") return "renata";
   return texto.startsWith("roberto") ? "roberto" : texto;
 }
 
