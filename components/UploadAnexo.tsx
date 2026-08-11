@@ -5,8 +5,6 @@ import { useAuth } from "@/components/AuthProvider";
 import {
   type CategoriaAnexoDemanda,
   criarCaminhoAnexoDemanda,
-  LIMITE_UPLOAD_MB,
-  TIPOS_ACEITOS_UPLOAD,
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../lib/supabase";
@@ -161,7 +159,9 @@ export default function UploadAnexo({
           <span
             style={{
               ...categoriaFixa,
-              ...(categoria === "final" ? categoriaFixaFinal : categoriaFixaReferencia),
+              ...(categoria === "final"
+                ? categoriaFixaFinal
+                : categoriaFixaReferencia),
             }}
           >
             {categoria === "final"
@@ -175,7 +175,6 @@ export default function UploadAnexo({
         ref={inputRef}
         type="file"
         multiple
-        accept={TIPOS_ACEITOS_UPLOAD.join(",")}
         onChange={(e) => setArquivos(Array.from(e.target.files || []))}
         style={{ display: "none" }}
       />
@@ -218,8 +217,7 @@ export default function UploadAnexo({
       {mensagem ? <p style={mensagemStyle}>{mensagem}</p> : null}
 
       <p style={regraUpload}>
-        Limite por arquivo: {LIMITE_UPLOAD_MB} MB. Os arquivos ficam
-        organizados por categoria dentro da pasta da demanda.
+        Os arquivos ficam organizados por categoria dentro da pasta da demanda.
       </p>
     </div>
   );

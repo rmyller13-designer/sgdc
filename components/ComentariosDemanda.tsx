@@ -4,8 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import {
   criarCaminhoAnexoComentario,
-  LIMITE_UPLOAD_MB,
-  TIPOS_ACEITOS_UPLOAD,
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../lib/supabase";
@@ -73,12 +71,12 @@ export default function ComentariosDemanda({
     setMensagem("");
 
     if (!texto.trim() && arquivos.length === 0) {
-      setMensagem("Digite um comentário ou selecione um anexo.");
+      setMensagem("Digite um comentÃ¡rio ou selecione um anexo.");
       return;
     }
 
     if (!usuario) {
-      setMensagem("Faça login para comentar.");
+      setMensagem("FaÃ§a login para comentar.");
       return;
     }
 
@@ -103,7 +101,7 @@ export default function ComentariosDemanda({
       .single();
 
     if (error || !comentarioCriado) {
-      setMensagem("Erro ao enviar comentário: " + (error?.message || ""));
+      setMensagem("Erro ao enviar comentÃ¡rio: " + (error?.message || ""));
       setEnviando(false);
       return;
     }
@@ -120,7 +118,7 @@ export default function ComentariosDemanda({
         .upload(caminhoArquivo, arquivo);
 
       if (erroUpload) {
-        setMensagem("Comentário salvo, mas houve erro no anexo: " + erroUpload.message);
+        setMensagem("ComentÃ¡rio salvo, mas houve erro no anexo: " + erroUpload.message);
         continue;
       }
 
@@ -141,7 +139,7 @@ export default function ComentariosDemanda({
         });
 
       if (erroAnexo) {
-        setMensagem("Anexo enviado, mas não foi vinculado ao comentário.");
+        setMensagem("Anexo enviado, mas nÃ£o foi vinculado ao comentÃ¡rio.");
       }
     }
 
@@ -150,8 +148,8 @@ export default function ComentariosDemanda({
       usuario_id: usuario.id,
       acao:
         arquivos.length > 0
-          ? `${usuario.nome} adicionou comentário com ${arquivos.length} anexo(s)`
-          : `${usuario.nome} adicionou um comentário`,
+          ? `${usuario.nome} adicionou comentÃ¡rio com ${arquivos.length} anexo(s)`
+          : `${usuario.nome} adicionou um comentÃ¡rio`,
     });
 
     setTexto("");
@@ -168,7 +166,7 @@ export default function ComentariosDemanda({
   return (
     <div>
       <div style={header}>
-        <h2 style={titulo}>Comentários</h2>
+        <h2 style={titulo}>ComentÃ¡rios</h2>
         <span style={contador}>{comentarios.length}</span>
       </div>
 
@@ -176,7 +174,7 @@ export default function ComentariosDemanda({
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Escreva uma atualização, contexto ou observação..."
+          placeholder="Escreva uma atualizaÃ§Ã£o, contexto ou observaÃ§Ã£o..."
           style={campoTexto}
         />
 
@@ -185,7 +183,6 @@ export default function ComentariosDemanda({
             ref={inputRef}
             type="file"
             multiple
-            accept={TIPOS_ACEITOS_UPLOAD.join(",")}
             onChange={(e) => selecionarArquivos(e.target.files)}
             style={{ display: "none" }}
           />
@@ -220,9 +217,7 @@ export default function ComentariosDemanda({
           </div>
         )}
 
-        <p style={regraUpload}>
-          Anexos até {LIMITE_UPLOAD_MB} MB, organizados na pasta da demanda.
-        </p>
+        <p style={regraUpload}>Anexos organizados na pasta da demanda.</p>
 
         {mensagem && <p style={mensagemStyle}>{mensagem}</p>}
       </div>
@@ -231,7 +226,7 @@ export default function ComentariosDemanda({
         {comentarios.map((comentario) => (
           <div key={comentario.id} style={cardComentario}>
             <div style={comentarioHeader}>
-              <strong style={comentarioLabel}>Atualização</strong>
+              <strong style={comentarioLabel}>AtualizaÃ§Ã£o</strong>
               <small style={dataTexto}>
                 {new Date(comentario.criado_em).toLocaleString("pt-BR")}
               </small>

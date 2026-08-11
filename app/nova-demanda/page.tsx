@@ -14,7 +14,6 @@ import {
 import { sanitizeRichText, stripRichText } from "@/lib/rich-text";
 import {
   criarCaminhoAnexoDemanda,
-  TIPOS_ACEITOS_UPLOAD,
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../../lib/supabase";
@@ -500,7 +499,6 @@ export default function NovaDemanda() {
                 id="arquivos"
                 type="file"
                 multiple
-                accept={TIPOS_ACEITOS_UPLOAD.join(",")}
                 onChange={(e) => adicionarArquivos(Array.from(e.target.files || []))}
                 style={inputArquivoOculto}
               />
