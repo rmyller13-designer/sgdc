@@ -157,6 +157,21 @@ export async function PUT(request: Request, { params }: Params) {
     );
   }
 
+  const { data: responsaveisSalvos, error: erroValidacao } = await supabase
+    .from("demanda_responsaveis")
+    .select("usuario_id")
+    .eq("demanda_id", demandaId);
+
+  if (erroValidacao || !responsaveisSalvos || responsaveisSalvos.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Os multiplos responsaveis nao foram persistidos no banco. Verifique as permissoes da tabela demanda_responsaveis no Supabase.",
+      },
+      { status: 500 }
+    );
+  }
+
   const { error: erroDemanda } = await supabase
     .from("demandas")
     .update({ responsavel_id: responsaveisIds[0] || null })
