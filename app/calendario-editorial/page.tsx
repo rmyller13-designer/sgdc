@@ -1,6 +1,11 @@
 import CalendarioEditorialClient from "@/components/CalendarioEditorialClient";
 import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
+import {
+  criarMapaResponsaveis,
+  enriquecerDemandasComResponsaveis,
+  type DemandaResponsavelRow,
+} from "@/lib/demanda-responsaveis";
 
 type SearchParams = {
   mes?: string;
@@ -45,19 +50,37 @@ export default async function CalendarioEditorialPage({
     )
     .order("data_entrega", { ascending: true });
 
-  const demandas = ((data || []) as DemandaCalendarioRow[]).filter((demanda) => {
+  const demandasBase = ((data || []) as DemandaCalendarioRow[]).filter((demanda) => {
     const dataEditorial = pegarDataEditorial(demanda);
     return dataEditorial >= intervalo.inicio && dataEditorial <= intervalo.fim;
   });
+
+  const demandaIds = demandasBase.map((demanda) => demanda.id);
+  const { data: responsaveisData } =
+    demandaIds.length > 0
+      ? await supabase
+          .from("demanda_responsaveis")
+          .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
+          .in("demanda_id", demandaIds)
+          .order("principal", { ascending: false })
+      : { data: [] as DemandaResponsavelRow[] };
+
+  const mapaResponsaveis = criarMapaResponsaveis(
+    (responsaveisData as DemandaResponsavelRow[] | null) || []
+  );
+  const demandas = enriquecerDemandasComResponsaveis(
+    demandasBase,
+    mapaResponsaveis
+  );
 
   return (
     <div>
       <div style={hero}>
         <div>
           <p style={eyebrow}>Planejamento editorial</p>
-          <h1 style={titulo}>Calendário editorial</h1>
+          <h1 style={titulo}>Calendario editorial</h1>
           <p style={subtitulo}>
-            Organize entregas, publicações e produção em uma visão mensal,
+            Organize entregas, publicacoes e producao em uma visao mensal,
             semanal ou em lista.
           </p>
         </div>

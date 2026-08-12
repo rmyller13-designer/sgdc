@@ -1,6 +1,11 @@
 import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import KanbanDemandas from "../../components/KanbanDemandas";
+import {
+  criarMapaResponsaveis,
+  enriquecerDemandasComResponsaveis,
+  type DemandaResponsavelRow,
+} from "@/lib/demanda-responsaveis";
 
 export default async function Demandas() {
   await connection();
@@ -13,6 +18,15 @@ export default async function Demandas() {
     .order("id", { ascending: false });
 
   const demandaIds = (demandas || []).map((demanda) => demanda.id);
+  const { data: responsaveisData } =
+    demandaIds.length > 0
+      ? await supabase
+          .from("demanda_responsaveis")
+          .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
+          .in("demanda_id", demandaIds)
+          .order("principal", { ascending: false })
+      : { data: [] as DemandaResponsavelRow[] };
+
   const { data: anexosDemanda } =
     demandaIds.length > 0
       ? await supabase
@@ -44,7 +58,25 @@ export default async function Demandas() {
     }
   }
 
-  const demandasComPreview = (demandas || []).map((demanda) => ({
+  const mapaResponsaveis = criarMapaResponsaveis(
+    (responsaveisData as DemandaResponsavelRow[] | null) || []
+  );
+  const demandasEnriquecidas = enriquecerDemandasComResponsaveis(
+    (demandas as Array<{
+      id: number;
+      titulo: string | null;
+      descricao: string | null;
+      setor: string | null;
+      cadastrado_por: string | null;
+      responsavel: string | null;
+      prioridade: string | null;
+      status: string | null;
+      data_entrega: string | null;
+    }> | null) || [],
+    mapaResponsaveis
+  );
+
+  const demandasComPreview = demandasEnriquecidas.map((demanda) => ({
     ...demanda,
     preview_image_url: previewPorDemanda.get(demanda.id) || null,
     etiqueta: demanda.setor || null,

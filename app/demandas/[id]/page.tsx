@@ -15,6 +15,11 @@ import EditarDemandaInfo from "@/components/EditarDemandaInfo";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import RichTextContent from "@/components/RichTextContent";
 import MemoriaEditorialSection from "@/components/MemoriaEditorialSection";
+import {
+  criarMapaResponsaveis,
+  formatarListaResponsaveis,
+  type DemandaResponsavelRow,
+} from "@/lib/demanda-responsaveis";
 import { buscarMemoriaEditorial } from "@/lib/memoria-editorial";
 import {
   corrigirTextoExibicao,
@@ -32,7 +37,7 @@ export default async function DetalheDemanda({
   const demandaId = Number(id);
 
   if (Number.isNaN(demandaId)) {
-    return <p style={{ color: "red" }}>ID da demanda inválido.</p>;
+    return <p style={{ color: "red" }}>ID da demanda invalido.</p>;
   }
 
   const { data: demanda, error } = await supabase
@@ -46,6 +51,14 @@ export default async function DetalheDemanda({
     .from("demanda_anexos")
     .select("*")
     .eq("demanda_id", demandaId);
+
+  const { data: responsaveisData } = await supabase
+    .from("demanda_responsaveis")
+    .select(
+      "demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)"
+    )
+    .eq("demanda_id", demandaId)
+    .order("principal", { ascending: false });
 
   const { count: totalComentarios = 0 } = await supabase
     .from("comentarios_demanda")
@@ -65,19 +78,22 @@ export default async function DetalheDemanda({
   });
 
   if (error) {
-    return (
-      <p style={{ color: "red" }}>
-        Não foi possível carregar a demanda agora.
-      </p>
-    );
+    return <p style={{ color: "red" }}>Nao foi possivel carregar a demanda agora.</p>;
   }
 
   if (!demanda) {
-    return <p style={{ color: "red" }}>Demanda não encontrada.</p>;
+    return <p style={{ color: "red" }}>Demanda nao encontrada.</p>;
   }
 
   const anexosLista = (anexos || []) as DemandaAnexoItem[];
   const totalAnexos = anexosLista.length;
+  const mapaResponsaveis = criarMapaResponsaveis(
+    (responsaveisData as DemandaResponsavelRow[] | null) || []
+  );
+  const responsaveisAtuais = mapaResponsaveis.get(demandaId) || [];
+  const responsavelExibicao =
+    formatarListaResponsaveis(responsaveisAtuais, demanda.responsavel) || null;
+
   const googleTaskDemanda = {
     id: demanda.id,
     titulo: demanda.titulo,
@@ -86,7 +102,7 @@ export default async function DetalheDemanda({
     setor: demanda.setor,
     status: demanda.status,
     prioridade: demanda.prioridade,
-    responsavel: demanda.responsavel,
+    responsavel: responsavelExibicao,
     data_entrega: demanda.data_entrega,
   };
 
@@ -114,7 +130,7 @@ export default async function DetalheDemanda({
 
                 <RichTextContent
                   value={demanda.descricao}
-                  emptyText="Sem descrição informada."
+                  emptyText="Sem descricao informada."
                   style={descricaoTopo}
                 />
               </div>
@@ -123,14 +139,14 @@ export default async function DetalheDemanda({
                 <div style={heroMiniCard}>
                   <span style={heroMiniLabel}>Setor</span>
                   <strong style={heroMiniValue}>
-                    {corrigirTextoExibicao(demanda.setor) || "Não informado"}
+                    {corrigirTextoExibicao(demanda.setor) || "Nao informado"}
                   </strong>
                 </div>
 
                 <div style={heroMiniCard}>
                   <span style={heroMiniLabel}>Solicitante</span>
                   <strong style={heroMiniValue}>
-                    {corrigirTextoExibicao(demanda.cadastrado_por) || "Não informado"}
+                    {corrigirTextoExibicao(demanda.cadastrado_por) || "Nao informado"}
                   </strong>
                 </div>
               </div>
@@ -144,16 +160,16 @@ export default async function DetalheDemanda({
             </div>
 
             <div style={campoResumo}>
-              <span style={resumoLabel}>Responsável</span>
+              <span style={resumoLabel}>Responsaveis</span>
               <strong style={resumoValor}>
-                {corrigirTextoExibicao(demanda.responsavel) || "Não definido"}
+                {corrigirTextoExibicao(responsavelExibicao) || "Nao definido"}
               </strong>
             </div>
 
             <div style={campoResumo}>
               <span style={resumoLabel}>Prioridade</span>
               <strong style={resumoValor}>
-                {formatarTituloHumano(demanda.prioridade) || "Não informada"}
+                {formatarTituloHumano(demanda.prioridade) || "Nao informada"}
               </strong>
             </div>
 
@@ -162,7 +178,7 @@ export default async function DetalheDemanda({
               <strong style={resumoValor}>
                 {demanda.data_entrega
                   ? formatarData(demanda.data_entrega)
-                  : "Não informada"}
+                  : "Nao informada"}
               </strong>
               <GoogleTaskButton demanda={googleTaskDemanda} style={googleAgendaLink}>
                 Adicionar como tarefa no Google Agenda
@@ -177,12 +193,12 @@ export default async function DetalheDemanda({
             </div>
 
             <div style={operationalCard}>
-              <span style={operationalLabel}>Comentários</span>
+              <span style={operationalLabel}>Comentarios</span>
               <strong style={operationalValue}>{totalComentarios}</strong>
             </div>
 
             <div style={operationalCard}>
-              <span style={operationalLabel}>Histórico</span>
+              <span style={operationalLabel}>Historico</span>
               <strong style={operationalValue}>{totalHistorico}</strong>
             </div>
 
@@ -193,10 +209,18 @@ export default async function DetalheDemanda({
           </div>
 
           <div style={tabs}>
-            <a href="#detalhes" style={tabAtiva}>Detalhes</a>
-            <a href="#fluxo" style={tab}>Fluxo</a>
-            <a href="#producao" style={tab}>Eixos e Produtos</a>
-            <a href="#anexos" style={tab}>Anexos</a>
+            <a href="#detalhes" style={tabAtiva}>
+              Detalhes
+            </a>
+            <a href="#fluxo" style={tab}>
+              Fluxo
+            </a>
+            <a href="#producao" style={tab}>
+              Eixos e Produtos
+            </a>
+            <a href="#anexos" style={tab}>
+              Anexos
+            </a>
           </div>
 
           <section id="detalhes" style={card}>
@@ -211,6 +235,7 @@ export default async function DetalheDemanda({
                 <ResponsavelDemanda
                   demandaId={demanda.id}
                   responsavelAtual={demanda.responsavel}
+                  responsaveisAtuais={responsaveisAtuais.map((item) => item.nome || "")}
                 />
               </div>
 
@@ -235,8 +260,8 @@ export default async function DetalheDemanda({
             <MemoriaEditorialSection
               itens={sugestoesMemoria}
               titulo="Demandas relacionadas"
-              subtitulo="Referências editoriais para reaproveitar conteúdo, estrutura e contexto."
-              vazio="Nenhuma demanda parecida encontrada para esta solicitação."
+              subtitulo="Referencias editoriais para reaproveitar conteudo, estrutura e contexto."
+              vazio="Nenhuma demanda parecida encontrada para esta solicitacao."
             />
           </section>
 
@@ -267,10 +292,10 @@ export default async function DetalheDemanda({
 function formatarStatus(status: string) {
   const nomes: Record<string, string> = {
     RECEBIDO: "Recebido",
-    EM_PRODUCAO: "Em Produção",
-    EM_APROVACAO: "Em Aprovação",
+    EM_PRODUCAO: "Em Producao",
+    EM_APROVACAO: "Em Aprovacao",
     AP_PARA_PUBLICAR: "AP. para Publicar",
-    CONCLUIDO: "Concluído",
+    CONCLUIDO: "Concluido",
     CANCELADO: "Cancelado",
   };
 

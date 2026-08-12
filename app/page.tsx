@@ -2,6 +2,11 @@ import { connection } from "next/server";
 import DashboardClient from "@/components/DashboardClient";
 import { supabase } from "../lib/supabase";
 import {
+  criarMapaResponsaveis,
+  enriquecerDemandasComResponsaveis,
+  type DemandaResponsavelRow,
+} from "@/lib/demanda-responsaveis";
+import {
   corrigirTextoExibicao,
   formatarSetorExibicao,
 } from "@/lib/display-text";
@@ -46,14 +51,30 @@ export default async function Dashboard() {
     ...demanda,
     id: Number(demanda.id),
   }));
-  const mapaDemandas = new Map(listaDemandas.map((demanda) => [demanda.id, demanda]));
-  const demandasAbertas = listaDemandas.filter((demanda) => !ehStatusEncerrado(demanda.status));
+  const demandaIds = listaDemandas.map((demanda) => demanda.id);
+  const { data: responsaveisData } =
+    demandaIds.length > 0
+      ? await supabase
+          .from("demanda_responsaveis")
+          .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
+          .in("demanda_id", demandaIds)
+          .order("principal", { ascending: false })
+      : { data: [] as DemandaResponsavelRow[] };
+  const mapaResponsaveis = criarMapaResponsaveis(
+    (responsaveisData as DemandaResponsavelRow[] | null) || []
+  );
+  const demandasComResponsaveis = enriquecerDemandasComResponsaveis(
+    listaDemandas,
+    mapaResponsaveis
+  );
+  const mapaDemandas = new Map(demandasComResponsaveis.map((demanda) => [demanda.id, demanda]));
+  const demandasAbertas = demandasComResponsaveis.filter((demanda) => !ehStatusEncerrado(demanda.status));
 
   const resumo = {
-    total: listaDemandas.length,
+    total: demandasComResponsaveis.length,
     abertas: demandasAbertas.length,
-    concluidas: listaDemandas.filter((demanda) => demanda.status === "CONCLUIDO").length,
-    canceladas: listaDemandas.filter((demanda) => demanda.status === "CANCELADO").length,
+    concluidas: demandasComResponsaveis.filter((demanda) => demanda.status === "CONCLUIDO").length,
+    canceladas: demandasComResponsaveis.filter((demanda) => demanda.status === "CANCELADO").length,
   };
 
   const alertas = calcularAlertas(demandasAbertas);
@@ -74,7 +95,7 @@ export default async function Dashboard() {
     demandasAbertas.filter((demanda) => demanda.status === "AP_PARA_PUBLICAR")
   ).slice(0, 5);
 
-  const ultimasDemandas = [...listaDemandas]
+  const ultimasDemandas = [...demandasComResponsaveis]
     .sort((a, b) => pegarDataOrdenacao(b) - pegarDataOrdenacao(a))
     .slice(0, 6);
 
@@ -90,11 +111,11 @@ export default async function Dashboard() {
 
   const cargaResponsaveis = agruparMapa(
     demandasAbertas,
-    (demanda) => corrigirTextoExibicao(demanda.responsavel) || "Não definido"
+    (demanda) => corrigirTextoExibicao(demanda.responsavel) || "NÃ£o definido"
   ).slice(0, 6);
 
   const setoresTop = agruparMapa(
-    listaDemandas,
+    demandasComResponsaveis,
     (demanda) => formatarSetorExibicao(demanda.setor)
   ).slice(0, 6);
 

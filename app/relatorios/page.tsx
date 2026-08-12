@@ -34,8 +34,8 @@ export default async function Relatorios({
 
   const total = demandas.length;
 
-  function nomeResponsavel(demanda: DemandaRelatorio) {
-    return demanda.responsavel || demanda.cadastrado_por || "Não atribuído";
+  function nomeResponsaveis(demanda: DemandaRelatorio) {
+    return demanda.responsavel || demanda.cadastrado_por || "Nao atribuido";
   }
 
   const porStatus = demandas.reduce<Record<string, number>>((acc, demanda) => {
@@ -51,7 +51,7 @@ export default async function Relatorios({
   }, {});
 
   const porResponsavel = demandas.reduce<Record<string, number>>((acc, demanda) => {
-    const responsavel = nomeResponsavel(demanda);
+    const responsavel = nomeResponsaveis(demanda);
     acc[responsavel] = (acc[responsavel] || 0) + 1;
     return acc;
   }, {});
@@ -64,7 +64,7 @@ export default async function Relatorios({
 
   return (
     <div>
-      <h1>Relatórios</h1>
+      <h1>Relatorios</h1>
 
       <form style={form}>
         <div>
@@ -95,10 +95,10 @@ export default async function Relatorios({
       <h2 style={{ marginTop: "30px" }}>Resumo</h2>
 
       <div style={grid}>
-        <Card titulo="Total no período" valor={total} />
+        <Card titulo="Total no periodo" valor={total} />
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Status</h2>
+      <h2 style={{ marginTop: "30px" }}>Producao por Status</h2>
 
       <div style={grid}>
         {Object.entries(porStatus).map(([status, quantidade]) => (
@@ -106,7 +106,7 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Produto</h2>
+      <h2 style={{ marginTop: "30px" }}>Producao por Produto</h2>
 
       <div style={grid}>
         {Object.entries(porProduto).map(([produto, quantidade]) => (
@@ -114,7 +114,7 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Responsável</h2>
+      <h2 style={{ marginTop: "30px" }}>Producao por Responsaveis</h2>
 
       <div style={grid}>
         {Object.entries(porResponsavel).map(([responsavel, quantidade]) => (
@@ -122,7 +122,7 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "30px" }}>Produção por Setor</h2>
+      <h2 style={{ marginTop: "30px" }}>Producao por Setor</h2>
 
       <div style={grid}>
         {Object.entries(porSetor).map(([setor, quantidade]) => (
@@ -130,15 +130,15 @@ export default async function Relatorios({
         ))}
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>Demandas do período</h2>
+      <h2 style={{ marginTop: "40px" }}>Demandas do periodo</h2>
 
       <table style={table}>
         <thead>
           <tr>
             <th style={th}>ID</th>
-            <th style={th}>Título</th>
+            <th style={th}>Titulo</th>
             <th style={th}>Produto</th>
-            <th style={th}>Responsável</th>
+            <th style={th}>Responsaveis</th>
             <th style={th}>Setor</th>
             <th style={th}>Status</th>
             <th style={th}>Data</th>
@@ -158,7 +158,7 @@ export default async function Relatorios({
                 </a>
               </td>
               <td style={td}>{demanda.produto}</td>
-              <td style={td}>{nomeResponsavel(demanda)}</td>
+              <td style={td}>{nomeResponsaveis(demanda)}</td>
               <td style={td}>{demanda.setor}</td>
               <td style={td}>{demanda.status}</td>
               <td style={td}>{demanda.data_solicitacao || "Sem data"}</td>

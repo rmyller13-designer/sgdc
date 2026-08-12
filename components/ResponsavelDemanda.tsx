@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { podeAtribuirResponsavel } from "@/lib/auth";
+import {
+  criarMapaResponsaveis,
+  formatarListaResponsaveis,
+  type DemandaResponsavelRow,
+} from "@/lib/demanda-responsaveis";
 import { supabase } from "../lib/supabase";
 import { corrigirTextoExibicao } from "@/lib/display-text";
 
@@ -16,15 +21,17 @@ type UsuarioResponsavel = {
 export default function ResponsavelDemanda({
   demandaId,
   responsavelAtual,
+  responsaveisAtuais = [],
 }: {
   demandaId: number;
   responsavelAtual?: string | null;
+  responsaveisAtuais?: string[];
 }) {
   const router = useRouter();
   const { usuario } = useAuth();
   const podeAtribuir = podeAtribuirResponsavel(usuario);
   const [usuarios, setUsuarios] = useState<UsuarioResponsavel[]>([]);
-  const [responsavelId, setResponsavelId] = useState("");
+  const [responsaveisSelecionados, setResponsaveisSelecionados] = useState<string[]>([]);
   const [mensagem, setMensagem] = useState("");
 
   const carregarUsuarios = useCallback(async () => {
@@ -42,61 +49,127 @@ export default function ResponsavelDemanda({
     });
   }, [carregarUsuarios]);
 
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarResponsaveisAtuais() {
+      const { data } = await supabase
+        .from("demanda_responsaveis")
+        .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
+        .eq("demanda_id", demandaId)
+        .order("principal", { ascending: false });
+
+      if (!ativo) return;
+
+      const mapa = criarMapaResponsaveis((data as DemandaResponsavelRow[] | null) || []);
+      setResponsaveisSelecionados(
+        (mapa.get(demandaId) || []).map((item) => String(item.id))
+      );
+    }
+
+    queueMicrotask(() => {
+      void carregarResponsaveisAtuais();
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [demandaId]);
+
   async function atualizarResponsavel() {
     setMensagem("");
 
     if (!podeAtribuir || !usuario) {
-      setMensagem("Seu usuário não tem permissão para atribuir responsável.");
+      setMensagem("Seu usuario nao tem permissao para atribuir responsaveis.");
       return;
     }
 
-    if (!responsavelId) {
-      setMensagem("Selecione um responsável.");
+    if (responsaveisSelecionados.length === 0) {
+      setMensagem("Selecione ao menos um responsavel.");
       return;
     }
 
-    const usuarioSelecionado = usuarios.find(
-      (item) => String(item.id) === responsavelId
+    const usuariosSelecionados = usuarios.filter((item) =>
+      responsaveisSelecionados.includes(String(item.id))
     );
 
-    const { error } = await supabase
+    const registros = responsaveisSelecionados.map((responsavelId, index) => ({
+      demanda_id: demandaId,
+      usuario_id: Number(responsavelId),
+      principal: index === 0,
+    }));
+
+    const { error: erroRemocao } = await supabase
+      .from("demanda_responsaveis")
+      .delete()
+      .eq("demanda_id", demandaId);
+
+    if (erroRemocao) {
+      setMensagem("Nao foi possivel atualizar os responsaveis agora.");
+      return;
+    }
+
+    const { error: erroInsercao } = await supabase
+      .from("demanda_responsaveis")
+      .insert(registros);
+
+    if (erroInsercao) {
+      setMensagem("Nao foi possivel atualizar os responsaveis agora.");
+      return;
+    }
+
+    const { error: erroDemanda } = await supabase
       .from("demandas")
-      .update({ responsavel_id: Number(responsavelId) })
+      .update({ responsavel_id: registros[0]?.usuario_id || null })
       .eq("id", demandaId)
       .select("id")
       .single();
 
-    if (error) {
-      setMensagem("Nao foi possivel atualizar o responsavel agora.");
+    if (erroDemanda) {
+      setMensagem(
+        "Os responsaveis foram salvos, mas o responsavel principal nao foi sincronizado."
+      );
       return;
     }
 
     await supabase.from("historico_demanda").insert({
       demanda_id: demandaId,
       usuario_id: usuario.id,
-      acao: `${usuario.nome} atribuiu a demanda para ${usuarioSelecionado?.nome}`,
+      acao: `${usuario.nome} definiu os responsaveis da demanda para ${usuariosSelecionados
+        .map((item) => item.nome)
+        .filter(Boolean)
+        .join(", ")}`,
     });
 
-    setMensagem("Responsável atualizado com sucesso!");
+    setMensagem("Responsaveis atualizados com sucesso!");
     router.refresh();
   }
 
   return (
     <div style={{ marginTop: "20px" }}>
       <p>
-        <strong>Responsável atual:</strong>{" "}
-        {corrigirTextoExibicao(responsavelAtual) || "Não definido"}
+        <strong>Responsaveis atuais:</strong>{" "}
+        {corrigirTextoExibicao(
+          formatarListaResponsaveis(
+            responsaveisAtuais,
+            responsavelAtual || null
+          )
+        ) || "Nao definido"}
       </p>
 
-      <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+      <div style={linha}>
         <select
-          value={responsavelId}
-          onChange={(e) => setResponsavelId(e.target.value)}
+          value={responsaveisSelecionados}
+          onChange={(e) =>
+            setResponsaveisSelecionados(
+              Array.from(e.target.selectedOptions, (option) => option.value)
+            )
+          }
           style={campo}
           disabled={!podeAtribuir}
+          multiple
+          size={Math.min(Math.max(usuarios.length, 4), 8)}
         >
-          <option value="">Selecione o responsável</option>
-
           {usuarios.map((item) => (
             <option key={item.id} value={item.id}>
               {corrigirTextoExibicao(item.nome)} - {corrigirTextoExibicao(item.funcao)}
@@ -110,14 +183,25 @@ export default function ResponsavelDemanda({
           style={botao}
           disabled={!podeAtribuir}
         >
-          Atualizar Responsável
+          Atualizar Responsaveis
         </button>
       </div>
+
+      <p style={ajuda}>
+        Segure Ctrl para selecionar mais de um nome. O primeiro nome salvo fica como responsavel principal para compatibilidade com os pontos antigos do sistema.
+      </p>
 
       {mensagem && <p>{mensagem}</p>}
     </div>
   );
 }
+
+const linha = {
+  display: "flex",
+  gap: "10px",
+  marginTop: "8px",
+  alignItems: "flex-start",
+};
 
 const campo = {
   padding: "10px",
@@ -125,6 +209,7 @@ const campo = {
   border: "1px solid #334155",
   background: "#111827",
   color: "white",
+  minWidth: "280px",
 };
 
 const botao = {
@@ -134,4 +219,10 @@ const botao = {
   padding: "10px 16px",
   borderRadius: "8px",
   cursor: "pointer",
+};
+
+const ajuda = {
+  fontSize: "12px",
+  color: "#94a3b8",
+  marginTop: "8px",
 };

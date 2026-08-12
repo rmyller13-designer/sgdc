@@ -907,7 +907,7 @@ function criarIndiceHtml(acervo: AcervoDemanda[], pastaMensal: string) {
           <th>ID</th>
           <th>Titulo</th>
           <th>Status</th>
-          <th>Responsavel</th>
+          <th>Responsaveis</th>
           <th>Setor</th>
           <th>Entrega</th>
           <th>Arquivos</th>
@@ -927,7 +927,7 @@ function criarIndiceCsv(acervo: AcervoDemanda[]) {
       "ID",
       "Titulo",
       "Status",
-      "Responsavel",
+      "Responsaveis",
       "Setor",
       "Solicitante",
       "Prioridade",
@@ -1022,7 +1022,7 @@ async function criarIndicePdf(acervo: AcervoDemanda[], pastaMensal: string) {
     const linhas = [
       `#${item.demanda.id} - ${item.demanda.titulo || "Sem titulo"}`,
       `Status: ${formatarHumano(item.demanda.status)} | Prioridade: ${formatarHumano(item.demanda.prioridade)}`,
-      `Responsavel: ${item.demanda.responsavel || "Nao definido"} | Setor: ${item.demanda.setor || "Nao informado"}`,
+      `Responsaveis: ${item.demanda.responsavel || "Nao definido"} | Setor: ${item.demanda.setor || "Nao informado"}`,
       `Entrega: ${formatarData(item.demanda.data_entrega)} | Arquivos: ${contarArquivosDaDemanda(item)}`,
     ];
 
@@ -1179,7 +1179,7 @@ function criarResumoHtml(item: AcervoDemanda) {
     <div class="card"><span class="label">Prioridade</span><span class="value">${escaparHtml(formatarHumano(d.prioridade))}</span></div>
     <div class="card"><span class="label">Setor</span><span class="value">${escaparHtml(d.setor || "Nao informado")}</span></div>
     <div class="card"><span class="label">Solicitante</span><span class="value">${escaparHtml(d.cadastrado_por || "Nao informado")}</span></div>
-    <div class="card"><span class="label">Responsavel</span><span class="value">${escaparHtml(d.responsavel || "Nao definido")}</span></div>
+    <div class="card"><span class="label">Responsaveis</span><span class="value">${escaparHtml(d.responsavel || "Nao definido")}</span></div>
     <div class="card"><span class="label">Entrega</span><span class="value">${escaparHtml(formatarData(d.data_entrega))}</span></div>
     <div class="card"><span class="label">Produto inicial</span><span class="value">${escaparHtml(d.produto || "Nao informado")}</span></div>
     <div class="card"><span class="label">Arquivos vinculados</span><span class="value">${contarArquivosDaDemanda(item)}</span></div>
@@ -1237,7 +1237,7 @@ function criarResumoTxt(item: AcervoDemanda) {
     `Prioridade: ${formatarHumano(d.prioridade)}`,
     `Setor: ${d.setor || "Nao informado"}`,
     `Solicitante: ${d.cadastrado_por || "Nao informado"}`,
-    `Responsavel: ${d.responsavel || "Nao definido"}`,
+    `Responsaveis: ${d.responsavel || "Nao definido"}`,
     `Entrega: ${formatarData(d.data_entrega)}`,
     `Produto inicial: ${d.produto || "Nao informado"}`,
     "",
@@ -1310,7 +1310,7 @@ async function criarResumoPdf(item: AcervoDemanda, imagens: ImagemResumo[]) {
     fonteTitulo,
     40,
     654,
-    "Responsavel",
+    "Responsaveis",
     demanda.responsavel || "Nao definido"
   );
   desenharCartaoResumoPdf(
@@ -1343,7 +1343,7 @@ async function criarResumoPdf(item: AcervoDemanda, imagens: ImagemResumo[]) {
         `Prioridade: ${formatarHumano(demanda.prioridade)}`,
         `Setor: ${demanda.setor || "Nao informado"}`,
         `Solicitante: ${demanda.cadastrado_por || "Nao informado"}`,
-        `Responsavel: ${demanda.responsavel || "Nao definido"}`,
+        `Responsaveis: ${demanda.responsavel || "Nao definido"}`,
         `Entrega: ${formatarData(demanda.data_entrega)}`,
         `Produto inicial: ${demanda.produto || "Nao informado"}`,
       ].join("\n"),
