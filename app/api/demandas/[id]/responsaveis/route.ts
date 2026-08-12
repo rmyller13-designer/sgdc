@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { criarSessaoUsuario, podeAtribuirResponsavel } from "@/lib/auth";
 import { criarSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -63,13 +64,26 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     supabase = criarSupabaseAdmin();
   } catch {
-    return NextResponse.json(
-      {
-        error:
-          "As configuracoes internas para atualizar responsaveis ainda nao foram concluidas.",
+    const supabaseUrl =
+      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        {
+          error:
+            "As configuracoes internas para atualizar responsaveis ainda nao foram concluidas.",
+        },
+        { status: 500 }
+      );
+    }
+
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
-      { status: 500 }
-    );
+    });
   }
 
   const usuarioSessao = criarSessaoUsuario({
