@@ -82,8 +82,17 @@ export async function buscarDemandasCompletas(
     ...demandas.map((item) => item.responsavel_id),
   ]);
   const produtoIds = idsNumericos(demandas.map((item) => item.produto_id));
+  const statusIds = idsNumericos(demandas.map((item) => item.status_id));
+  const prioridadeIds = idsNumericos(demandas.map((item) => item.prioridade_id));
 
-  const [setoresRes, usuariosRes, produtosRes, responsaveisRes] = await Promise.all([
+  const [
+    setoresRes,
+    usuariosRes,
+    produtosRes,
+    statusRes,
+    prioridadesRes,
+    responsaveisRes,
+  ] = await Promise.all([
     setorIds.length > 0
       ? supabase.from("setores").select("id, nome").in("id", setorIds)
       : Promise.resolve({ data: [] as Array<{ id: number; nome: string | null }>, error: null }),
@@ -92,6 +101,12 @@ export async function buscarDemandasCompletas(
       : Promise.resolve({ data: [] as Array<{ id: number; nome: string | null }>, error: null }),
     produtoIds.length > 0
       ? supabase.from("produtos").select("id, nome").in("id", produtoIds)
+      : Promise.resolve({ data: [] as Array<{ id: number; nome: string | null }>, error: null }),
+    statusIds.length > 0
+      ? supabase.from("status_demanda").select("id, nome").in("id", statusIds)
+      : Promise.resolve({ data: [] as Array<{ id: number; nome: string | null }>, error: null }),
+    prioridadeIds.length > 0
+      ? supabase.from("prioridades").select("id, nome").in("id", prioridadeIds)
       : Promise.resolve({ data: [] as Array<{ id: number; nome: string | null }>, error: null }),
     demandaIds.length > 0
       ? supabase
@@ -122,6 +137,18 @@ export async function buscarDemandasCompletas(
       item.nome,
     ]))
   );
+  const mapaStatus = new Map(
+    (((statusRes.data as Array<{ id: number; nome: string | null }> | null) || []).map((item) => [
+      Number(item.id),
+      item.nome,
+    ]))
+  );
+  const mapaPrioridades = new Map(
+    (((prioridadesRes.data as Array<{ id: number; nome: string | null }> | null) || []).map((item) => [
+      Number(item.id),
+      item.nome,
+    ]))
+  );
   const mapaResponsaveis = responsaveisRes.error
     ? new Map<number, Array<{ id: number; nome: string | null; funcao?: string | null }>>()
     : criarMapaResponsaveis((responsaveisRes.data as DemandaResponsavelRow[] | null) || []);
@@ -129,6 +156,12 @@ export async function buscarDemandasCompletas(
   return {
     data: demandas.map((item) => ({
       ...item,
+      status: item.status_id
+        ? mapaStatus.get(item.status_id) || item.status
+        : item.status,
+      prioridade: item.prioridade_id
+        ? mapaPrioridades.get(item.prioridade_id) || item.prioridade
+        : item.prioridade,
       setor: item.setor_id
         ? mapaSetores.get(item.setor_id) || item.setor_solicitante
         : item.setor_solicitante,
