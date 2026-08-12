@@ -27,6 +27,13 @@ const STATUS = [
   { id: 6, nome: "CANCELADO", titulo: "Cancelado" },
 ];
 
+const RESPONSAVEIS_FILTRO_FIXOS = [
+  "Josivania",
+  "Junior",
+  "Roberto Myller",
+  "Terezinha",
+];
+
 type DemandaKanban = {
   id: number;
   titulo?: string | null;
@@ -58,8 +65,8 @@ export default function KanbanDemandas({
   const [menuAbertoId, setMenuAbertoId] = useState<number | null>(null);
 
   const setores = pegarUnicos(lista.map((d) => d.setor).filter(Boolean));
-  const responsaveis = pegarUnicos(
-    lista.map((d) => d.responsavel || d.cadastrado_por).filter(Boolean)
+  const responsaveis = RESPONSAVEIS_FILTRO_FIXOS.filter((nome) =>
+    lista.some((demanda) => possuiResponsavelSelecionado(demanda, nome))
   );
   const prioridades = pegarUnicos(
     lista.map((d) => d.prioridade).filter(Boolean)
@@ -86,7 +93,7 @@ export default function KanbanDemandas({
     const passaSetor = !filtroSetor || demanda.setor === filtroSetor;
     const passaResponsavel =
       !filtroResponsavel ||
-      (demanda.responsavel || demanda.cadastrado_por) === filtroResponsavel;
+      possuiResponsavelSelecionado(demanda, filtroResponsavel);
     const passaPrioridade =
       !filtroPrioridade || demanda.prioridade === filtroPrioridade;
 
@@ -674,6 +681,20 @@ function pegarUnicos(lista: Array<string | null | undefined>) {
   return Array.from(
     new Set(lista.filter((item): item is string => Boolean(item)))
   ).sort();
+}
+
+function possuiResponsavelSelecionado(
+  demanda: Pick<DemandaKanban, "responsavel" | "cadastrado_por">,
+  responsavelFiltro: string
+) {
+  const nomes = (demanda.responsavel || demanda.cadastrado_por || "")
+    .split(",")
+    .map((item) => corrigirTextoExibicao(item).trim().toLowerCase())
+    .filter(Boolean);
+
+  return nomes.includes(
+    corrigirTextoExibicao(responsavelFiltro).trim().toLowerCase()
+  );
 }
 
 function formatarData(data: string) {

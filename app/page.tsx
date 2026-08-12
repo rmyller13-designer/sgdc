@@ -90,7 +90,7 @@ export default async function Dashboard() {
 
   const cargaResponsaveis = agruparMapa(
     demandasAbertas,
-    (demanda) => corrigirTextoExibicao(demanda.responsavel) || "Nao definido"
+    (demanda) => dividirResponsaveis(demanda.responsavel)
   ).slice(0, 6);
 
   const setoresTop = agruparMapa(
@@ -114,16 +114,28 @@ export default async function Dashboard() {
   );
 }
 
-function agruparMapa<T>(lista: T[], seletor: (item: T) => string) {
+function agruparMapa<T>(lista: T[], seletor: (item: T) => string | string[]) {
   const mapa = lista.reduce<Record<string, number>>((acc, item) => {
-    const chave = seletor(item);
-    acc[chave] = (acc[chave] || 0) + 1;
+    const bruto = seletor(item);
+    const chaves = Array.isArray(bruto) ? bruto : [bruto];
+    chaves.forEach((chave) => {
+      acc[chave] = (acc[chave] || 0) + 1;
+    });
     return acc;
   }, {});
 
   return Object.entries(mapa)
     .map(([titulo, valor]) => ({ titulo, valor }))
     .sort((a, b) => b.valor - a.valor || a.titulo.localeCompare(b.titulo, "pt-BR"));
+}
+
+function dividirResponsaveis(valor?: string | null) {
+  const nomes = (valor || "")
+    .split(",")
+    .map((item) => corrigirTextoExibicao(item).trim())
+    .filter(Boolean);
+
+  return nomes.length > 0 ? nomes : ["Nao definido"];
 }
 
 function calcularAlertas(demandas: DemandaDashboard[]) {

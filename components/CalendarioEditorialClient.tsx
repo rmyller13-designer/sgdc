@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import { podeEditarFluxo } from "@/lib/auth";
+import { corrigirTextoExibicao } from "@/lib/display-text";
 import { supabase } from "@/lib/supabase";
 
 type DemandaCalendario = {
@@ -48,6 +49,13 @@ const statusCores: Record<string, string> = {
   CONCLUIDO: "#22c55e",
   CANCELADO: "#94a3b8",
 };
+
+const RESPONSAVEIS_FILTRO_FIXOS = [
+  "Josivania",
+  "Junior",
+  "Roberto Myller",
+  "Terezinha",
+];
 
 export default function CalendarioEditorialClient({
   mesAtual,
@@ -89,7 +97,7 @@ export default function CalendarioEditorialClient({
       return (
         (!texto || conteudo.includes(texto)) &&
         (!status || demanda.status === status) &&
-        (!responsavel || demanda.responsavel === responsavel) &&
+        (!responsavel || possuiResponsavelSelecionado(demanda.responsavel, responsavel)) &&
         (!setor || demanda.setor === setor)
       );
     });
@@ -109,8 +117,8 @@ export default function CalendarioEditorialClient({
   }, [demandasFiltradas]);
 
   const opcoesStatus = pegarUnicos(lista.map((demanda) => demanda.status));
-  const opcoesResponsavel = pegarUnicos(
-    lista.map((demanda) => demanda.responsavel)
+  const opcoesResponsavel = RESPONSAVEIS_FILTRO_FIXOS.filter((nome) =>
+    lista.some((demanda) => possuiResponsavelSelecionado(demanda.responsavel, nome))
   );
   const opcoesSetor = pegarUnicos(lista.map((demanda) => demanda.setor));
   const mesAnterior = deslocarMes(mesAtual, -1);
@@ -565,6 +573,20 @@ function pegarDataEditorial(demanda: DemandaCalendario) {
 
 function pegarUnicos(lista: Array<string | null>) {
   return Array.from(new Set(lista.filter((item): item is string => Boolean(item)))).sort();
+}
+
+function possuiResponsavelSelecionado(
+  responsavelDemanda: string | null | undefined,
+  responsavelFiltro: string
+) {
+  const nomes = (responsavelDemanda || "")
+    .split(",")
+    .map((item) => corrigirTextoExibicao(item).trim().toLowerCase())
+    .filter(Boolean);
+
+  return nomes.includes(
+    corrigirTextoExibicao(responsavelFiltro).trim().toLowerCase()
+  );
 }
 
 function deslocarMes(mes: string, quantidade: number) {

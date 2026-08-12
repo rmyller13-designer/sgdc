@@ -134,9 +134,8 @@ export default async function RelatoriosQuantitativos({
 
   const status = agruparContagem(demandas, (item) => item.status);
   const setores = agruparContagem(demandas, (item) => item.setor);
-  const responsaveis = agruparContagem(
-    demandas,
-    (item) => corrigirTextoExibicao(item.responsavel) || "NÃ£o atribuÃ­do"
+  const responsaveis = agruparContagem(demandas, (item) =>
+    dividirResponsaveis(item.responsavel)
   );
   const evolucaoMensal = agruparEvolucaoMensal(demandas, periodo);
   const totalPostagensAscom = clipping.filter((item) => item.origem === "ASCOM").length;
@@ -185,9 +184,9 @@ function resolverPeriodo(params: SearchParams) {
 function pegarNome(
   valor: { nome: string | null } | { nome: string | null }[] | null
 ) {
-  if (!valor) return "NÃ£o informado";
-  if (Array.isArray(valor)) return valor[0]?.nome || "NÃ£o informado";
-  return valor.nome || "NÃ£o informado";
+  if (!valor) return "Nao informado";
+  if (Array.isArray(valor)) return valor[0]?.nome || "Nao informado";
+  return valor.nome || "Nao informado";
 }
 
 function agruparSoma<T>(
@@ -198,7 +197,7 @@ function agruparSoma<T>(
   const mapa: Record<string, number> = {};
 
   lista.forEach((item) => {
-    const titulo = getTitulo(item) || "NÃ£o informado";
+    const titulo = getTitulo(item) || "Nao informado";
     mapa[titulo] = (mapa[titulo] || 0) + getValor(item);
   });
 
@@ -207,16 +206,29 @@ function agruparSoma<T>(
 
 function agruparContagem<T>(
   lista: T[],
-  getTitulo: (item: T) => string | null | undefined
+  getTitulo: (item: T) => string | string[] | null | undefined
 ): Item[] {
   const mapa: Record<string, number> = {};
 
   lista.forEach((item) => {
-    const titulo = getTitulo(item) || "NÃ£o informado";
-    mapa[titulo] = (mapa[titulo] || 0) + 1;
+    const bruto = getTitulo(item);
+    const titulos = Array.isArray(bruto) ? bruto : [bruto || "Nao informado"];
+
+    titulos.forEach((titulo) => {
+      mapa[titulo] = (mapa[titulo] || 0) + 1;
+    });
   });
 
   return ordenarItens(mapa);
+}
+
+function dividirResponsaveis(valor?: string | null) {
+  const nomes = (corrigirTextoExibicao(valor) || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return nomes.length > 0 ? nomes : ["Nao atribuido"];
 }
 
 function ordenarItens(mapa: Record<string, number>) {
@@ -231,9 +243,9 @@ function ordenarItens(mapa: Record<string, number>) {
 function formatarTituloRelatorio(valor: string) {
   const texto = corrigirTextoExibicao(valor);
 
-  if (!texto) return "NÃ£o informado";
+  if (!texto) return "Nao informado";
   if (texto === "Sem setor") return texto;
-  if (texto === "NÃ£o atribuÃ­do") return texto;
+  if (texto === "Nao atribuido") return texto;
 
   if (
     texto in {
