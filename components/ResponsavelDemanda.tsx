@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { podeAtribuirResponsavel } from "@/lib/auth";
+import { nomeDoUsuario, podeAtribuirResponsavel } from "@/lib/auth";
 import {
   criarMapaResponsaveis,
   formatarListaResponsaveis,
@@ -33,6 +33,7 @@ export default function ResponsavelDemanda({
   const [usuarios, setUsuarios] = useState<UsuarioResponsavel[]>([]);
   const [responsaveisSelecionados, setResponsaveisSelecionados] = useState<string[]>([]);
   const [mensagem, setMensagem] = useState("");
+  const [salvando, setSalvando] = useState(false);
 
   const carregarUsuarios = useCallback(async () => {
     const { data } = await supabase
@@ -89,60 +90,49 @@ export default function ResponsavelDemanda({
       return;
     }
 
-    const usuariosSelecionados = usuarios.filter((item) =>
-      responsaveisSelecionados.includes(String(item.id))
-    );
+    setSalvando(true);
 
-    const registros = responsaveisSelecionados.map((responsavelId, index) => ({
-      demanda_id: demandaId,
-      usuario_id: Number(responsavelId),
-      principal: index === 0,
-    }));
+    try {
+      const response = await fetch(`/api/demandas/${demandaId}/responsaveis`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario: {
+            id: usuario.id,
+            nome: usuario.nome,
+            funcao: usuario.funcao,
+            email: usuario.email,
+          },
+          responsaveisIds: responsaveisSelecionados.map(Number),
+        }),
+      });
 
-    const { error: erroRemocao } = await supabase
-      .from("demanda_responsaveis")
-      .delete()
-      .eq("demanda_id", demandaId);
+      const resultado = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
 
-    if (erroRemocao) {
-      setMensagem("Nao foi possivel atualizar os responsaveis agora.");
-      return;
+      if (!response.ok || !resultado?.ok) {
+        setMensagem(resultado?.error || "Nao foi possivel atualizar os responsaveis agora.");
+        return;
+      }
+
+      setMensagem("Responsaveis atualizados com sucesso!");
+      router.refresh();
+    } finally {
+      setSalvando(false);
     }
+  }
 
-    const { error: erroInsercao } = await supabase
-      .from("demanda_responsaveis")
-      .insert(registros);
+  function alternarResponsavel(responsavelId: string) {
+    setResponsaveisSelecionados((atual) => {
+      if (atual.includes(responsavelId)) {
+        return atual.filter((item) => item !== responsavelId);
+      }
 
-    if (erroInsercao) {
-      setMensagem("Nao foi possivel atualizar os responsaveis agora.");
-      return;
-    }
-
-    const { error: erroDemanda } = await supabase
-      .from("demandas")
-      .update({ responsavel_id: registros[0]?.usuario_id || null })
-      .eq("id", demandaId)
-      .select("id")
-      .single();
-
-    if (erroDemanda) {
-      setMensagem(
-        "Os responsaveis foram salvos, mas o responsavel principal nao foi sincronizado."
-      );
-      return;
-    }
-
-    await supabase.from("historico_demanda").insert({
-      demanda_id: demandaId,
-      usuario_id: usuario.id,
-      acao: `${usuario.nome} definiu os responsaveis da demanda para ${usuariosSelecionados
-        .map((item) => item.nome)
-        .filter(Boolean)
-        .join(", ")}`,
+      return [...atual, responsavelId];
     });
-
-    setMensagem("Responsaveis atualizados com sucesso!");
-    router.refresh();
   }
 
   return (
@@ -158,37 +148,35 @@ export default function ResponsavelDemanda({
       </p>
 
       <div style={linha}>
-        <select
-          value={responsaveisSelecionados}
-          onChange={(e) =>
-            setResponsaveisSelecionados(
-              Array.from(e.target.selectedOptions, (option) => option.value)
-            )
-          }
-          style={campo}
-          disabled={!podeAtribuir}
-          multiple
-          size={Math.min(Math.max(usuarios.length, 4), 8)}
-        >
+        <div style={listaCheckboxes}>
           {usuarios.map((item) => (
-            <option key={item.id} value={item.id}>
-              {corrigirTextoExibicao(item.nome)} - {corrigirTextoExibicao(item.funcao)}
-            </option>
+            <label key={item.id} style={opcaoCheckbox}>
+              <input
+                type="checkbox"
+                checked={responsaveisSelecionados.includes(String(item.id))}
+                onChange={() => alternarResponsavel(String(item.id))}
+                disabled={!podeAtribuir || salvando}
+              />
+              <span>
+                {corrigirTextoExibicao(nomeDoUsuario(item.nome))} - {corrigirTextoExibicao(item.funcao)}
+                {responsaveisSelecionados[0] === String(item.id) ? " (principal)" : ""}
+              </span>
+            </label>
           ))}
-        </select>
+        </div>
 
         <button
           type="button"
           onClick={atualizarResponsavel}
           style={botao}
-          disabled={!podeAtribuir}
+          disabled={!podeAtribuir || salvando}
         >
-          Atualizar Responsaveis
+          {salvando ? "Salvando..." : "Atualizar Responsaveis"}
         </button>
       </div>
 
       <p style={ajuda}>
-        Segure Ctrl para selecionar mais de um nome. O primeiro nome salvo fica como responsavel principal para compatibilidade com os pontos antigos do sistema.
+        Marque os nomes desejados. O primeiro nome marcado fica como responsavel principal para compatibilidade com os pontos antigos do sistema.
       </p>
 
       {mensagem && <p>{mensagem}</p>}
@@ -203,13 +191,24 @@ const linha = {
   alignItems: "flex-start",
 };
 
-const campo = {
+const listaCheckboxes = {
+  display: "grid",
+  gap: "8px",
+  minWidth: "320px",
+  maxHeight: "240px",
+  overflowY: "auto" as const,
   padding: "10px",
   borderRadius: "8px",
   border: "1px solid #334155",
   background: "#111827",
   color: "white",
-  minWidth: "280px",
+};
+
+const opcaoCheckbox = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "14px",
 };
 
 const botao = {

@@ -157,6 +157,7 @@ async function excluirDependencias(
     "comentario_anexos",
     "comentarios_demanda",
     "demanda_anexos",
+    "demanda_responsaveis",
     "demanda_checklist",
     "demanda_eixos",
     "demanda_canais",

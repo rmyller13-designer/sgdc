@@ -26,7 +26,7 @@ export const usuariosAutorizados = [
   "Junior",
   "Roberto",
   "Josivania",
-  "Renata",
+  "Direcao",
 ];
 
 export const todasPermissoes: Permissao[] = [
@@ -39,7 +39,7 @@ export const todasPermissoes: Permissao[] = [
 
 export const permissoesLabels: Record<Permissao, string> = {
   admin: "Admin",
-  coordenacao: "Coordenação",
+  coordenacao: "Coordenacao",
   designer: "Designer",
   jornalista: "Jornalista",
   solicitante: "Solicitante",
@@ -50,7 +50,7 @@ export const cargosPorUsuario: Record<string, string> = {
   josivania: "Jornalista",
   junior: "Jornalista/Designer",
   terezinha: "Jornalista/Coordenadora",
-  renata: "Solicitante",
+  direcao: "Solicitante",
 };
 
 export function criarSessaoUsuario(usuario: UsuarioComunicacao): UsuarioSessao {
@@ -99,7 +99,9 @@ export function cargoDoUsuario(nome: string) {
 }
 
 export function nomeDoUsuario(nome: string) {
-  if (normalizar(nome) === "renata") return "Direção";
+  if (normalizar(nome) === "renata" || normalizar(nome) === "direcao") {
+    return "Direção";
+  }
 
   const usuarioAutorizado = usuariosAutorizados.find(
     (usuario) => normalizarUsuarioAutorizado(nome) === normalizar(usuario)
@@ -134,7 +136,7 @@ function ordemUsuarioAutorizado(nome: string) {
 
 function normalizarUsuarioAutorizado(nome: string) {
   const texto = normalizar(nome);
-  if (texto === "direcao") return "renata";
+  if (texto === "renata") return "direcao";
   return texto.startsWith("roberto") ? "roberto" : texto;
 }
 
