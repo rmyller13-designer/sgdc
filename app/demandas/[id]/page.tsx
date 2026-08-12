@@ -15,11 +15,7 @@ import EditarDemandaInfo from "@/components/EditarDemandaInfo";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import RichTextContent from "@/components/RichTextContent";
 import MemoriaEditorialSection from "@/components/MemoriaEditorialSection";
-import {
-  criarMapaResponsaveis,
-  formatarListaResponsaveis,
-  type DemandaResponsavelRow,
-} from "@/lib/demanda-responsaveis";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 import { buscarMemoriaEditorial } from "@/lib/memoria-editorial";
 import {
   corrigirTextoExibicao,
@@ -40,25 +36,16 @@ export default async function DetalheDemanda({
     return <p style={{ color: "red" }}>ID da demanda invalido.</p>;
   }
 
-  const { data: demanda, error } = await supabase
-    .from("demandas_completas")
-    .select("*")
-    .eq("id", demandaId)
-    .limit(1)
-    .maybeSingle();
+  const { data: demandas, error } = await buscarDemandasCompletas(supabase, {
+    id: demandaId,
+    limit: 1,
+  });
+  const demanda = demandas[0] || null;
 
   const { data: anexos } = await supabase
     .from("demanda_anexos")
     .select("*")
     .eq("demanda_id", demandaId);
-
-  const { data: responsaveisData } = await supabase
-    .from("demanda_responsaveis")
-    .select(
-      "demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)"
-    )
-    .eq("demanda_id", demandaId)
-    .order("principal", { ascending: false });
 
   const { count: totalComentarios = 0 } = await supabase
     .from("comentarios_demanda")
@@ -87,12 +74,7 @@ export default async function DetalheDemanda({
 
   const anexosLista = (anexos || []) as DemandaAnexoItem[];
   const totalAnexos = anexosLista.length;
-  const mapaResponsaveis = criarMapaResponsaveis(
-    (responsaveisData as DemandaResponsavelRow[] | null) || []
-  );
-  const responsaveisAtuais = mapaResponsaveis.get(demandaId) || [];
-  const responsavelExibicao =
-    formatarListaResponsaveis(responsaveisAtuais, demanda.responsavel) || null;
+  const responsavelExibicao = demanda.responsavel || null;
 
   const googleTaskDemanda = {
     id: demanda.id,
@@ -209,18 +191,10 @@ export default async function DetalheDemanda({
           </div>
 
           <div style={tabs}>
-            <a href="#detalhes" style={tabAtiva}>
-              Detalhes
-            </a>
-            <a href="#fluxo" style={tab}>
-              Fluxo
-            </a>
-            <a href="#producao" style={tab}>
-              Eixos e Produtos
-            </a>
-            <a href="#anexos" style={tab}>
-              Anexos
-            </a>
+            <a href="#detalhes" style={tabAtiva}>Detalhes</a>
+            <a href="#fluxo" style={tab}>Fluxo</a>
+            <a href="#producao" style={tab}>Eixos e Produtos</a>
+            <a href="#anexos" style={tab}>Anexos</a>
           </div>
 
           <section id="detalhes" style={card}>
@@ -235,14 +209,14 @@ export default async function DetalheDemanda({
                 <ResponsavelDemanda
                   demandaId={demanda.id}
                   responsavelAtual={demanda.responsavel}
-                  responsaveisAtuais={responsaveisAtuais.map((item) => item.nome || "")}
+                  responsaveisAtuais={demanda.responsavel ? demanda.responsavel.split(", ") : []}
                 />
               </div>
 
               <div style={acaoBox}>
                 <StatusDemanda
                   demandaId={demanda.id}
-                  statusAtual={demanda.status}
+                  statusAtual={demanda.status || "RECEBIDO"}
                 />
               </div>
             </div>
@@ -289,7 +263,7 @@ export default async function DetalheDemanda({
   );
 }
 
-function formatarStatus(status: string) {
+function formatarStatus(status?: string | null) {
   const nomes: Record<string, string> = {
     RECEBIDO: "Recebido",
     EM_PRODUCAO: "Em Producao",
@@ -299,7 +273,7 @@ function formatarStatus(status: string) {
     CANCELADO: "Cancelado",
   };
 
-  return nomes[status] || corrigirTextoExibicao(status);
+  return nomes[status || ""] || corrigirTextoExibicao(status);
 }
 
 function formatarData(data: string) {
@@ -307,287 +281,43 @@ function formatarData(data: string) {
   return `${dia}/${mes}/${ano}`;
 }
 
-const page: CSSProperties = {
-  color: "white",
-  maxWidth: "1540px",
-  margin: "0 auto",
-};
-
-const workspaceHeader: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  color: "#fecaca",
-  fontSize: "13px",
-  marginBottom: "20px",
-};
-
-const backLink: CSSProperties = {
-  color: "var(--sg-nav-chip-text)",
-  textDecoration: "none",
-  fontWeight: 700,
-};
-
-const separator: CSSProperties = {
-  color: "var(--sg-text-subtle)",
-};
-
-const headerCurrent: CSSProperties = {
-  color: "var(--sg-text-secondary)",
-};
-
-const conteudo: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 360px",
-  gap: "22px",
-  alignItems: "start",
-};
-
-const mainColumn: CSSProperties = {
-  minWidth: 0,
-};
-
-const sideColumn: CSSProperties = {
-  minWidth: 0,
-};
-
-const sideSticky: CSSProperties = {
-  position: "sticky",
-  top: "108px",
-};
-
-const topo: CSSProperties = {
-  background:
-    "linear-gradient(135deg, rgba(15,23,42,.9), rgba(30,41,59,.72) 58%, rgba(127,29,29,.24))",
-  border: "1px solid rgba(252, 165, 165, 0.18)",
-  borderRadius: "18px",
-  padding: "24px",
-  marginBottom: "16px",
-  boxShadow: "0 22px 44px rgba(0,0,0,.2)",
-};
-
-const heroTopo: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 280px",
-  gap: "18px",
-  alignItems: "start",
-};
-
-const tituloBloco: CSSProperties = {
-  minWidth: 0,
-};
-
-const tituloLinha: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap",
-};
-
-const heroResumoLateral: CSSProperties = {
-  display: "grid",
-  gap: "10px",
-};
-
-const heroMiniCard: CSSProperties = {
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "14px",
-  padding: "14px 15px",
-  display: "grid",
-  gap: "6px",
-};
-
-const heroMiniLabel: CSSProperties = {
-  color: "var(--sg-text-subtle)",
-  fontSize: "11px",
-  fontWeight: 700,
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-};
-
-const heroMiniValue: CSSProperties = {
-  color: "var(--sg-text-primary)",
-  fontSize: "14px",
-  lineHeight: "20px",
-};
-
-const idBadge: CSSProperties = {
-  color: "var(--sg-text-secondary)",
-  fontSize: "13px",
-  fontWeight: 700,
-};
-
-const statusPill: CSSProperties = {
-  background: "rgba(220, 38, 38, 0.28)",
-  border: "1px solid rgba(252, 165, 165, 0.28)",
-  borderRadius: "999px",
-  color: "#fee2e2",
-  fontSize: "12px",
-  fontWeight: 700,
-  padding: "6px 10px",
-};
-
-const tituloPrincipal: CSSProperties = {
-  fontSize: "36px",
-  margin: "10px 0 12px",
-  lineHeight: "42px",
-  overflowWrap: "anywhere",
-};
-
-const descricaoTopo: CSSProperties = {
-  color: "var(--sg-text-secondary)",
-  maxWidth: "920px",
-  lineHeight: "25px",
-  margin: 0,
-};
-
-const painelResumo: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(160px, 1fr))",
-  gap: "12px",
-  marginBottom: "12px",
-};
-
-const operationalStrip: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(120px, 1fr))",
-  gap: "10px",
-  marginBottom: "18px",
-};
-
-const operationalCard: CSSProperties = {
-  background: "rgba(2,6,23,.3)",
-  border: "1px solid rgba(255,255,255,.08)",
-  borderRadius: "14px",
-  padding: "12px 14px",
-  display: "grid",
-  gap: "6px",
-};
-
-const operationalLabel: CSSProperties = {
-  color: "var(--sg-text-subtle)",
-  fontSize: "10px",
-  fontWeight: 700,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-};
-
-const operationalValue: CSSProperties = {
-  color: "var(--sg-text-primary)",
-  fontSize: "18px",
-  lineHeight: "22px",
-};
-
-const campoResumo: CSSProperties = {
-  background: "rgba(15,23,42,.68)",
-  border: "1px solid rgba(252, 165, 165, 0.14)",
-  borderRadius: "16px",
-  padding: "16px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  color: "var(--sg-text-secondary)",
-  minWidth: 0,
-  boxShadow: "0 12px 24px rgba(0,0,0,.12)",
-};
-
-const resumoDestaque: CSSProperties = {
-  background:
-    "linear-gradient(135deg, rgba(127,29,29,.48), rgba(15,23,42,.78))",
-};
-
-const resumoLabel: CSSProperties = {
-  color: "var(--sg-text-subtle)",
-  fontSize: "11px",
-  fontWeight: 700,
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-};
-
-const resumoValor: CSSProperties = {
-  color: "var(--sg-text-primary)",
-  fontSize: "16px",
-  lineHeight: "22px",
-};
-
-const googleAgendaLink: CSSProperties = {
-  color: "#bfdbfe",
-  fontSize: "12px",
-  fontWeight: 700,
-  textDecoration: "none",
-};
-
-const tabs: CSSProperties = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-  marginBottom: "16px",
-};
-
-const tab: CSSProperties = {
-  color: "var(--sg-text-muted)",
-  padding: "9px 12px",
-  fontSize: "13px",
-  borderRadius: "999px",
-  border: "1px solid var(--sg-border-soft)",
-  background: "rgba(15,23,42,.38)",
-  textDecoration: "none",
-};
-
-const tabAtiva: CSSProperties = {
-  color: "var(--sg-text-primary)",
-  padding: "9px 12px",
-  fontSize: "13px",
-  fontWeight: 700,
-  borderRadius: "999px",
-  border: "1px solid rgba(255,255,255,.12)",
-  background: "rgba(255,255,255,.08)",
-  textDecoration: "none",
-};
-
-const card: CSSProperties = {
-  background:
-    "linear-gradient(180deg, rgba(15,23,42,.82), rgba(15,23,42,.7) 100%)",
-  border: "1px solid rgba(252, 165, 165, 0.12)",
-  borderRadius: "18px",
-  padding: "22px",
-  marginBottom: "16px",
-  boxShadow: "0 16px 34px rgba(0,0,0,.15)",
-};
-
-const sectionTitle: CSSProperties = {
-  marginTop: 0,
-  marginBottom: "18px",
-  fontSize: "19px",
-};
-
-const acoesLinha: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(240px, 1fr))",
-  gap: "16px",
-};
-
-const acaoBox: CSSProperties = {
-  background: "rgba(2,6,23,.34)",
-  border: "1px solid rgba(255,255,255,.08)",
-  borderRadius: "14px",
-  padding: "16px",
-};
-
-const atividadeTitulo: CSSProperties = {
-  marginTop: 0,
-  marginBottom: "16px",
-  fontSize: "20px",
-  letterSpacing: "0.01em",
-};
-
-const sideCard: CSSProperties = {
-  background:
-    "linear-gradient(180deg, rgba(15,23,42,.82), rgba(15,23,42,.68) 100%)",
-  border: "1px solid rgba(252, 165, 165, 0.12)",
-  borderRadius: "18px",
-  padding: "18px",
-  marginBottom: "16px",
-  boxShadow: "0 14px 30px rgba(0,0,0,.14)",
-};
+const page: CSSProperties = { color: "white", maxWidth: "1540px", margin: "0 auto" };
+const workspaceHeader: CSSProperties = { display: "flex", alignItems: "center", gap: "8px", color: "#fecaca", fontSize: "13px", marginBottom: "20px" };
+const backLink: CSSProperties = { color: "var(--sg-nav-chip-text)", textDecoration: "none", fontWeight: 700 };
+const separator: CSSProperties = { color: "var(--sg-text-subtle)" };
+const headerCurrent: CSSProperties = { color: "var(--sg-text-secondary)" };
+const conteudo: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: "22px", alignItems: "start" };
+const mainColumn: CSSProperties = { minWidth: 0 };
+const sideColumn: CSSProperties = { minWidth: 0 };
+const sideSticky: CSSProperties = { position: "sticky", top: "108px" };
+const topo: CSSProperties = { background: "linear-gradient(135deg, rgba(15,23,42,.9), rgba(30,41,59,.72) 58%, rgba(127,29,29,.24))", border: "1px solid rgba(252, 165, 165, 0.18)", borderRadius: "18px", padding: "24px", marginBottom: "16px", boxShadow: "0 22px 44px rgba(0,0,0,.2)" };
+const heroTopo: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) 280px", gap: "18px", alignItems: "start" };
+const tituloBloco: CSSProperties = { minWidth: 0 };
+const tituloLinha: CSSProperties = { display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" };
+const heroResumoLateral: CSSProperties = { display: "grid", gap: "10px" };
+const heroMiniCard: CSSProperties = { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", padding: "14px 15px", display: "grid", gap: "6px" };
+const heroMiniLabel: CSSProperties = { color: "var(--sg-text-subtle)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" };
+const heroMiniValue: CSSProperties = { color: "var(--sg-text-primary)", fontSize: "14px", lineHeight: "20px" };
+const idBadge: CSSProperties = { color: "var(--sg-text-secondary)", fontSize: "13px", fontWeight: 700 };
+const statusPill: CSSProperties = { background: "rgba(220, 38, 38, 0.28)", border: "1px solid rgba(252, 165, 165, 0.28)", borderRadius: "999px", color: "#fee2e2", fontSize: "12px", fontWeight: 700, padding: "6px 10px" };
+const tituloPrincipal: CSSProperties = { fontSize: "36px", margin: "10px 0 12px", lineHeight: "42px", overflowWrap: "anywhere" };
+const descricaoTopo: CSSProperties = { color: "var(--sg-text-secondary)", maxWidth: "920px", lineHeight: "25px", margin: 0 };
+const painelResumo: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: "12px", marginBottom: "12px" };
+const operationalStrip: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(4, minmax(120px, 1fr))", gap: "10px", marginBottom: "18px" };
+const operationalCard: CSSProperties = { background: "rgba(2,6,23,.3)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "14px", padding: "12px 14px", display: "grid", gap: "6px" };
+const operationalLabel: CSSProperties = { color: "var(--sg-text-subtle)", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" };
+const operationalValue: CSSProperties = { color: "var(--sg-text-primary)", fontSize: "18px", lineHeight: "22px" };
+const campoResumo: CSSProperties = { background: "rgba(15,23,42,.68)", border: "1px solid rgba(252, 165, 165, 0.14)", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "8px", color: "var(--sg-text-secondary)", minWidth: 0, boxShadow: "0 12px 24px rgba(0,0,0,.12)" };
+const resumoDestaque: CSSProperties = { background: "linear-gradient(135deg, rgba(127,29,29,.48), rgba(15,23,42,.78))" };
+const resumoLabel: CSSProperties = { color: "var(--sg-text-subtle)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" };
+const resumoValor: CSSProperties = { color: "var(--sg-text-primary)", fontSize: "16px", lineHeight: "22px" };
+const googleAgendaLink: CSSProperties = { color: "#bfdbfe", fontSize: "12px", fontWeight: 700, textDecoration: "none" };
+const tabs: CSSProperties = { display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" };
+const tab: CSSProperties = { color: "var(--sg-text-muted)", padding: "9px 12px", fontSize: "13px", borderRadius: "999px", border: "1px solid var(--sg-border-soft)", background: "rgba(15,23,42,.38)", textDecoration: "none" };
+const tabAtiva: CSSProperties = { color: "var(--sg-text-primary)", padding: "9px 12px", fontSize: "13px", fontWeight: 700, borderRadius: "999px", border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.08)", textDecoration: "none" };
+const card: CSSProperties = { background: "linear-gradient(180deg, rgba(15,23,42,.82), rgba(15,23,42,.7) 100%)", border: "1px solid rgba(252, 165, 165, 0.12)", borderRadius: "18px", padding: "22px", marginBottom: "16px", boxShadow: "0 16px 34px rgba(0,0,0,.15)" };
+const sectionTitle: CSSProperties = { marginTop: 0, marginBottom: "18px", fontSize: "19px" };
+const acoesLinha: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: "16px" };
+const acaoBox: CSSProperties = { background: "rgba(2,6,23,.34)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "14px", padding: "16px" };
+const atividadeTitulo: CSSProperties = { marginTop: 0, marginBottom: "16px", fontSize: "20px", letterSpacing: "0.01em" };
+const sideCard: CSSProperties = { background: "linear-gradient(180deg, rgba(15,23,42,.82), rgba(15,23,42,.68) 100%)", border: "1px solid rgba(252, 165, 165, 0.12)", borderRadius: "18px", padding: "18px", marginBottom: "16px", boxShadow: "0 14px 30px rgba(0,0,0,.14)" };

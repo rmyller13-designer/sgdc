@@ -1,14 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { nomeDoUsuario, podeAtribuirResponsavel } from "@/lib/auth";
-import {
-  criarMapaResponsaveis,
-  formatarListaResponsaveis,
-  type DemandaResponsavelRow,
-} from "@/lib/demanda-responsaveis";
+import { formatarListaResponsaveis } from "@/lib/demanda-responsaveis";
 import { supabase } from "../lib/supabase";
 import { corrigirTextoExibicao } from "@/lib/display-text";
 
@@ -35,47 +31,53 @@ export default function ResponsavelDemanda({
   const [mensagem, setMensagem] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  const carregarUsuarios = useCallback(async () => {
-    const { data } = await supabase
-      .from("usuarios_comunicacao")
-      .select("id, nome, funcao")
-      .order("nome");
-
-    setUsuarios((data as UsuarioResponsavel[] | null) || []);
-  }, []);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void carregarUsuarios();
-    });
-  }, [carregarUsuarios]);
-
   useEffect(() => {
     let ativo = true;
 
-    async function carregarResponsaveisAtuais() {
+    async function carregarUsuarios() {
       const { data } = await supabase
-        .from("demanda_responsaveis")
-        .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
-        .eq("demanda_id", demandaId)
-        .order("principal", { ascending: false });
+        .from("usuarios_comunicacao")
+        .select("id, nome, funcao")
+        .order("nome");
 
       if (!ativo) return;
-
-      const mapa = criarMapaResponsaveis((data as DemandaResponsavelRow[] | null) || []);
-      setResponsaveisSelecionados(
-        (mapa.get(demandaId) || []).map((item) => String(item.id))
-      );
+      setUsuarios((data as UsuarioResponsavel[] | null) || []);
     }
 
     queueMicrotask(() => {
-      void carregarResponsaveisAtuais();
+      void carregarUsuarios();
     });
 
     return () => {
       ativo = false;
     };
-  }, [demandaId]);
+  }, []);
+
+  const nomesAtuaisNormalizados = useMemo(
+    () =>
+      (responsaveisAtuais || []).map((item) =>
+        corrigirTextoExibicao(item).trim().toLowerCase()
+      ),
+    [responsaveisAtuais]
+  );
+
+  useEffect(() => {
+    if (usuarios.length === 0 || nomesAtuaisNormalizados.length === 0) return;
+
+    const selecionados = usuarios
+      .filter((item) =>
+        nomesAtuaisNormalizados.includes(
+          corrigirTextoExibicao(nomeDoUsuario(item.nome)).trim().toLowerCase()
+        )
+      )
+      .map((item) => String(item.id));
+
+    if (selecionados.length > 0) {
+      setResponsaveisSelecionados((atual) =>
+        atual.length > 0 ? atual : selecionados
+      );
+    }
+  }, [usuarios, nomesAtuaisNormalizados]);
 
   async function atualizarResponsavel() {
     setMensagem("");

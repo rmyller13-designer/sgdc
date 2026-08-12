@@ -9,6 +9,7 @@ import {
   type PDFPage,
 } from "pdf-lib";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 import { criarSupabaseAdmin } from "@/lib/supabase-admin";
 
 const CONFIG_ID = "principal";
@@ -476,12 +477,10 @@ async function atualizarStatusBackup(
 }
 
 async function montarAcervoDemandas(admin: SupabaseClient) {
-  const { data: demandas, error: demandasError } = await admin
-    .from("demandas_completas")
-    .select(
-      "id, titulo, descricao, setor, cadastrado_por, responsavel, produto, prioridade, status, data_entrega, criado_em"
-    )
-    .order("id", { ascending: false });
+  const { data: demandas, error: demandasError } = await buscarDemandasCompletas(admin, {
+    orderBy: "id",
+    ascending: false,
+  });
 
   if (demandasError) {
     throw new Error(`Erro ao carregar demandas do acervo: ${demandasError.message}`);

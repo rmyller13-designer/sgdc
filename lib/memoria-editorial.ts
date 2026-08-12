@@ -5,6 +5,7 @@ import {
   formatarStatusExibicao,
   formatarTituloHumano,
 } from "@/lib/display-text";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 import { supabase } from "@/lib/supabase";
 
 type DemandaMemoriaRow = {
@@ -58,13 +59,11 @@ export async function buscarMemoriaEditorial({
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("demandas_completas")
-    .select(
-      "id, titulo, descricao, setor, status, responsavel, prioridade, criado_em, data_entrega"
-    )
-    .order("criado_em", { ascending: false })
-    .limit(140);
+  const { data, error } = await buscarDemandasCompletas(supabase, {
+    orderBy: "criado_em",
+    ascending: false,
+    limit: 140,
+  });
 
   if (error) {
     return [];

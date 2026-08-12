@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import RelatoriosQuantitativosClient from "../../components/RelatoriosQuantitativosClient";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 import {
   corrigirTextoExibicao,
   formatarCanalExibicao,
@@ -70,14 +71,6 @@ export default async function RelatoriosQuantitativos({
   const params = await searchParams;
   const periodo = resolverPeriodo(params);
 
-  let query = supabase
-    .from("demandas_completas")
-    .select("id, status, setor, responsavel, data_solicitacao, criado_em")
-    .order("data_solicitacao", { ascending: true });
-
-  if (periodo.inicio) query = query.gte("data_solicitacao", periodo.inicio);
-  if (periodo.fim) query = query.lte("data_solicitacao", periodo.fim);
-
   let clippingQuery = supabase
     .from("clipping_registros")
     .select("origem, data_publicacao")
@@ -87,7 +80,12 @@ export default async function RelatoriosQuantitativos({
   if (periodo.fim) clippingQuery = clippingQuery.lte("data_publicacao", periodo.fim);
 
   const [{ data: demandasData }, { data: clippingData }] = await Promise.all([
-    query,
+    buscarDemandasCompletas(supabase, {
+      orderBy: "data_solicitacao",
+      ascending: true,
+      gteDataSolicitacao: periodo.inicio || undefined,
+      lteDataSolicitacao: periodo.fim || undefined,
+    }),
     clippingQuery,
   ]);
 

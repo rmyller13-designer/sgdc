@@ -1,11 +1,7 @@
 import CalendarioEditorialClient from "@/components/CalendarioEditorialClient";
 import { connection } from "next/server";
 import { supabase } from "@/lib/supabase";
-import {
-  criarMapaResponsaveis,
-  enriquecerDemandasComResponsaveis,
-  type DemandaResponsavelRow,
-} from "@/lib/demanda-responsaveis";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 
 type SearchParams = {
   mes?: string;
@@ -37,41 +33,15 @@ export default async function CalendarioEditorialPage({
   const mesAtual = normalizarMes(params.mes);
   const intervalo = intervaloCalendario(mesAtual);
 
-  const { data, error } = await supabase
-    .from("demandas_completas")
-    .select(
-      "id, titulo, descricao, produto, setor, status, prioridade, responsavel, cadastrado_por, data_solicitacao, data_entrega, criado_em"
-    )
-    .or(
-      `data_entrega.gte.${intervalo.inicio},data_solicitacao.gte.${intervalo.inicio},criado_em.gte.${intervalo.inicio}`
-    )
-    .or(
-      `data_entrega.lte.${intervalo.fim},data_solicitacao.lte.${intervalo.fim},criado_em.lte.${intervalo.fim}`
-    )
-    .order("data_entrega", { ascending: true });
+  const { data, error } = await buscarDemandasCompletas(supabase, {
+    orderBy: "data_entrega",
+    ascending: true,
+  });
 
-  const demandasBase = ((data || []) as DemandaCalendarioRow[]).filter((demanda) => {
+  const demandas = ((data || []) as DemandaCalendarioRow[]).filter((demanda) => {
     const dataEditorial = pegarDataEditorial(demanda);
     return dataEditorial >= intervalo.inicio && dataEditorial <= intervalo.fim;
   });
-
-  const demandaIds = demandasBase.map((demanda) => demanda.id);
-  const { data: responsaveisData } =
-    demandaIds.length > 0
-      ? await supabase
-          .from("demanda_responsaveis")
-          .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
-          .in("demanda_id", demandaIds)
-          .order("principal", { ascending: false })
-      : { data: [] as DemandaResponsavelRow[] };
-
-  const mapaResponsaveis = criarMapaResponsaveis(
-    (responsaveisData as DemandaResponsavelRow[] | null) || []
-  );
-  const demandas = enriquecerDemandasComResponsaveis(
-    demandasBase,
-    mapaResponsaveis
-  );
 
   return (
     <div>

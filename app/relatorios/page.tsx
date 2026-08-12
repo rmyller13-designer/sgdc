@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 
 type DemandaRelatorio = {
   id: number;
@@ -21,42 +22,39 @@ export default async function Relatorios({
 
   const params = await searchParams;
 
-  let query = supabase
-    .from("demandas_completas")
-    .select("*")
-    .order("id", { ascending: false });
+  const { data: demandas } = await buscarDemandasCompletas(supabase, {
+    orderBy: "id",
+    ascending: false,
+    gteDataSolicitacao: params.inicio || "",
+    lteDataSolicitacao: params.fim || "",
+  });
 
-  if (params.inicio) query = query.gte("data_solicitacao", params.inicio);
-  if (params.fim) query = query.lte("data_solicitacao", params.fim);
-
-  const { data: demandasData } = await query;
-  const demandas = (demandasData || []) as DemandaRelatorio[];
-
-  const total = demandas.length;
+  const lista = (demandas || []) as DemandaRelatorio[];
+  const total = lista.length;
 
   function nomeResponsaveis(demanda: DemandaRelatorio) {
     return demanda.responsavel || demanda.cadastrado_por || "Nao atribuido";
   }
 
-  const porStatus = demandas.reduce<Record<string, number>>((acc, demanda) => {
+  const porStatus = lista.reduce<Record<string, number>>((acc, demanda) => {
     const status = demanda.status || "Sem status";
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
 
-  const porProduto = demandas.reduce<Record<string, number>>((acc, demanda) => {
+  const porProduto = lista.reduce<Record<string, number>>((acc, demanda) => {
     const produto = demanda.produto || "Sem produto";
     acc[produto] = (acc[produto] || 0) + 1;
     return acc;
   }, {});
 
-  const porResponsavel = demandas.reduce<Record<string, number>>((acc, demanda) => {
+  const porResponsavel = lista.reduce<Record<string, number>>((acc, demanda) => {
     const responsavel = nomeResponsaveis(demanda);
     acc[responsavel] = (acc[responsavel] || 0) + 1;
     return acc;
   }, {});
 
-  const porSetor = demandas.reduce<Record<string, number>>((acc, demanda) => {
+  const porSetor = lista.reduce<Record<string, number>>((acc, demanda) => {
     const setor = demanda.setor || "Sem setor";
     acc[setor] = (acc[setor] || 0) + 1;
     return acc;
@@ -65,98 +63,35 @@ export default async function Relatorios({
   return (
     <div>
       <h1>Relatorios</h1>
-
       <form style={form}>
         <div>
           <label>Data inicial</label>
-          <input
-            type="date"
-            name="inicio"
-            defaultValue={params.inicio || ""}
-            style={campo}
-          />
+          <input type="date" name="inicio" defaultValue={params.inicio || ""} style={campo} />
         </div>
-
         <div>
           <label>Data final</label>
-          <input
-            type="date"
-            name="fim"
-            defaultValue={params.fim || ""}
-            style={campo}
-          />
+          <input type="date" name="fim" defaultValue={params.fim || ""} style={campo} />
         </div>
-
-        <button type="submit" style={botao}>
-          Filtrar
-        </button>
+        <button type="submit" style={botao}>Filtrar</button>
       </form>
-
       <h2 style={{ marginTop: "30px" }}>Resumo</h2>
-
-      <div style={grid}>
-        <Card titulo="Total no periodo" valor={total} />
-      </div>
-
+      <div style={grid}><Card titulo="Total no periodo" valor={total} /></div>
       <h2 style={{ marginTop: "30px" }}>Producao por Status</h2>
-
-      <div style={grid}>
-        {Object.entries(porStatus).map(([status, quantidade]) => (
-          <Card key={status} titulo={status} valor={quantidade} />
-        ))}
-      </div>
-
+      <div style={grid}>{Object.entries(porStatus).map(([status, quantidade]) => <Card key={status} titulo={status} valor={quantidade} />)}</div>
       <h2 style={{ marginTop: "30px" }}>Producao por Produto</h2>
-
-      <div style={grid}>
-        {Object.entries(porProduto).map(([produto, quantidade]) => (
-          <Card key={produto} titulo={produto} valor={quantidade} />
-        ))}
-      </div>
-
+      <div style={grid}>{Object.entries(porProduto).map(([produto, quantidade]) => <Card key={produto} titulo={produto} valor={quantidade} />)}</div>
       <h2 style={{ marginTop: "30px" }}>Producao por Responsaveis</h2>
-
-      <div style={grid}>
-        {Object.entries(porResponsavel).map(([responsavel, quantidade]) => (
-          <Card key={responsavel} titulo={responsavel} valor={quantidade} />
-        ))}
-      </div>
-
+      <div style={grid}>{Object.entries(porResponsavel).map(([responsavel, quantidade]) => <Card key={responsavel} titulo={responsavel} valor={quantidade} />)}</div>
       <h2 style={{ marginTop: "30px" }}>Producao por Setor</h2>
-
-      <div style={grid}>
-        {Object.entries(porSetor).map(([setor, quantidade]) => (
-          <Card key={setor} titulo={setor} valor={quantidade} />
-        ))}
-      </div>
-
+      <div style={grid}>{Object.entries(porSetor).map(([setor, quantidade]) => <Card key={setor} titulo={setor} valor={quantidade} />)}</div>
       <h2 style={{ marginTop: "40px" }}>Demandas do periodo</h2>
-
       <table style={table}>
-        <thead>
-          <tr>
-            <th style={th}>ID</th>
-            <th style={th}>Titulo</th>
-            <th style={th}>Produto</th>
-            <th style={th}>Responsaveis</th>
-            <th style={th}>Setor</th>
-            <th style={th}>Status</th>
-            <th style={th}>Data</th>
-          </tr>
-        </thead>
-
+        <thead><tr><th style={th}>ID</th><th style={th}>Titulo</th><th style={th}>Produto</th><th style={th}>Responsaveis</th><th style={th}>Setor</th><th style={th}>Status</th><th style={th}>Data</th></tr></thead>
         <tbody>
-          {demandas.map((demanda) => (
+          {lista.map((demanda) => (
             <tr key={demanda.id}>
               <td style={td}>{demanda.id}</td>
-              <td style={td}>
-                <a
-                  href={`/demandas/${demanda.id}`}
-                  style={{ color: "#93c5fd", textDecoration: "none" }}
-                >
-                  {demanda.titulo}
-                </a>
-              </td>
+              <td style={td}><a href={`/demandas/${demanda.id}`} style={{ color: "#93c5fd", textDecoration: "none" }}>{demanda.titulo}</a></td>
               <td style={td}>{demanda.produto}</td>
               <td style={td}>{nomeResponsaveis(demanda)}</td>
               <td style={td}>{demanda.setor}</td>
@@ -171,67 +106,14 @@ export default async function Relatorios({
 }
 
 function Card({ titulo, valor }: { titulo: string; valor: number }) {
-  return (
-    <div style={card}>
-      <p style={{ color: "#94a3b8" }}>{titulo}</p>
-      <strong style={{ fontSize: "32px" }}>{valor}</strong>
-    </div>
-  );
+  return <div style={card}><p style={{ color: "#94a3b8" }}>{titulo}</p><strong style={{ fontSize: "32px" }}>{valor}</strong></div>;
 }
 
-const form = {
-  display: "flex",
-  gap: "12px",
-  alignItems: "end",
-  marginTop: "20px",
-};
-
-const campo = {
-  display: "block",
-  marginTop: "6px",
-  padding: "10px",
-  background: "var(--sg-input-bg)",
-  color: "var(--sg-text-primary)",
-  border: "1px solid var(--sg-input-border)",
-  borderRadius: "8px",
-};
-
-const botao = {
-  background: "var(--sg-button-primary-bg)",
-  color: "var(--sg-button-primary-text)",
-  border: "none",
-  padding: "11px 20px",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "16px",
-  marginTop: "20px",
-};
-
-const card = {
-  background: "var(--sg-panel-bg)",
-  border: "1px solid var(--sg-border-soft)",
-  borderRadius: "12px",
-  padding: "20px",
-};
-
-const table = {
-  width: "100%",
-  borderCollapse: "collapse" as const,
-  marginTop: "20px",
-};
-
-const th = {
-  border: "1px solid var(--sg-border-soft)",
-  padding: "12px",
-  background: "var(--sg-panel-bg-soft)",
-};
-
-const td = {
-  border: "1px solid var(--sg-border-soft)",
-  padding: "12px",
-};
+const form = { display: "flex", gap: "12px", alignItems: "end", marginTop: "20px" };
+const campo = { display: "block", marginTop: "6px", padding: "10px", background: "var(--sg-input-bg)", color: "var(--sg-text-primary)", border: "1px solid var(--sg-input-border)", borderRadius: "8px" };
+const botao = { background: "var(--sg-button-primary-bg)", color: "var(--sg-button-primary-text)", border: "none", padding: "11px 20px", borderRadius: "8px", cursor: "pointer" };
+const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginTop: "20px" };
+const card = { background: "var(--sg-panel-bg)", border: "1px solid var(--sg-border-soft)", borderRadius: "12px", padding: "20px" };
+const table = { width: "100%", borderCollapse: "collapse" as const, marginTop: "20px" };
+const th = { border: "1px solid var(--sg-border-soft)", padding: "12px", background: "var(--sg-panel-bg-soft)" };
+const td = { border: "1px solid var(--sg-border-soft)", padding: "12px" };

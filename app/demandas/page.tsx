@@ -1,32 +1,17 @@
 import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import KanbanDemandas from "../../components/KanbanDemandas";
-import {
-  criarMapaResponsaveis,
-  enriquecerDemandasComResponsaveis,
-  type DemandaResponsavelRow,
-} from "@/lib/demanda-responsaveis";
+import { buscarDemandasCompletas } from "@/lib/demandas-completas";
 
 export default async function Demandas() {
   await connection();
 
-  const { data: demandas, error } = await supabase
-    .from("demandas_completas")
-    .select(
-      "id, titulo, descricao, setor, cadastrado_por, responsavel, prioridade, status, data_entrega"
-    )
-    .order("id", { ascending: false });
+  const { data: demandas, error } = await buscarDemandasCompletas(supabase, {
+    orderBy: "id",
+    ascending: false,
+  });
 
   const demandaIds = (demandas || []).map((demanda) => demanda.id);
-  const { data: responsaveisData } =
-    demandaIds.length > 0
-      ? await supabase
-          .from("demanda_responsaveis")
-          .select("demanda_id, usuario_id, principal, usuarios_comunicacao(id, nome, funcao)")
-          .in("demanda_id", demandaIds)
-          .order("principal", { ascending: false })
-      : { data: [] as DemandaResponsavelRow[] };
-
   const { data: anexosDemanda } =
     demandaIds.length > 0
       ? await supabase
@@ -58,25 +43,7 @@ export default async function Demandas() {
     }
   }
 
-  const mapaResponsaveis = criarMapaResponsaveis(
-    (responsaveisData as DemandaResponsavelRow[] | null) || []
-  );
-  const demandasEnriquecidas = enriquecerDemandasComResponsaveis(
-    (demandas as Array<{
-      id: number;
-      titulo: string | null;
-      descricao: string | null;
-      setor: string | null;
-      cadastrado_por: string | null;
-      responsavel: string | null;
-      prioridade: string | null;
-      status: string | null;
-      data_entrega: string | null;
-    }> | null) || [],
-    mapaResponsaveis
-  );
-
-  const demandasComPreview = demandasEnriquecidas.map((demanda) => ({
+  const demandasComPreview = (demandas || []).map((demanda) => ({
     ...demanda,
     preview_image_url: previewPorDemanda.get(demanda.id) || null,
     etiqueta: demanda.setor || null,
