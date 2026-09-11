@@ -379,11 +379,6 @@ function listarMeses(inicio: string, fim: string) {
   return meses;
 }
 
-function colunaOrigemNaoDisponivel(error: { message?: string } | null) {
-  const mensagem = error?.message?.toLowerCase() || "";
-  return mensagem.includes("origem") && mensagem.includes("schema cache");
-}
-
 async function buscarClippingCompleto(periodo: {
   inicio: string;
   fim: string;
@@ -391,56 +386,40 @@ async function buscarClippingCompleto(periodo: {
 }): Promise<ClippingResumo[]> {
   const admin = criarSupabaseAdmin();
   const tamanhoPagina = 1000;
-  let incluirOrigem = true;
+  const registros: ClippingResumo[] = [];
 
-  while (true) {
-    const registros: ClippingResumo[] = [];
-    let reiniciarSemOrigem = false;
+  for (let inicio = 0; ; inicio += tamanhoPagina) {
+    let query = admin
+      .from("clipping_registros")
+      .select("*")
+      .order("data_publicacao", { ascending: true })
+      .range(inicio, inicio + tamanhoPagina - 1);
 
-    for (let inicio = 0; ; inicio += tamanhoPagina) {
-      let query = admin
-        .from("clipping_registros")
-        .select(
-          incluirOrigem
-            ? "origem, data_publicacao"
-            : "observacoes, data_publicacao"
-        )
-        .order("data_publicacao", { ascending: true })
-        .range(inicio, inicio + tamanhoPagina - 1);
+    if (periodo.inicio) query = query.gte("data_publicacao", periodo.inicio);
+    if (periodo.fim) query = query.lte("data_publicacao", periodo.fim);
 
-      if (periodo.inicio) query = query.gte("data_publicacao", periodo.inicio);
-      if (periodo.fim) query = query.lte("data_publicacao", periodo.fim);
+    const { data, error } = await query;
+    if (error) return [];
 
-      const { data, error } = await query;
+    const pagina = (data || []) as unknown as Array<{
+      origem?: string | null;
+      observacoes?: string | null;
+      data_publicacao: string | null;
+    }>;
 
-      if (incluirOrigem && colunaOrigemNaoDisponivel(error)) {
-        incluirOrigem = false;
-        reiniciarSemOrigem = true;
-        break;
-      }
+    registros.push(
+      ...pagina.map((registro) => ({
+        data_publicacao: registro.data_publicacao,
+        origem:
+          registro.origem === "ASCOM" ||
+          registro.observacoes?.includes("[SGDC_ORIGEM:ASCOM]")
+            ? "ASCOM"
+            : "EXTERNO",
+      }))
+    );
 
-      if (error) return [];
-
-      const pagina = (data || []) as unknown as Array<{
-        origem?: string | null;
-        observacoes?: string | null;
-        data_publicacao: string | null;
-      }>;
-
-      registros.push(
-        ...pagina.map((registro) => ({
-          data_publicacao: registro.data_publicacao,
-          origem: incluirOrigem
-            ? registro.origem || "EXTERNO"
-            : registro.observacoes?.includes("[SGDC_ORIGEM:ASCOM]")
-              ? "ASCOM"
-              : "EXTERNO",
-        }))
-      );
-
-      if (pagina.length < tamanhoPagina) break;
-    }
-
-    if (!reiniciarSemOrigem) return registros;
+    if (pagina.length < tamanhoPagina) break;
   }
+
+  return registros;
 }
