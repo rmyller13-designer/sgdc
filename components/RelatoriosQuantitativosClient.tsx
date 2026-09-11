@@ -8,6 +8,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Line,
   Pie,
   PieChart,
@@ -283,7 +284,7 @@ export default function RelatoriosQuantitativosClient({
       </div>
 
       <div style={layoutDois}>
-        <Painel titulo="Evolução da produção ASCOM">
+        <Painel titulo="Evolução mensal do clipping">
           {temDadosClipping ? (
             <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
@@ -301,6 +302,7 @@ export default function RelatoriosQuantitativosClient({
                 <XAxis dataKey="mes" stroke="#ddd6fe" />
                 <YAxis stroke="#ddd6fe" allowDecimals={false} width={34} />
                 <Tooltip contentStyle={tooltipStyle} />
+                <Legend />
                 <Area
                   type="monotone"
                   dataKey="ascom"
