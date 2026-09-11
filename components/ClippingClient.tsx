@@ -1344,7 +1344,7 @@ export default function ClippingClient() {
                       <strong style={tituloMateriaTabela}>
                         {corrigirTextoExibicao(registro.titulo)}
                       </strong>
-                      <span style={tdMeta}>
+                      <div style={acoesMateriaTabela}>
                         {registro.url ? (
                           <a
                             href={registro.url}
@@ -1355,9 +1355,17 @@ export default function ClippingClient() {
                             Abrir publicação
                           </a>
                         ) : (
-                          "Sem link informado"
+                          <span style={tdMeta}>Sem link informado</span>
                         )}
-                      </span>
+                        <button
+                          type="button"
+                          onClick={() => iniciarEdicao(registro)}
+                          style={botaoEditarMateria}
+                          title="Editar este clipping"
+                        >
+                          Editar
+                        </button>
+                      </div>
                     </td>
                     <td style={tdCanal}>{formatarCanal(registro.canal)}</td>
                     <td style={tdOrigem}>
@@ -2723,10 +2731,17 @@ const retrancaTabela = {
 
 const tdMeta = {
   display: "block",
-  marginTop: "4px",
   color: "var(--sg-text-secondary)",
   fontSize: "12px",
   lineHeight: 1.35,
+};
+
+const acoesMateriaTabela = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap" as const,
+  gap: "8px",
+  marginTop: "10px",
 };
 
 const faixaEdicaoAtiva = {
@@ -2755,6 +2770,19 @@ const faixaEdicaoTexto = {
 const linkTabela = {
   color: "#93c5fd",
   textDecoration: "none",
+  fontSize: "12px",
+  fontWeight: 600,
+};
+
+const botaoEditarMateria = {
+  padding: "5px 10px",
+  borderRadius: "7px",
+  border: "1px solid rgba(96,165,250,.4)",
+  background: "rgba(30,64,175,.3)",
+  color: "#dbeafe",
+  fontSize: "12px",
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const pillSentimento = (sentimento: SentimentoClipping) => ({
