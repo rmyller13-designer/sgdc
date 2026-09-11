@@ -231,4 +231,8 @@ textarea {
   .clipping-form-grid > * {
     grid-column: auto !important;
   }
+
+  .clipping-ranking-lista {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }

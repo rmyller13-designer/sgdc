@@ -1265,11 +1265,12 @@ export default function ClippingClient() {
         </Painel>
       </div>
 
-      <div className="clipping-grade-graficos" style={gradeGraficos}>
+      <div className="clipping-ranking-veiculos" style={gradeRanking}>
         <Painel título="Ranking por veículo">
           <RankingLista
             itens={rankingAutores}
             vazio="Nenhum veículo informado até agora."
+            duasColunas
           />
         </Painel>
       </div>
@@ -1303,21 +1304,30 @@ export default function ClippingClient() {
         ) : registrosFiltrados.length === 0 ? (
           <p style={textoAuxiliar}>Nenhum registro encontrado com os filtros atuais.</p>
         ) : (
-          <div style={tabelaWrapper}>
+          <div className="sg-scroll-y clipping-tabela-wrapper" style={tabelaWrapper}>
             <table style={tabela}>
+              <colgroup>
+                <col style={{ width: "340px" }} />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "130px" }} />
+                <col style={{ width: "105px" }} />
+                <col style={{ width: "135px" }} />
+                <col style={{ width: "180px" }} />
+                <col style={{ width: "110px" }} />
+                <col style={{ width: "330px" }} />
+                <col style={{ width: "80px" }} />
+                <col style={{ width: "110px" }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th style={th}>Matéria</th>
+                  <th style={thMateria}>Matéria</th>
                   <th style={th}>Canal</th>
                   <th style={th}>Origem</th>
                   <th style={th}>Tom</th>
                   <th style={th}>Status</th>
                   <th style={th}>Veículo</th>
                   <th style={th}>Data</th>
-                  <th style={th}>Views</th>
-                  <th style={th}>Likes</th>
-                  <th style={th}>Comentários</th>
-                  <th style={th}>Engajamento</th>
+                  <th style={th}>Desempenho</th>
                   <th style={th}>Anexos</th>
                   <th style={th}>Ações</th>
                 </tr>
@@ -1331,7 +1341,9 @@ export default function ClippingClient() {
                           {corrigirTextoExibicao(registro.editoria)}
                         </span>
                       ) : null}
-                      <strong>{corrigirTextoExibicao(registro.titulo)}</strong>
+                      <strong style={tituloMateriaTabela}>
+                        {corrigirTextoExibicao(registro.titulo)}
+                      </strong>
                       <span style={tdMeta}>
                         {registro.url ? (
                           <a
@@ -1365,10 +1377,14 @@ export default function ClippingClient() {
                     </td>
                     <td style={tdVeiculo}>{registro.autoria || "Não informado"}</td>
                     <td style={tdData}>{formatarData(registro.data_publicacao)}</td>
-                    <td style={tdNumero}>{formatarNumero(registro.views)}</td>
-                    <td style={tdNumero}>{formatarNumero(registro.likes)}</td>
-                    <td style={tdNumero}>{formatarNumero(registro.comentarios)}</td>
-                    <td style={tdNumero}>{formatarNumero(registro.engajamento)}</td>
+                    <td style={tdDesempenho}>
+                      <div style={metricasTabela}>
+                        <MetricaTabela rótulo="Views" valor={registro.views} />
+                        <MetricaTabela rótulo="Likes" valor={registro.likes} />
+                        <MetricaTabela rótulo="Comentários" valor={registro.comentarios} />
+                        <MetricaTabela rótulo="Engajamento" valor={registro.engajamento} />
+                      </div>
+                    </td>
                     <td style={tdNumero}>{anexosPorRegistro[registro.id]?.length || 0}</td>
                     <td style={tdAcoes}>
                       <div style={acoesLista}>
@@ -1463,6 +1479,15 @@ function ResumoCard({
       <span style={resumoTitulo}>{título}</span>
       <strong style={resumoValor}>{valor}</strong>
     </article>
+  );
+}
+
+function MetricaTabela({ rótulo, valor }: { rótulo: string; valor: number }) {
+  return (
+    <span style={metricaTabelaItem}>
+      <span style={metricaTabelaRotulo}>{rótulo}</span>
+      <strong>{formatarNumero(valor)}</strong>
+    </span>
   );
 }
 
@@ -1595,16 +1620,21 @@ function AlertasSupervisorLista({
 function RankingLista({
   itens,
   vazio,
+  duasColunas = false,
 }: {
   itens: RankingItem[];
   vazio: string;
+  duasColunas?: boolean;
 }) {
   if (itens.length === 0) {
     return <p style={textoAuxiliar}>{vazio}</p>;
   }
 
   return (
-    <div style={rankingLista}>
+    <div
+      className={duasColunas ? "clipping-ranking-lista" : undefined}
+      style={duasColunas ? rankingListaDuasColunas : rankingLista}
+    >
       {itens.slice(0, 10).map((item, index) => (
         <div key={`${item.titulo}-${index}`} style={rankingLinha}>
           <span style={rankingPosicao}>{index + 1}</span>
@@ -2480,9 +2510,15 @@ const gradeGraficos = {
   gap: "18px",
 };
 
+const gradeRanking = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr)",
+  gap: "18px",
+};
+
 const gradeSentimentos = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "18px",
 };
 
@@ -2537,6 +2573,12 @@ const itemListaMeta = {
 const rankingLista = {
   display: "grid",
   gap: "10px",
+};
+
+const rankingListaDuasColunas = {
+  ...rankingLista,
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  columnGap: "28px",
 };
 
 const rankingLinha = {
@@ -2618,7 +2660,7 @@ const tabelaWrapper = {
 const tabela = {
   width: "100%",
   borderCollapse: "collapse" as const,
-  minWidth: "1040px",
+  minWidth: "1520px",
   tableLayout: "fixed" as const,
 };
 
@@ -2636,6 +2678,13 @@ const th = {
   background: "var(--sg-panel-bg)",
 };
 
+const thMateria = {
+  ...th,
+  left: 0,
+  zIndex: 4,
+  boxShadow: "8px 0 18px rgba(0,0,0,.12)",
+};
+
 const td = {
   padding: "12px 8px",
   borderBottom: "1px solid var(--sg-border-soft)",
@@ -2646,6 +2695,20 @@ const td = {
 const tdTitulo = {
   ...td,
   width: "280px",
+  position: "sticky" as const,
+  left: 0,
+  zIndex: 1,
+  background: "var(--sg-panel-bg-strong)",
+  boxShadow: "8px 0 18px rgba(0,0,0,.12)",
+};
+
+const tituloMateriaTabela = {
+  display: "block",
+  color: "var(--sg-text-primary)",
+  fontSize: "15px",
+  lineHeight: 1.45,
+  letterSpacing: "-0.01em",
+  overflowWrap: "break-word" as const,
 };
 
 const retrancaTabela = {
@@ -2859,6 +2922,34 @@ const tdNumero = {
   ...td,
   width: "62px",
   textAlign: "center" as const,
+};
+
+const tdDesempenho = {
+  ...td,
+  width: "330px",
+};
+
+const metricasTabela = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "8px",
+};
+
+const metricaTabelaItem = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "8px",
+  padding: "7px 9px",
+  borderRadius: "8px",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
+  fontSize: "12px",
+};
+
+const metricaTabelaRotulo = {
+  color: "var(--sg-text-secondary)",
+  fontSize: "11px",
 };
 
 const tdData = {
