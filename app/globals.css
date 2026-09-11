@@ -224,7 +224,8 @@ textarea {
   .clipping-form-grid,
   .clipping-painel-lateral,
   .clipping-grade-graficos,
-  .clipping-grade-sentimentos {
+  .clipping-grade-sentimentos,
+  .clipping-acordeoes {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 

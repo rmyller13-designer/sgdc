@@ -169,6 +169,7 @@ export default function ClippingClient() {
   const [filtroStatus, setFiltroStatus] = useState<"TODOS" | StatusClipping>("TODOS");
   const [filtroInicio, setFiltroInicio] = useState("");
   const [filtroFim, setFiltroFim] = useState("");
+  const [analiseAberta, setAnaliseAberta] = useState<string | null>(null);
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
 
   useEffect(() => {
@@ -1249,54 +1250,87 @@ export default function ClippingClient() {
         </Painel>
       </div>
 
-      <div className="clipping-grade-graficos" style={gradeGraficos}>
-        <Painel título="Matérias em destaque">
+      <section style={secaoAnalises}>
+        <div style={cabecalhoAnalises}>
+          <div>
+            <p style={eyebrow}>Consulta sob demanda</p>
+            <h2 style={tituloAnalises}>Análises detalhadas</h2>
+          </div>
+          <span style={descricaoAnalises}>Clique em um quadro para visualizar.</span>
+        </div>
+
+        <div className="clipping-acordeoes" style={gradeAcordeoes}>
+          <PainelRetratil
+            título="Matérias em destaque"
+            quantidade={topMateriasEngajamento.length}
+            cor="#22c55e"
+            aberto={analiseAberta === "destaques"}
+            onAlternar={() =>
+              setAnaliseAberta((atual) => (atual === "destaques" ? null : "destaques"))
+            }
+          >
           <RankingMateriasDestaque
             registros={topMateriasEngajamento}
             vazio="Nenhuma matéria com desempenho registrado."
           />
-        </Painel>
+          </PainelRetratil>
 
-        <Painel título="Atenção editorial">
+          <PainelRetratil
+            título="Atenção editorial"
+            quantidade={alertasSupervisor.length}
+            aberto={analiseAberta === "atencao"}
+            onAlternar={() =>
+              setAnaliseAberta((atual) => (atual === "atencao" ? null : "atencao"))
+            }
+          >
           <AlertasSupervisorLista
             registros={alertasSupervisor}
             vazio="Nenhum alerta crítico no recorte atual."
           />
-        </Painel>
-      </div>
+          </PainelRetratil>
 
-      <div className="clipping-ranking-veiculos" style={gradeRanking}>
-        <Painel título="Ranking por veículo">
+          <PainelRetratil
+            título="Ranking por veículo"
+            quantidade={rankingAutores.length}
+            cor="#8b5cf6"
+            aberto={analiseAberta === "veiculos"}
+            onAlternar={() =>
+              setAnaliseAberta((atual) => (atual === "veiculos" ? null : "veiculos"))
+            }
+          >
           <RankingLista
             itens={rankingAutores}
             vazio="Nenhum veículo informado até agora."
             duasColunas
           />
-        </Painel>
-      </div>
+          </PainelRetratil>
 
-      <div className="clipping-grade-sentimentos" style={gradeSentimentos}>
-        <ListaMaterias
-          título={`Matérias positivas (${listasPorSentimento.positivas.length})`}
-          registros={listasPorSentimento.positivas}
-          cor="#22c55e"
-        />
-        <ListaMaterias
-          título={`Matérias neutras (${listasPorSentimento.neutras.length})`}
-          registros={listasPorSentimento.neutras}
-          cor="#f59e0b"
-        />
-        <ListaMaterias
-          título={`Matérias negativas (${listasPorSentimento.negativas.length})`}
-          registros={listasPorSentimento.negativas}
-          cor="#ef4444"
-        />
-        <ListaMaterias
-          título={`Não classificadas (${listasPorSentimento.naoClassificadas.length})`}
-          registros={listasPorSentimento.naoClassificadas}
-          cor="#94a3b8"
-        />
-      </div>
+          {[
+            ["positivas", "Matérias positivas", listasPorSentimento.positivas, "#22c55e"],
+            ["neutras", "Matérias neutras", listasPorSentimento.neutras, "#f59e0b"],
+            ["negativas", "Matérias negativas", listasPorSentimento.negativas, "#ef4444"],
+            [
+              "nao-classificadas",
+              "Não classificadas",
+              listasPorSentimento.naoClassificadas,
+              "#94a3b8",
+            ],
+          ].map(([chave, título, lista, cor]) => (
+            <PainelRetratil
+              key={chave as string}
+              título={título as string}
+              quantidade={(lista as ClippingRegistro[]).length}
+              cor={cor as string}
+              aberto={analiseAberta === chave}
+              onAlternar={() =>
+                setAnaliseAberta((atual) => (atual === chave ? null : (chave as string)))
+              }
+            >
+              <ListaMaterias registros={lista as ClippingRegistro[]} />
+            </PainelRetratil>
+          ))}
+        </div>
+      </section>
 
       <Painel título="Registros do clipping">
         {carregando ? (
@@ -1490,6 +1524,44 @@ function ResumoCard({
   );
 }
 
+function PainelRetratil({
+  título,
+  quantidade,
+  aberto,
+  onAlternar,
+  children,
+  cor = "#ef4444",
+}: {
+  título: string;
+  quantidade: number;
+  aberto: boolean;
+  onAlternar: () => void;
+  children: React.ReactNode;
+  cor?: string;
+}) {
+  return (
+    <section style={painelRetratil(aberto, cor)}>
+      <button
+        type="button"
+        onClick={onAlternar}
+        aria-expanded={aberto}
+        style={botaoPainelRetratil}
+      >
+        <span style={tituloPainelRetratil}>
+          <span style={marcadorPainelRetratil(cor)} />
+          {título}
+          <span style={contadorPainelRetratil}>{formatarNumero(quantidade)}</span>
+        </span>
+        <span aria-hidden="true" style={setaPainelRetratil(aberto)}>
+          ▾
+        </span>
+      </button>
+
+      {aberto ? <div style={conteudoPainelRetratil}>{children}</div> : null}
+    </section>
+  );
+}
+
 function MetricaTabela({ rótulo, valor }: { rótulo: string; valor: number }) {
   return (
     <span style={metricaTabelaItem}>
@@ -1517,39 +1589,30 @@ function ResumoItemCompacto({
 }
 
 function ListaMaterias({
-  título,
   registros,
-  cor,
 }: {
-  título: string;
   registros: ClippingRegistro[];
-  cor: string;
 }) {
   const exibirRolagem = registros.length > 4;
 
+  if (registros.length === 0) {
+    return <p style={textoAuxiliar}>Nenhuma matéria nesta classificação.</p>;
+  }
+
   return (
-    <section style={listaSentimento(cor)}>
-      <h2 style={subtitulo}>{título}</h2>
-      {registros.length === 0 ? (
-        <p style={textoAuxiliar}>Nenhuma matéria nesta classificação.</p>
-      ) : (
-        <div style={listaItens(exibirRolagem)}>
-          {registros.map((registro) => (
-            <article key={registro.id} style={itemLista}>
-              {registro.editoria ? (
-                <span style={retrancaLista}>{corrigirTextoExibicao(registro.editoria)}</span>
-              ) : null}
-              <strong style={itemListaTitulo}>
-                {corrigirTextoExibicao(registro.titulo)}
-              </strong>
-              <span style={itemListaMeta}>
-                {formatarCanal(registro.canal)} • {formatarData(registro.data_publicacao)}
-              </span>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
+    <div style={listaItens(exibirRolagem)}>
+      {registros.map((registro) => (
+        <article key={registro.id} style={itemLista}>
+          {registro.editoria ? (
+            <span style={retrancaLista}>{corrigirTextoExibicao(registro.editoria)}</span>
+          ) : null}
+          <strong style={itemListaTitulo}>{corrigirTextoExibicao(registro.titulo)}</strong>
+          <span style={itemListaMeta}>
+            {formatarCanal(registro.canal)} • {formatarData(registro.data_publicacao)}
+          </span>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -2518,29 +2581,109 @@ const gradeGraficos = {
   gap: "18px",
 };
 
-const gradeRanking = {
+const secaoAnalises = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr)",
-  gap: "18px",
+  gap: "14px",
 };
 
-const gradeSentimentos = {
+const cabecalhoAnalises = {
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "space-between",
+  gap: "16px",
+};
+
+const tituloAnalises = {
+  margin: "4px 0 0",
+  fontSize: "22px",
+};
+
+const descricaoAnalises = {
+  color: "var(--sg-text-secondary)",
+  fontSize: "13px",
+};
+
+const gradeAcordeoes = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "18px",
+  gap: "12px",
 };
 
-const listaSentimento = (cor: string) => ({
+const painelRetratil = (aberto: boolean, cor: string) => ({
   background: "var(--sg-panel-bg)",
-  border: `1px solid ${cor}55`,
+  border: `1px solid ${aberto ? `${cor}88` : "var(--sg-border-strong)"}`,
   borderRadius: "14px",
-  padding: "20px",
   boxShadow: "var(--sg-shadow-card)",
-  display: "grid",
-  gridTemplateRows: "auto minmax(0, 1fr)",
-  gap: "14px",
-  minHeight: 0,
+  gridColumn: aberto ? "1 / -1" : "auto",
+  overflow: "hidden",
 });
+
+const botaoPainelRetratil = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "14px",
+  padding: "16px 18px",
+  border: 0,
+  background: "transparent",
+  color: "var(--sg-text-primary)",
+  cursor: "pointer",
+  textAlign: "left" as const,
+};
+
+const tituloPainelRetratil = {
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "15px",
+  fontWeight: 750,
+};
+
+const marcadorPainelRetratil = (cor: string) => ({
+  width: "8px",
+  height: "8px",
+  flex: "0 0 auto",
+  borderRadius: "999px",
+  background: cor,
+  boxShadow: `0 0 0 4px ${cor}20`,
+});
+
+const contadorPainelRetratil = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "28px",
+  padding: "3px 8px",
+  borderRadius: "999px",
+  background: "var(--sg-panel-bg-soft)",
+  border: "1px solid var(--sg-border-soft)",
+  color: "var(--sg-text-secondary)",
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const setaPainelRetratil = (aberto: boolean) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "28px",
+  height: "28px",
+  flex: "0 0 auto",
+  borderRadius: "8px",
+  background: "var(--sg-panel-bg-soft)",
+  color: "var(--sg-text-secondary)",
+  transform: aberto ? "rotate(180deg)" : "rotate(0deg)",
+  transition: "transform .2s ease",
+});
+
+const conteudoPainelRetratil = {
+  padding: "0 18px 18px",
+  borderTop: "1px solid var(--sg-border-soft)",
+  paddingTop: "18px",
+  minHeight: 0,
+};
 
 const listaItens = (exibirRolagem: boolean): CSSProperties => ({
   display: "grid",
