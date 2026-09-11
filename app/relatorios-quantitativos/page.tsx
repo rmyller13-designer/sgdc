@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import RelatoriosQuantitativosClient from "../../components/RelatoriosQuantitativosClient";
 import { buscarDemandasCompletas } from "@/lib/demandas-completas";
+import { criarSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   corrigirTextoExibicao,
   formatarCanalExibicao,
@@ -388,6 +389,7 @@ async function buscarClippingCompleto(periodo: {
   fim: string;
   mes: string;
 }): Promise<ClippingResumo[]> {
+  const admin = criarSupabaseAdmin();
   const tamanhoPagina = 1000;
   let incluirOrigem = true;
 
@@ -396,7 +398,7 @@ async function buscarClippingCompleto(periodo: {
     let reiniciarSemOrigem = false;
 
     for (let inicio = 0; ; inicio += tamanhoPagina) {
-      let query = supabase
+      let query = admin
         .from("clipping_registros")
         .select(
           incluirOrigem
