@@ -150,7 +150,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: true,
         id: Number(data.id),
-        registro: data,
+        registro: normalizarOrigemCompativel(data),
       });
     }
 
@@ -188,7 +188,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       id: Number(data.id),
-      registro: data,
+      registro: normalizarOrigemCompativel(data),
     });
   } catch {
     return NextResponse.json(
@@ -216,7 +216,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      registros: data || [],
+      registros: (data || []).map(normalizarOrigemCompativel),
     });
   } catch {
     return NextResponse.json(
@@ -242,10 +242,35 @@ function colunaOrigemNaoDisponivel(error: { message?: string } | null) {
   return mensagem.includes("'origem'") && mensagem.includes("schema cache");
 }
 
-function semOrigem<T extends { origem: OrigemClipping }>(payload: T) {
-  const payloadCompativel: Omit<T, "origem"> & { origem?: OrigemClipping } = {
+function semOrigem<
+  T extends { origem: OrigemClipping; observacoes?: string | null },
+>(payload: T) {
+  const payloadCompativel: Omit<T, "origem"> & {
+    origem?: OrigemClipping;
+    observacoes?: string | null;
+  } = {
     ...payload,
+    observacoes: adicionarMarcadorOrigem(payload.observacoes, payload.origem),
   };
   delete payloadCompativel.origem;
   return payloadCompativel;
+}
+
+function adicionarMarcadorOrigem(
+  observacoes: string | null | undefined,
+  origem: OrigemClipping
+) {
+  const texto = (observacoes || "").replace(/\[SGDC_ORIGEM:(?:ASCOM|EXTERNO)\]\s*/g, "").trim();
+  return [`[SGDC_ORIGEM:${origem}]`, texto].filter(Boolean).join(" ");
+}
+
+function normalizarOrigemCompativel<T extends Record<string, unknown>>(registro: T) {
+  if (registro.origem === "ASCOM" || registro.origem === "EXTERNO") return registro;
+
+  const observacoes = typeof registro.observacoes === "string" ? registro.observacoes : "";
+  return {
+    ...registro,
+    origem: observacoes.includes("[SGDC_ORIGEM:ASCOM]") ? "ASCOM" : "EXTERNO",
+    observacoes: observacoes.replace(/\[SGDC_ORIGEM:(?:ASCOM|EXTERNO)\]\s*/g, "").trim() || null,
+  };
 }

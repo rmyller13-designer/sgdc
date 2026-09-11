@@ -48,6 +48,7 @@ type EixoDemanda = {
 type ClippingResumo = {
   origem: string | null;
   data_publicacao: string | null;
+  observacoes?: string | null;
 };
 
 type Item = {
@@ -79,7 +80,7 @@ export default async function RelatoriosQuantitativos({
   if (periodo.inicio) clippingQuery = clippingQuery.gte("data_publicacao", periodo.inicio);
   if (periodo.fim) clippingQuery = clippingQuery.lte("data_publicacao", periodo.fim);
 
-  const [{ data: demandasData }, { data: clippingData }] = await Promise.all([
+  const [{ data: demandasData }, clippingResultado] = await Promise.all([
     buscarDemandasCompletas(supabase, {
       orderBy: "data_solicitacao",
       ascending: true,
@@ -88,6 +89,35 @@ export default async function RelatoriosQuantitativos({
     }),
     clippingQuery,
   ]);
+
+  let clippingData = clippingResultado.data as ClippingResumo[] | null;
+
+  if (colunaOrigemNaoDisponivel(clippingResultado.error)) {
+    let clippingCompativelQuery = supabase
+      .from("clipping_registros")
+      .select("observacoes, data_publicacao")
+      .order("data_publicacao", { ascending: true });
+
+    if (periodo.inicio) {
+      clippingCompativelQuery = clippingCompativelQuery.gte(
+        "data_publicacao",
+        periodo.inicio
+      );
+    }
+    if (periodo.fim) {
+      clippingCompativelQuery = clippingCompativelQuery.lte("data_publicacao", periodo.fim);
+    }
+
+    const { data: dadosCompativeis } = await clippingCompativelQuery;
+    clippingData = (dadosCompativeis || []).map((registro) => ({
+      data_publicacao: registro.data_publicacao,
+      origem:
+        typeof registro.observacoes === "string" &&
+        registro.observacoes.includes("[SGDC_ORIGEM:ASCOM]")
+          ? "ASCOM"
+          : "EXTERNO",
+    }));
+  }
 
   const demandas = (demandasData || []) as DemandaResumo[];
   const clipping = (clippingData || []) as ClippingResumo[];
@@ -384,4 +414,9 @@ function listarMeses(inicio: string, fim: string) {
   }
 
   return meses;
+}
+
+function colunaOrigemNaoDisponivel(error: { message?: string } | null) {
+  const mensagem = error?.message?.toLowerCase() || "";
+  return mensagem.includes("origem") && mensagem.includes("schema cache");
 }

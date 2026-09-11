@@ -82,6 +82,9 @@ export default function RelatoriosQuantitativosClient({
   const mediaCanaisPorDemanda = totalDemandas > 0 ? totalCanais / totalDemandas : 0;
   const mediaEixosPorDemanda = totalDemandas > 0 ? totalEixos / totalDemandas : 0;
   const periodo = formatarPeriodo(inicio, fim);
+  const temDadosClipping = evolucaoPostagensAscom.some(
+    (item) => item.ascom > 0 || item.externo > 0
+  );
 
   function exportarExcel() {
     const html = criarHtmlExcel({
@@ -281,7 +284,8 @@ export default function RelatoriosQuantitativosClient({
 
       <div style={layoutDois}>
         <Painel titulo="Evolução da produção ASCOM">
-          <div style={graficoAltura}>
+          {temDadosClipping ? (
+            <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={evolucaoPostagensAscom}
@@ -315,7 +319,13 @@ export default function RelatoriosQuantitativosClient({
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+            </div>
+          ) : (
+            <div style={estadoVazioGrafico}>
+              <strong>Nenhum clipping no período</strong>
+              <span>Cadastre registros na aba Clipping ou ajuste o filtro de datas.</span>
+            </div>
+          )}
         </Painel>
 
         <Painel titulo="Leitura rápida do clipping">
@@ -1103,6 +1113,19 @@ const sectionTitle = {
 const graficoAltura = {
   width: "100%",
   height: "320px",
+};
+
+const estadoVazioGrafico = {
+  ...graficoAltura,
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  textAlign: "center" as const,
+  color: "var(--sg-text-secondary)",
+  border: "1px dashed var(--sg-border-soft)",
+  borderRadius: "8px",
 };
 
 const rankingBloco = {
