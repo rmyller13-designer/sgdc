@@ -728,7 +728,7 @@ export default function ClippingClient() {
   }
 
   return (
-    <section style={pagina}>
+    <section className="clipping-page" style={pagina}>
       <div style={cabecalho}>
         <div>
           <p style={eyebrow}>Monitoramento editorial</p>
@@ -749,7 +749,7 @@ export default function ClippingClient() {
         </div>
       </div>
 
-      <div style={filtros}>
+      <div className="clipping-filtros" style={filtros}>
         <input
           value={filtroTexto}
           onChange={(event) => setFiltroTexto(event.target.value)}
@@ -829,14 +829,14 @@ export default function ClippingClient() {
 
       <p style={periodoTexto}>Período analisado: {periodo}</p>
 
-      <div style={cardsResumo}>
+      <div className="clipping-cards-resumo" style={cardsResumo}>
         <ResumoCard título="Matérias monitoradas" valor={resumo.total} />
         <ResumoCard título="Positivas" valor={resumo.positivas} cor="#22c55e" />
         <ResumoCard título="Neutras" valor={resumo.neutras} cor="#f59e0b" />
         <ResumoCard título="Negativas" valor={resumo.negativas} cor="#ef4444" />
       </div>
 
-      <div style={resumoCompacto}>
+      <div className="clipping-resumo-compacto" style={resumoCompacto}>
         <ResumoItemCompacto título="Não classificadas" valor={resumo.naoClassificadas} />
         <ResumoItemCompacto título="Em monitoramento" valor={resumo.emMonitoramento} />
         <ResumoItemCompacto título="Fechadas" valor={resumo.fechados} />
@@ -852,7 +852,7 @@ export default function ClippingClient() {
         <ResumoItemCompacto título="Taxa de crise" valor={`${formatarPercentual(taxaCrise)}%`} />
       </div>
 
-      <div style={painelPrincipal}>
+      <div className="clipping-layout-principal" style={painelPrincipal}>
         <div ref={formularioRef} style={painelFormulario}>
           <h2 style={subtitulo}>
             {editandoId ? "Editar registro de clipping" : "Novo registro de clipping"}
@@ -868,7 +868,7 @@ export default function ClippingClient() {
             </div>
           ) : null}
 
-          <div style={gridFormulario}>
+          <div className="clipping-form-grid" style={gridFormulario}>
             <div style={campoBlocoGrande}>
               <label style={label}>Retranca</label>
               <input
@@ -1106,32 +1106,7 @@ export default function ClippingClient() {
           </div>
         </div>
 
-        <div style={painelLateral}>
-          <Painel título="Gestão 100% dentro do sistema">
-            <div style={listaMetricas}>
-              <p style={textoAuxiliar}>
-                Todo o controle do clipping agora pode ser feito direto aqui na
-                aplicação, sem depender de planilhas.
-              </p>
-              <div style={blocoOrientacao}>
-                <strong style={orientacaoTitulo}>Como vamos usar:</strong>
-                <span style={canalTexto}>1. Cadastrar nova matéria</span>
-                <span style={canalTexto}>2. Editar qualquer registro já lançado</span>
-                <span style={canalTexto}>3. Ajustar veículo, tom e métricas no próprio painel</span>
-                <span style={canalTexto}>4. Excluir somente quando realmente precisar</span>
-              </div>
-              <div style={blocoOrientacao}>
-                <strong style={orientacaoTitulo}>Registros ativos</strong>
-                <span style={canalTexto}>
-                  {formatarNumero(registrosFiltrados.length)} item(ns) no recorte atual
-                </span>
-                <span style={canalTexto}>
-                  {formatarNumero(registros.length)} item(ns) no total
-                </span>
-              </div>
-            </div>
-          </Painel>
-
+        <div className="clipping-painel-lateral" style={painelLateral}>
           <Painel título="Resumo por canal">
             <div style={listaMetricas}>
               {graficoCanais.map((item) => (
@@ -1159,29 +1134,11 @@ export default function ClippingClient() {
                 </span>
               </div>
 
-              <div style={blocoOrientacao}>
-                <strong style={orientacaoTitulo}>Itens que pedem atenção</strong>
-                {alertasSupervisor.length > 0 ? (
-                  alertasSupervisor.map((item) => (
-                    <div key={item.id} style={alertaItem(item.status)}>
-                      <span style={alertaTitulo}>
-                        {corrigirTextoExibicao(item.titulo)}
-                      </span>
-                      <span style={alertaMeta}>
-                        {formatarStatusClipping(item.status)} |{" "}
-                        {formatarSentimento(item.sentimento)} |{" "}
-                        {formatarCanal(item.canal)}
-                      </span>
-                      <span style={alertaMeta}>
-                        {formatarData(item.data_publicacao)} | Engajamento:{" "}
-                        {formatarNumero(item.engajamento)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <span style={canalTexto}>Nenhum alerta crítico no recorte atual.</span>
-                )}
-              </div>
+              <span style={canalTexto}>
+                {alertasSupervisor.length > 0
+                  ? `${formatarNumero(alertasSupervisor.length)} item(ns) pedem atenção. A lista completa está logo abaixo dos gráficos.`
+                  : "Nenhum alerta crítico no recorte atual."}
+              </span>
             </div>
           </Painel>
 
@@ -1201,7 +1158,7 @@ export default function ClippingClient() {
         />
       ) : null}
 
-      <div style={gradeGraficos}>
+      <div className="clipping-grade-graficos" style={gradeGraficos}>
         <Painel título="Tonalidade das matérias">
           <div style={graficoAltura}>
             <ResponsiveContainer width="100%" height="100%">
@@ -1247,7 +1204,7 @@ export default function ClippingClient() {
         </Painel>
       </div>
 
-      <div style={gradeGraficos}>
+      <div className="clipping-grade-graficos" style={gradeGraficos}>
         <Painel título="Quantitativo por tom">
           <div style={graficoAlturaBaixa}>
             <ResponsiveContainer width="100%" height="100%">
@@ -1292,7 +1249,7 @@ export default function ClippingClient() {
         </Painel>
       </div>
 
-      <div style={gradeGraficos}>
+      <div className="clipping-grade-graficos" style={gradeGraficos}>
         <Painel título="Matérias em destaque">
           <RankingMateriasDestaque
             registros={topMateriasEngajamento}
@@ -1308,7 +1265,7 @@ export default function ClippingClient() {
         </Painel>
       </div>
 
-      <div style={gradeGraficos}>
+      <div className="clipping-grade-graficos" style={gradeGraficos}>
         <Painel título="Ranking por veículo">
           <RankingLista
             itens={rankingAutores}
@@ -1317,7 +1274,7 @@ export default function ClippingClient() {
         </Painel>
       </div>
 
-      <div style={gradeSentimentos}>
+      <div className="clipping-grade-sentimentos" style={gradeSentimentos}>
         <ListaMaterias
           título={`Matérias positivas (${listasPorSentimento.positivas.length})`}
           registros={listasPorSentimento.positivas}

@@ -206,3 +206,29 @@ textarea {
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.1);
 }
+
+@media (max-width: 1180px) {
+  .clipping-layout-principal {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .clipping-painel-lateral {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .clipping-filtros,
+  .clipping-cards-resumo,
+  .clipping-resumo-compacto,
+  .clipping-form-grid,
+  .clipping-painel-lateral,
+  .clipping-grade-graficos,
+  .clipping-grade-sentimentos {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .clipping-form-grid > * {
+    grid-column: auto !important;
+  }
+}
