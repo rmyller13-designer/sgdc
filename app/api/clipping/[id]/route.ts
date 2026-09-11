@@ -113,30 +113,41 @@ export async function PUT(request: Request, { params }: Params) {
     const admin = criarSupabaseAdmin();
     const agora = new Date().toISOString();
 
-    const { data, error } = await admin
+    const payload = {
+      editoria: limparTexto(body.editoria),
+      titulo,
+      canal: body.canal,
+      origem,
+      sentimento: body.sentimento,
+      status: body.status,
+      url: limparTexto(body.url),
+      data_publicacao: body.data_publicacao || new Date().toISOString().slice(0, 10),
+      autoria: limparTexto(body.autoria),
+      views: numeroSeguro(body.views),
+      comentarios: numeroSeguro(body.comentarios),
+      likes: numeroSeguro(body.likes),
+      compartilhamentos: numeroSeguro(body.compartilhamentos),
+      salvos: numeroSeguro(body.salvos),
+      engajamento: numeroSeguro(body.engajamento),
+      observacoes: limparTexto(body.observacoes),
+      atualizado_em: agora,
+    };
+
+    let { data, error } = await admin
       .from("clipping_registros")
-      .update({
-        editoria: limparTexto(body.editoria),
-        titulo,
-        canal: body.canal,
-        origem,
-        sentimento: body.sentimento,
-        status: body.status,
-        url: limparTexto(body.url),
-        data_publicacao: body.data_publicacao || new Date().toISOString().slice(0, 10),
-        autoria: limparTexto(body.autoria),
-        views: numeroSeguro(body.views),
-        comentarios: numeroSeguro(body.comentarios),
-        likes: numeroSeguro(body.likes),
-        compartilhamentos: numeroSeguro(body.compartilhamentos),
-        salvos: numeroSeguro(body.salvos),
-        engajamento: numeroSeguro(body.engajamento),
-        observacoes: limparTexto(body.observacoes),
-        atualizado_em: agora,
-      })
+      .update(payload)
       .eq("id", clippingId)
       .select("*")
       .single();
+
+    if (colunaOrigemNaoDisponivel(error)) {
+      ({ data, error } = await admin
+        .from("clipping_registros")
+        .update(semOrigem(payload))
+        .eq("id", clippingId)
+        .select("*")
+        .single());
+    }
 
     if (error || !data) {
       return NextResponse.json(
@@ -223,4 +234,17 @@ function numeroSeguro(valor: unknown) {
 function limparTexto(valor: unknown) {
   const texto = typeof valor === "string" ? valor.trim() : "";
   return texto || null;
+}
+
+function colunaOrigemNaoDisponivel(error: { message?: string } | null) {
+  const mensagem = error?.message?.toLowerCase() || "";
+  return mensagem.includes("'origem'") && mensagem.includes("schema cache");
+}
+
+function semOrigem<T extends { origem: OrigemClipping }>(payload: T) {
+  const payloadCompativel: Omit<T, "origem"> & { origem?: OrigemClipping } = {
+    ...payload,
+  };
+  delete payloadCompativel.origem;
+  return payloadCompativel;
 }

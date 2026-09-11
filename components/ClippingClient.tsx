@@ -272,30 +272,46 @@ export default function ClippingClient() {
       criado_por_nome: usuario?.nome ?? null,
     };
 
-    const response = await fetch(editandoId ? `/api/clipping/${editandoId}` : "/api/clipping", {
-      method: editandoId ? "PUT" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...payload,
-        usuario: usuario
-          ? {
-              id: usuario.id,
-              nome: usuario.nome,
-              funcao: usuario.funcao,
-              email: usuario.email,
-            }
-          : null,
-      }),
-    });
+    let response: Response;
 
-    const resultado = (await response.json()) as {
+    try {
+      response = await fetch(editandoId ? `/api/clipping/${editandoId}` : "/api/clipping", {
+        method: editandoId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...payload,
+          usuario: usuario
+            ? {
+                id: usuario.id,
+                nome: usuario.nome,
+                funcao: usuario.funcao,
+                email: usuario.email,
+              }
+            : null,
+        }),
+      });
+    } catch {
+      setMensagem("Não foi possível acessar o servidor. Verifique sua conexão e tente novamente.");
+      setSalvando(false);
+      return;
+    }
+
+    let resultado: {
       ok?: boolean;
       id?: number;
       registro?: ClippingRegistro;
       error?: string;
-    };
+    } = {};
+
+    try {
+      resultado = (await response.json()) as typeof resultado;
+    } catch {
+      setMensagem("O servidor respondeu de forma inesperada. Atualize a página e tente novamente.");
+      setSalvando(false);
+      return;
+    }
 
     if (!response.ok || !resultado.ok) {
       setMensagem(

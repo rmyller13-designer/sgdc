@@ -124,12 +124,21 @@ export async function POST(request: Request) {
     };
 
     if (body.id && Number.isInteger(body.id) && body.id > 0) {
-      const { data, error } = await admin
+      let { data, error } = await admin
         .from("clipping_registros")
         .update(payloadBase)
         .eq("id", body.id)
         .select("*")
         .single();
+
+      if (colunaOrigemNaoDisponivel(error)) {
+        ({ data, error } = await admin
+          .from("clipping_registros")
+          .update(semOrigem(payloadBase))
+          .eq("id", body.id)
+          .select("*")
+          .single());
+      }
 
       if (error || !data) {
         return NextResponse.json(
@@ -155,11 +164,19 @@ export async function POST(request: Request) {
       criado_em: agora,
     };
 
-    const { data, error } = await admin
+    let { data, error } = await admin
       .from("clipping_registros")
       .insert(payloadCriacao)
       .select("*")
       .single();
+
+    if (colunaOrigemNaoDisponivel(error)) {
+      ({ data, error } = await admin
+        .from("clipping_registros")
+        .insert(semOrigem(payloadCriacao))
+        .select("*")
+        .single());
+    }
 
     if (error || !data) {
       return NextResponse.json(
@@ -218,4 +235,17 @@ function numeroSeguro(valor: unknown) {
 function limparTexto(valor: unknown) {
   const texto = typeof valor === "string" ? valor.trim() : "";
   return texto || null;
+}
+
+function colunaOrigemNaoDisponivel(error: { message?: string } | null) {
+  const mensagem = error?.message?.toLowerCase() || "";
+  return mensagem.includes("'origem'") && mensagem.includes("schema cache");
+}
+
+function semOrigem<T extends { origem: OrigemClipping }>(payload: T) {
+  const payloadCompativel: Omit<T, "origem"> & { origem?: OrigemClipping } = {
+    ...payload,
+  };
+  delete payloadCompativel.origem;
+  return payloadCompativel;
 }
