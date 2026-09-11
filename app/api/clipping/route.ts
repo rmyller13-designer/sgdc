@@ -201,22 +201,31 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const admin = criarSupabaseAdmin();
-    const { data, error } = await admin
-      .from("clipping_registros")
-      .select("*")
-      .order("data_publicacao", { ascending: false })
-      .order("id", { ascending: false });
+    const registros: Record<string, unknown>[] = [];
+    const tamanhoPagina = 1000;
 
-    if (error) {
-      return NextResponse.json(
-        { error: error.message || "NÃ£o foi possÃ­vel carregar o clipping." },
-        { status: 500 }
-      );
+    for (let inicio = 0; ; inicio += tamanhoPagina) {
+      const { data, error } = await admin
+        .from("clipping_registros")
+        .select("*")
+        .order("data_publicacao", { ascending: false })
+        .order("id", { ascending: false })
+        .range(inicio, inicio + tamanhoPagina - 1);
+
+      if (error) {
+        return NextResponse.json(
+          { error: error.message || "NÃ£o foi possÃ­vel carregar o clipping." },
+          { status: 500 }
+        );
+      }
+
+      registros.push(...((data || []) as Record<string, unknown>[]));
+      if (!data || data.length < tamanhoPagina) break;
     }
 
     return NextResponse.json({
       ok: true,
-      registros: (data || []).map(normalizarOrigemCompativel),
+      registros: registros.map(normalizarOrigemCompativel),
     });
   } catch {
     return NextResponse.json(

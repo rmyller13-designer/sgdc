@@ -72,55 +72,17 @@ export default async function RelatoriosQuantitativos({
   const params = await searchParams;
   const periodo = resolverPeriodo(params);
 
-  let clippingQuery = supabase
-    .from("clipping_registros")
-    .select("origem, data_publicacao")
-    .order("data_publicacao", { ascending: true });
-
-  if (periodo.inicio) clippingQuery = clippingQuery.gte("data_publicacao", periodo.inicio);
-  if (periodo.fim) clippingQuery = clippingQuery.lte("data_publicacao", periodo.fim);
-
-  const [{ data: demandasData }, clippingResultado] = await Promise.all([
+  const [{ data: demandasData }, clipping] = await Promise.all([
     buscarDemandasCompletas(supabase, {
       orderBy: "data_solicitacao",
       ascending: true,
       gteDataSolicitacao: periodo.inicio || undefined,
       lteDataSolicitacao: periodo.fim || undefined,
     }),
-    clippingQuery,
+    buscarClippingCompleto(periodo),
   ]);
 
-  let clippingData = clippingResultado.data as ClippingResumo[] | null;
-
-  if (colunaOrigemNaoDisponivel(clippingResultado.error)) {
-    let clippingCompativelQuery = supabase
-      .from("clipping_registros")
-      .select("observacoes, data_publicacao")
-      .order("data_publicacao", { ascending: true });
-
-    if (periodo.inicio) {
-      clippingCompativelQuery = clippingCompativelQuery.gte(
-        "data_publicacao",
-        periodo.inicio
-      );
-    }
-    if (periodo.fim) {
-      clippingCompativelQuery = clippingCompativelQuery.lte("data_publicacao", periodo.fim);
-    }
-
-    const { data: dadosCompativeis } = await clippingCompativelQuery;
-    clippingData = (dadosCompativeis || []).map((registro) => ({
-      data_publicacao: registro.data_publicacao,
-      origem:
-        typeof registro.observacoes === "string" &&
-        registro.observacoes.includes("[SGDC_ORIGEM:ASCOM]")
-          ? "ASCOM"
-          : "EXTERNO",
-    }));
-  }
-
   const demandas = (demandasData || []) as DemandaResumo[];
-  const clipping = (clippingData || []) as ClippingResumo[];
   const ids = demandas.map((demanda) => demanda.id);
 
   const [produtosRaw, canaisRaw, eixosRaw] = await Promise.all([
@@ -419,4 +381,64 @@ function listarMeses(inicio: string, fim: string) {
 function colunaOrigemNaoDisponivel(error: { message?: string } | null) {
   const mensagem = error?.message?.toLowerCase() || "";
   return mensagem.includes("origem") && mensagem.includes("schema cache");
+}
+
+async function buscarClippingCompleto(periodo: {
+  inicio: string;
+  fim: string;
+  mes: string;
+}): Promise<ClippingResumo[]> {
+  const tamanhoPagina = 1000;
+  let incluirOrigem = true;
+
+  while (true) {
+    const registros: ClippingResumo[] = [];
+    let reiniciarSemOrigem = false;
+
+    for (let inicio = 0; ; inicio += tamanhoPagina) {
+      let query = supabase
+        .from("clipping_registros")
+        .select(
+          incluirOrigem
+            ? "origem, data_publicacao"
+            : "observacoes, data_publicacao"
+        )
+        .order("data_publicacao", { ascending: true })
+        .range(inicio, inicio + tamanhoPagina - 1);
+
+      if (periodo.inicio) query = query.gte("data_publicacao", periodo.inicio);
+      if (periodo.fim) query = query.lte("data_publicacao", periodo.fim);
+
+      const { data, error } = await query;
+
+      if (incluirOrigem && colunaOrigemNaoDisponivel(error)) {
+        incluirOrigem = false;
+        reiniciarSemOrigem = true;
+        break;
+      }
+
+      if (error) return [];
+
+      const pagina = (data || []) as unknown as Array<{
+        origem?: string | null;
+        observacoes?: string | null;
+        data_publicacao: string | null;
+      }>;
+
+      registros.push(
+        ...pagina.map((registro) => ({
+          data_publicacao: registro.data_publicacao,
+          origem: incluirOrigem
+            ? registro.origem || "EXTERNO"
+            : registro.observacoes?.includes("[SGDC_ORIGEM:ASCOM]")
+              ? "ASCOM"
+              : "EXTERNO",
+        }))
+      );
+
+      if (pagina.length < tamanhoPagina) break;
+    }
+
+    if (!reiniciarSemOrigem) return registros;
+  }
 }
