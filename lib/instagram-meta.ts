@@ -48,6 +48,7 @@ type ResultadoSincronizacaoInstagram = {
   registrosSemCorrespondencia: number;
   linksInvalidos: number;
   erros: number;
+  detalhesErros: Array<{ registroId: number; url: string | null; erro: string }>;
 };
 
 type GraphPageAccount = {
@@ -67,24 +68,6 @@ type GraphMedia = {
   shortcode?: string;
   like_count?: number;
   comments_count?: number;
-};
-
-type GraphPagePost = {
-  id?: string;
-  permalink_url?: string;
-  shares?: {
-    count?: number;
-  } | null;
-  reactions?: {
-    summary?: {
-      total_count?: number;
-    };
-  } | null;
-  comments?: {
-    summary?: {
-      total_count?: number;
-    };
-  } | null;
 };
 
 type GraphListResponse<T> = {
@@ -116,14 +99,6 @@ type InstagramMetricas = {
   comentarios: number | null;
   compartilhamentos: number | null;
   salvos: number | null;
-  engajamento: number | null;
-};
-
-type FacebookMetricas = {
-  views: number | null;
-  likes: number | null;
-  comentarios: number | null;
-  compartilhamentos: number | null;
   engajamento: number | null;
 };
 
@@ -270,13 +245,16 @@ export async function sincronizarMetricasInstagramMeta() {
   const admin = criarSupabaseAdmin();
   const configuracao = await garantirConfiguracaoInstagramMeta(admin);
 
+  if (!configuracao.ativo) {
+    throw new Error("A sincronizacao automatica do Instagram esta desativada.");
+  }
+
   if (
     !configuracao.token_acesso ||
-    !configuracao.instagram_business_account_id ||
-    !configuracao.facebook_page_id
+    !configuracao.instagram_business_account_id
   ) {
     throw new Error(
-      "Conecte a conta profissional da Meta antes de sincronizar Instagram e Facebook."
+      "Conecte a conta profissional do Instagram antes de sincronizar as metricas."
     );
   }
 
@@ -284,13 +262,7 @@ export async function sincronizarMetricasInstagramMeta() {
     configuracao.instagram_business_account_id,
     configuracao.token_acesso
   );
-  const postsFacebook = await listarPostsFacebook(
-    configuracao.facebook_page_id,
-    configuracao.token_acesso
-  );
-
   const mapaMidias = new Map<string, GraphMedia>();
-  const mapaPostsFacebook = new Map<string, GraphPagePost>();
 
   for (const midia of midias) {
     if (!midia.id) continue;
@@ -298,35 +270,17 @@ export async function sincronizarMetricasInstagramMeta() {
     const permalink = normalizarPermalinkInstagram(midia.permalink);
     const shortcode = normalizarShortcodeInstagram(midia.shortcode);
 
+    mapaMidias.set(`id:${midia.id}`, midia);
     if (permalink) mapaMidias.set(permalink, midia);
     if (shortcode) mapaMidias.set(shortcode, midia);
-  }
-
-  for (const post of postsFacebook) {
-    if (!post.id) continue;
-
-    const permalink = normalizarPermalinkFacebook(post.permalink_url);
-    const referencia = extrairReferenciaFacebook(post.permalink_url || "");
-
-    if (permalink) {
-      mapaPostsFacebook.set(permalink, post);
-    }
-
-    if (referencia?.fbid) {
-      mapaPostsFacebook.set(referencia.fbid, post);
-    }
-
-    if (referencia?.storyFbid) {
-      mapaPostsFacebook.set(referencia.storyFbid, post);
-    }
   }
 
   const { data: registros, error } = await admin
     .from("clipping_registros")
     .select(
-      "id, canal, url, views, comentarios, likes, compartilhamentos, salvos, engajamento"
+      "id, canal, url, views, comentarios, likes, compartilhamentos, salvos, engajamento, instagram_media_id, instagram_shortcode"
     )
-    .in("canal", ["INSTAGRAM", "FACEBOOK"])
+    .eq("canal", "INSTAGRAM")
     .not("url", "is", null)
     .order("id", { ascending: true });
 
@@ -336,7 +290,7 @@ export async function sincronizarMetricasInstagramMeta() {
 
   const listaRegistros = (registros || []) as Array<{
     id: number;
-    canal: "INSTAGRAM" | "FACEBOOK";
+    canal: "INSTAGRAM";
     url: string | null;
     views: number | null;
     comentarios: number | null;
@@ -344,136 +298,61 @@ export async function sincronizarMetricasInstagramMeta() {
     compartilhamentos: number | null;
     salvos: number | null;
     engajamento: number | null;
+    instagram_media_id: string | null;
+    instagram_shortcode: string | null;
   }>;
 
   const cacheMetricas = new Map<string, InstagramMetricas>();
-  const cacheMetricasFacebook = new Map<string, FacebookMetricas>();
   const agora = new Date().toISOString();
   let registrosAtualizados = 0;
   let registrosSemCorrespondencia = 0;
   let linksInvalidos = 0;
   let erros = 0;
+  const detalhesErros: ResultadoSincronizacaoInstagram["detalhesErros"] = [];
 
   for (const registro of listaRegistros) {
-    if (registro.canal === "INSTAGRAM") {
-      const referencia = extrairReferenciaInstagram(registro.url || "");
+    const referencia = extrairReferenciaInstagram(registro.url || "");
 
-      if (!referencia) {
-        linksInvalidos += 1;
-        continue;
-      }
-
-      const media =
-        (referencia.shortcode ? mapaMidias.get(referencia.shortcode) : undefined) ||
-        mapaMidias.get(referencia.permalink);
-
-      if (!media?.id) {
-        registrosSemCorrespondencia += 1;
-        continue;
-      }
-
-      try {
-        let metricas = cacheMetricas.get(media.id);
-
-        if (!metricas) {
-          metricas = await obterMetricasInstagram(media, configuracao.token_acesso);
-          cacheMetricas.set(media.id, metricas);
-        }
-
-        const likes =
-          metricas.likes ??
-          numeroSeguro(registro.likes) ??
-          numeroSeguro(media.like_count);
-        const comentarios =
-          metricas.comentarios ??
-          numeroSeguro(registro.comentarios) ??
-          numeroSeguro(media.comments_count);
-        const compartilhamentos =
-          metricas.compartilhamentos ?? numeroSeguro(registro.compartilhamentos);
-        const salvos = metricas.salvos ?? numeroSeguro(registro.salvos);
-        const views = metricas.views ?? numeroSeguro(registro.views);
-        const engajamento =
-          metricas.engajamento ??
-          likes +
-            comentarios +
-            compartilhamentos +
-            salvos;
-
-        const { error: updateError } = await admin
-          .from("clipping_registros")
-          .update({
-            views,
-            comentarios,
-            likes,
-            compartilhamentos,
-            salvos,
-            engajamento,
-            instagram_media_id: media.id,
-            instagram_shortcode:
-              referencia.shortcode || normalizarShortcodeInstagram(media.shortcode),
-            metricas_atualizadas_em: agora,
-            metricas_origem: "instagram_meta",
-            atualizado_em: agora,
-          })
-          .eq("id", registro.id);
-
-        if (updateError) {
-          erros += 1;
-          continue;
-        }
-
-        registrosAtualizados += 1;
-      } catch {
-        erros += 1;
-      }
-
-      continue;
-    }
-
-    const referenciaFacebook = extrairReferenciaFacebook(registro.url || "");
-
-    if (!referenciaFacebook) {
+    if (!referencia) {
       linksInvalidos += 1;
       continue;
     }
 
-    const postFacebook =
-      (referenciaFacebook.fbid
-        ? mapaPostsFacebook.get(referenciaFacebook.fbid)
+    const media =
+      (registro.instagram_media_id
+        ? mapaMidias.get(`id:${registro.instagram_media_id}`)
         : undefined) ||
-      (referenciaFacebook.storyFbid
-        ? mapaPostsFacebook.get(referenciaFacebook.storyFbid)
+      (registro.instagram_shortcode
+        ? mapaMidias.get(normalizarShortcodeInstagram(registro.instagram_shortcode) || "")
         : undefined) ||
-      mapaPostsFacebook.get(referenciaFacebook.permalink);
+      (referencia.shortcode ? mapaMidias.get(referencia.shortcode) : undefined) ||
+      mapaMidias.get(referencia.permalink);
 
-    if (!postFacebook?.id) {
+    if (!media?.id) {
       registrosSemCorrespondencia += 1;
       continue;
     }
 
     try {
-      let metricasFacebook = cacheMetricasFacebook.get(postFacebook.id);
+      let metricas = cacheMetricas.get(media.id);
 
-      if (!metricasFacebook) {
-        metricasFacebook = await obterMetricasFacebook(
-          postFacebook,
-          configuracao.token_acesso
-        );
-        cacheMetricasFacebook.set(postFacebook.id, metricasFacebook);
+      if (!metricas) {
+        metricas = await obterMetricasInstagram(media, configuracao.token_acesso);
+        cacheMetricas.set(media.id, metricas);
       }
 
-      const likes = metricasFacebook.likes ?? numeroSeguro(registro.likes);
+      const likes =
+        metricas.likes ?? numeroSeguro(registro.likes) ?? numeroSeguro(media.like_count);
       const comentarios =
-        metricasFacebook.comentarios ?? numeroSeguro(registro.comentarios);
+        metricas.comentarios ??
+        numeroSeguro(registro.comentarios) ??
+        numeroSeguro(media.comments_count);
       const compartilhamentos =
-        metricasFacebook.compartilhamentos ??
-        numeroSeguro(registro.compartilhamentos);
-      const views = metricasFacebook.views ?? numeroSeguro(registro.views);
+        metricas.compartilhamentos ?? numeroSeguro(registro.compartilhamentos);
+      const salvos = metricas.salvos ?? numeroSeguro(registro.salvos);
+      const views = metricas.views ?? numeroSeguro(registro.views);
       const engajamento =
-        metricasFacebook.engajamento ??
-        likes +
-          comentarios +
-          compartilhamentos;
+        metricas.engajamento ?? likes + comentarios + compartilhamentos + salvos;
 
       const { error: updateError } = await admin
         .from("clipping_registros")
@@ -482,22 +361,31 @@ export async function sincronizarMetricasInstagramMeta() {
           comentarios,
           likes,
           compartilhamentos,
+          salvos,
           engajamento,
-          facebook_post_id: postFacebook.id,
+          instagram_media_id: media.id,
+          instagram_shortcode:
+            referencia.shortcode || normalizarShortcodeInstagram(media.shortcode),
           metricas_atualizadas_em: agora,
-          metricas_origem: "facebook_meta",
+          metricas_origem: "instagram_meta",
           atualizado_em: agora,
         })
         .eq("id", registro.id);
 
       if (updateError) {
-        erros += 1;
-        continue;
+        throw new Error(updateError.message);
       }
 
       registrosAtualizados += 1;
-    } catch {
+    } catch (error) {
       erros += 1;
+      if (detalhesErros.length < 20) {
+        detalhesErros.push({
+          registroId: registro.id,
+          url: registro.url,
+          erro: error instanceof Error ? error.message : "Erro desconhecido.",
+        });
+      }
     }
   }
 
@@ -507,6 +395,7 @@ export async function sincronizarMetricasInstagramMeta() {
     registrosSemCorrespondencia,
     linksInvalidos,
     erros,
+    detalhesErros,
   };
 
   await registrarStatusSincronizacaoInstagram(
@@ -717,34 +606,6 @@ async function listarMidiasInstagram(igUserId: string, accessToken: string) {
   return lista;
 }
 
-async function listarPostsFacebook(pageId: string, accessToken: string) {
-  const lista: GraphPagePost[] = [];
-  let nextUrl =
-    `https://graph.facebook.com/${GRAPH_VERSION}/${pageId}/posts?` +
-    new URLSearchParams({
-      fields:
-        "id,permalink_url,shares,reactions.limit(0).summary(total_count),comments.limit(0).summary(total_count)",
-      limit: "100",
-      access_token: accessToken,
-    }).toString();
-
-  while (nextUrl) {
-    const response = await fetch(nextUrl, { cache: "no-store" });
-    const json = (await response.json()) as GraphListResponse<GraphPagePost> & {
-      error?: { message?: string };
-    };
-
-    if (!response.ok || json.error) {
-      throw new Error(json.error?.message || "Falha ao consultar posts do Facebook.");
-    }
-
-    lista.push(...(json.data || []));
-    nextUrl = json.paging?.next || "";
-  }
-
-  return lista;
-}
-
 async function obterMetricasInstagram(media: GraphMedia, accessToken: string) {
   const base: InstagramMetricas = {
     views: null,
@@ -816,66 +677,6 @@ async function obterMetricasInstagram(media: GraphMedia, accessToken: string) {
   };
 }
 
-async function obterMetricasFacebook(post: GraphPagePost, accessToken: string) {
-  const likes = numeroSeguro(post.reactions?.summary?.total_count);
-  const comentarios = numeroSeguro(post.comments?.summary?.total_count);
-  const compartilhamentos = numeroSeguro(post.shares?.count);
-
-  const insights = await obterInsightsFacebook(post.id || "", accessToken);
-  const views =
-    insights.get("post_impressions") ??
-    insights.get("post_video_views") ??
-    insights.get("post_impressions_unique") ??
-    null;
-  const engajamento =
-    insights.get("post_engaged_users") ??
-    likes + comentarios + compartilhamentos;
-
-  return {
-    views,
-    likes,
-    comentarios,
-    compartilhamentos,
-    engajamento,
-  };
-}
-
-async function obterInsightsFacebook(postId: string, accessToken: string) {
-  const tentativas = [
-    ["post_impressions", "post_engaged_users"],
-    ["post_impressions_unique", "post_engaged_users"],
-    ["post_video_views", "post_engaged_users"],
-  ];
-
-  for (const metricas of tentativas) {
-    try {
-      const insights = await requisitarGraph<GraphInsightResponse>(
-        `/${postId}/insights`,
-        {
-          metric: metricas.join(","),
-          access_token: accessToken,
-        }
-      );
-
-      const mapa = new Map<string, number>();
-
-      for (const item of insights.data || []) {
-        const valor = item.values?.[0]?.value;
-        const numero = converterInsightEmNumero(valor);
-        if (item.name && numero !== null) {
-          mapa.set(item.name, numero);
-        }
-      }
-
-      return mapa;
-    } catch {
-      continue;
-    }
-  }
-
-  return new Map<string, number>();
-}
-
 async function requisitarGraph<T>(
   path: string,
   params: Record<string, string | undefined>
@@ -925,26 +726,6 @@ function normalizarShortcodeInstagram(valor?: string | null) {
   return texto ? texto.replace(/^@/, "").toLowerCase() : null;
 }
 
-function normalizarPermalinkFacebook(url?: string | null) {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url.trim());
-    parsed.hash = "";
-    const fbid = parsed.searchParams.get("fbid");
-    const storyFbid = parsed.searchParams.get("story_fbid");
-    const permalink = `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "");
-
-    return (
-      (fbid && `fbid:${fbid}`) ||
-      (storyFbid && `story:${storyFbid}`) ||
-      permalink.toLowerCase()
-    );
-  } catch {
-    return null;
-  }
-}
-
 function extrairReferenciaInstagram(url: string) {
   const permalink = normalizarPermalinkInstagram(url);
 
@@ -963,26 +744,6 @@ function extrairReferenciaInstagram(url: string) {
         indiceTipo >= 0 && partes[indiceTipo + 1]
           ? normalizarShortcodeInstagram(partes[indiceTipo + 1])
           : null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function extrairReferenciaFacebook(url: string) {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url.trim());
-    parsed.hash = "";
-    const fbid = parsed.searchParams.get("fbid");
-    const storyFbid = parsed.searchParams.get("story_fbid");
-    const permalink = `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "").toLowerCase();
-
-    return {
-      permalink,
-      fbid,
-      storyFbid,
     };
   } catch {
     return null;

@@ -39,6 +39,11 @@ type StatusInstagram = {
   };
 };
 
+type StatusGoogleAlerts = {
+  configurado: boolean;
+  quantidadeFeeds: number;
+};
+
 export default function ConfiguracoesPage() {
   const { usuario } = useAuth();
   const [carregando, setCarregando] = useState(true);
@@ -58,6 +63,8 @@ export default function ConfiguracoesPage() {
   );
   const [statusInstagram, setStatusInstagram] = useState<StatusInstagram | null>(null);
   const [instagramAtivo, setInstagramAtivo] = useState(false);
+  const [statusGoogleAlerts, setStatusGoogleAlerts] =
+    useState<StatusGoogleAlerts | null>(null);
 
   const podeGerenciar = useMemo(
     () => temPermissao(usuario, ["admin", "coordenacao"]),
@@ -126,10 +133,24 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function carregarGoogleAlerts() {
+    try {
+      const response = await fetch("/api/configuracoes/google-alerts", {
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      const json = (await response.json()) as StatusGoogleAlerts;
+      setStatusGoogleAlerts(json);
+    } catch {
+      setStatusGoogleAlerts(null);
+    }
+  }
+
   useEffect(() => {
     queueMicrotask(() => {
       void carregarConfiguracao();
       void carregarInstagram();
+      void carregarGoogleAlerts();
     });
   }, []);
 
@@ -264,6 +285,11 @@ export default function ConfiguracoesPage() {
               registrosSemCorrespondencia: number;
               linksInvalidos: number;
               erros: number;
+              detalhesErros: Array<{
+                registroId: number;
+                url: string | null;
+                erro: string;
+              }>;
             };
           })
         | { error?: string };
@@ -272,19 +298,20 @@ export default function ConfiguracoesPage() {
         throw new Error(
           "error" in json && json.error
             ? json.error
-            : "Nao foi possivel sincronizar Instagram e Facebook."
+            : "Nao foi possivel sincronizar o Instagram."
         );
       }
 
       setStatusInstagram(json);
       setMensagemInstagram(
-        `Sincronizacao concluida. ${json.resultado?.registrosAtualizados || 0} registro(s) de Instagram e Facebook foram atualizados.`
+        `Sincronizacao concluida. ${json.resultado?.registrosAtualizados || 0} registro(s) do Instagram foram atualizados` +
+          `${json.resultado?.erros ? `; ${json.resultado.erros} erro(s) encontrado(s)` : ""}.`
       );
     } catch (error) {
       setMensagemInstagram(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel sincronizar Instagram e Facebook agora."
+          : "Nao foi possivel sincronizar o Instagram agora."
       );
     } finally {
       setSincronizandoInstagram(false);
@@ -350,7 +377,7 @@ export default function ConfiguracoesPage() {
             <h1 style={titulo}>Configuracoes</h1>
             <p style={textoSuporte}>
               Gerencie o acervo mensal do SGDC no Google Drive e a sincronizacao
-              de metricas do Instagram e do Facebook com o modulo de clipping.
+              de metricas do Instagram com o modulo de clipping.
             </p>
           </div>
         </div>
@@ -432,7 +459,7 @@ export default function ConfiguracoesPage() {
 
         <div style={grid}>
           <div style={bloco}>
-            <h2 style={subtitulo}>Meta da ASCOM</h2>
+            <h2 style={subtitulo}>Instagram da ASCOM</h2>
 
             <label style={toggleLinha}>
               <input
@@ -440,7 +467,7 @@ export default function ConfiguracoesPage() {
                 checked={instagramAtivo}
                 onChange={(e) => setInstagramAtivo(e.target.checked)}
               />
-              <span>Permitir sincronizacao das metricas do Instagram e do Facebook no clipping</span>
+              <span>Sincronizar automaticamente as metricas do Instagram no clipping</span>
             </label>
 
             <div style={resumoBox}>
@@ -449,7 +476,7 @@ export default function ConfiguracoesPage() {
                 {statusInstagram?.conexao.conectado
                   ? statusInstagram.conexao.contaInstagram ||
                     statusInstagram.conexao.usuarioInstagram ||
-                    "Conta Meta conectada"
+                    "Conta do Instagram conectada"
                   : "Nenhuma conta conectada"}
               </p>
               <p style={resumoItem}>
@@ -459,7 +486,7 @@ export default function ConfiguracoesPage() {
                   : "Nao identificado"}
               </p>
               <p style={resumoItem}>
-                <strong>Pagina vinculada:</strong>{" "}
+                <strong>Pagina usada no vinculo tecnico:</strong>{" "}
                 {statusInstagram?.conexao.paginaFacebook || "Nao identificada"}
               </p>
               <p style={resumoItem}>
@@ -487,8 +514,8 @@ export default function ConfiguracoesPage() {
                 style={botaoSecundario}
               >
                 {statusInstagram?.conexao.conectado
-                  ? "Reconectar conta"
-                  : "Conectar Meta"}
+                  ? "Reconectar Instagram"
+                  : "Conectar Instagram"}
               </button>
 
               <button
@@ -497,11 +524,12 @@ export default function ConfiguracoesPage() {
                 disabled={
                   sincronizandoInstagram ||
                   carregandoInstagram ||
+                  !instagramAtivo ||
                   !statusInstagram?.conexao.conectado
                 }
                 style={botaoTerciario}
               >
-                {sincronizandoInstagram ? "Sincronizando..." : "Sincronizar metricas agora"}
+                {sincronizandoInstagram ? "Sincronizando..." : "Sincronizar Instagram agora"}
               </button>
 
               <button
@@ -548,6 +576,29 @@ export default function ConfiguracoesPage() {
               </p>
             </div>
           </div>
+
+          <div style={bloco}>
+            <h2 style={subtitulo}>Google Alerts</h2>
+            <div style={resumoBox}>
+              <p style={resumoItem}>
+                <strong>Importacao automatica:</strong>{" "}
+                {statusGoogleAlerts?.configurado ? "Ativa" : "Aguardando configuracao"}
+              </p>
+              <p style={resumoItem}>
+                <strong>Feeds monitorados:</strong>{" "}
+                {statusGoogleAlerts?.quantidadeFeeds || 0}
+              </p>
+              <p style={resumoItem}>
+                Novas mencoes entram como Site, Externo, Nao classificado e Em
+                monitoramento para revisao da equipe.
+              </p>
+            </div>
+            {!statusGoogleAlerts?.configurado && (
+              <p style={mensagemStyle}>
+                Configure GOOGLE_ALERTS_RSS_URL na Vercel com o endereco RSS do alerta.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>
@@ -574,7 +625,7 @@ function obterMensagemInstagramDaUrl() {
 
   const mensagens: Record<string, string> = {
     conectado:
-      "Meta conectada com sucesso. Ja podemos sincronizar as metricas do Instagram e do Facebook no clipping.",
+      "Instagram conectado com sucesso. Ja podemos sincronizar suas metricas no clipping.",
     acesso_negado: "A conexao com a Meta foi cancelada.",
     estado_invalido:
       "A validacao da conexao com a Meta falhou. Tente novamente.",

@@ -27,7 +27,7 @@ type ProdutoChecklistSupabase = {
   id: number;
   produto_id: number;
   quantidade: number;
-  status_producao?: StatusProducao | null;
+  status_producao: StatusProducao;
   produtos: { nome: string } | { nome: string }[] | null;
 };
 
@@ -46,35 +46,21 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       .eq("demanda_id", demandaId)
       .order("id", { ascending: true });
 
-    let produtosData = data as ProdutoChecklistSupabase[] | null;
-
     if (colunaStatusAusente(error)) {
-      const { data: produtosSemStatus, error: erroSemStatus } = await supabase
-        .from("demanda_produtos_quantidade")
-        .select("id, produto_id, quantidade, produtos(nome)")
-        .eq("demanda_id", demandaId)
-        .order("id", { ascending: true });
-
-      if (erroSemStatus) {
-        setMensagem("Erro ao carregar produtos: " + erroSemStatus.message);
-        return;
-      }
-
-      produtosData = produtosSemStatus as ProdutoChecklistSupabase[] | null;
+      setMensagem("O checklist está indisponível porque o banco precisa ser atualizado.");
+      return;
     } else if (error) {
       setMensagem("Nao foi possivel carregar os produtos agora.");
       return;
     }
 
     setProdutos(
-      ((produtosData as ProdutoChecklistSupabase[] | null) || []).map(
+      ((data as ProdutoChecklistSupabase[] | null) || []).map(
         (produto) => ({
           id: Number(produto.id),
           produto_id: Number(produto.produto_id),
           quantidade: Number(produto.quantidade),
-          status_producao:
-            produto.status_producao ||
-            lerStatusProdutoLocal(demandaId, produto.produto_id),
+          status_producao: produto.status_producao,
           produtos: Array.isArray(produto.produtos)
             ? produto.produtos[0] || null
             : produto.produtos,
@@ -121,6 +107,28 @@ function ChecklistDemanda({ demandaId }: { demandaId: number }) {
       );
     };
   }, [carregarItens, carregarProdutos, demandaId]);
+
+  useEffect(() => {
+    const canalAtualizacoes = supabase
+      .channel(`checklist-produtos-${demandaId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "demanda_produtos_quantidade",
+          filter: `demanda_id=eq.${demandaId}`,
+        },
+        () => {
+          void carregarProdutos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(canalAtualizacoes);
+    };
+  }, [carregarProdutos, demandaId]);
 
   async function adicionarItem() {
     setMensagem("");
@@ -331,40 +339,8 @@ const statusLabel: Record<StatusProducao, string> = {
   CANCELADO: "Cancelado",
 };
 
-function lerStatusProdutoLocal(
-  demandaId: number,
-  produtoId: number
-): StatusProducao {
-  const storage = obterStorageSeguro();
-  if (!storage) return "ANDAMENTO";
-
-  const status = storage.getItem(
-    `sgdc_produto_status:${demandaId}:${produtoId}`
-  ) as StatusProducao | null;
-
-  if (
-    status === "ANDAMENTO" ||
-    status === "CONCLUIDO" ||
-    status === "CANCELADO"
-  ) {
-    return status;
-  }
-
-  return "ANDAMENTO";
-}
-
 function colunaStatusAusente(error?: { code?: string } | null) {
   return error?.code === "42703" || error?.code === "PGRST204";
-}
-
-function obterStorageSeguro() {
-  if (typeof window === "undefined") return null;
-
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 const barraBox = {
