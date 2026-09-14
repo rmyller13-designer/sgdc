@@ -40,14 +40,9 @@ type ProdutoSelecionadoSupabase = {
   id: number;
   produto_id: number;
   quantidade: number;
-  status_producao?: StatusProducao | null;
+  status_producao: StatusProducao;
   produtos: { nome: string } | { nome: string }[] | null;
 };
-
-type ProdutoSelecionadoSemStatusSupabase = Omit<
-  ProdutoSelecionadoSupabase,
-  "status_producao"
->;
 
 type BaseComunicacaoSync = {
   data?: {
@@ -97,6 +92,7 @@ export default function EixosProdutosDemanda({
   const [produtoId, setProdutoId] = useState("");
   const [quantidade, setQuantidade] = useState(1);
   const [edicoes, setEdicoes] = useState<Record<number, number>>({});
+  const [statusSalvando, setStatusSalvando] = useState<Record<number, boolean>>({});
   const [mensagem, setMensagem] = useState("");
 
   const carregarDados = useCallback(async () => {
@@ -134,19 +130,12 @@ export default function EixosProdutosDemanda({
       .eq("demanda_id", demandaId)
       .order("id", { ascending: true });
 
-    let produtosMarcadosLista:
-      | ProdutoSelecionadoSupabase[]
-      | ProdutoSelecionadoSemStatusSupabase[]
-      | null = produtosMarcados;
-
     if (colunaStatusAusente(produtosErro)) {
-      const { data: produtosSemStatus } = await supabase
-        .from("demanda_produtos_quantidade")
-        .select("id, produto_id, quantidade, produtos(nome)")
-        .eq("demanda_id", demandaId)
-        .order("id", { ascending: true });
-
-      produtosMarcadosLista = produtosSemStatus;
+      setMensagem(
+        "Os status dos produtos estão indisponíveis porque o banco precisa ser atualizado. Nenhuma alteração de status será salva até a correção."
+      );
+    } else if (produtosErro) {
+      setMensagem("Não foi possível carregar os produtos desta demanda agora.");
     }
 
     const listaEixos = (eixosData || []) as Eixo[];
@@ -171,12 +160,9 @@ export default function EixosProdutosDemanda({
     setCanaisSelecionados(canaisMarcados?.map((item) => item.canal_id) || []);
 
     const lista =
-      ((produtosMarcadosLista as ProdutoSelecionadoSupabase[] | null) || []).map(
+      ((produtosMarcados as ProdutoSelecionadoSupabase[] | null) || []).map(
         (item) => ({
           ...item,
-          status_producao:
-            item.status_producao ||
-            lerStatusProdutoLocal(demandaId, item.produto_id),
           produtos: Array.isArray(item.produtos)
             ? item.produtos[0] || null
             : item.produtos,
@@ -197,6 +183,28 @@ export default function EixosProdutosDemanda({
       void carregarDados();
     });
   }, [carregarDados]);
+
+  useEffect(() => {
+    const canalAtualizacoes = supabase
+      .channel(`demanda-produtos-${demandaId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "demanda_produtos_quantidade",
+          filter: `demanda_id=eq.${demandaId}`,
+        },
+        () => {
+          void carregarDados();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(canalAtualizacoes);
+    };
+  }, [carregarDados, demandaId]);
 
   async function alternarEixo(eixoId: number) {
     setMensagem("");
@@ -325,27 +333,13 @@ export default function EixosProdutosDemanda({
       }
     );
 
-    if (colunaStatusAusente(error)) {
-      const { error: erroSemStatus } = await supabase
-        .from("demanda_produtos_quantidade")
-        .upsert(
-          {
-            demanda_id: demandaId,
-            produto_id: produtoIdNumero,
-            quantidade,
-          },
-          {
-            onConflict: "demanda_id,produto_id",
-          }
+    if (error) {
+      if (colunaStatusAusente(error)) {
+        setMensagem(
+          "Não foi possível adicionar o produto: o banco precisa ser atualizado."
         );
-
-      if (erroSemStatus) {
-        setMensagem("Erro ao adicionar produto: " + erroSemStatus.message);
         return;
       }
-
-      salvarStatusProdutoLocal(demandaId, produtoIdNumero, "ANDAMENTO");
-    } else if (error) {
       setMensagem("Nao foi possivel adicionar o produto agora.");
       return;
     }
@@ -391,7 +385,19 @@ export default function EixosProdutosDemanda({
     produtoIdAtualizar: number,
     status: StatusProducao
   ) {
+    const statusAnterior = produtosSelecionados.find(
+      (item) => item.produto_id === produtoIdAtualizar
+    )?.status_producao;
+
     setMensagem("");
+    setStatusSalvando((atual) => ({ ...atual, [produtoIdAtualizar]: true }));
+    setProdutosSelecionados((atual) =>
+      atual.map((item) =>
+        item.produto_id === produtoIdAtualizar
+          ? { ...item, status_producao: status }
+          : item
+      )
+    );
 
     const { error } = await supabase
       .from("demanda_produtos_quantidade")
@@ -403,18 +409,29 @@ export default function EixosProdutosDemanda({
       .select("produto_id")
       .single();
 
-    if (error && !colunaStatusAusente(error)) {
-      setMensagem("Nao foi possivel atualizar o status agora.");
+    if (error) {
+      if (statusAnterior) {
+        setProdutosSelecionados((atual) =>
+          atual.map((item) =>
+            item.produto_id === produtoIdAtualizar
+              ? { ...item, status_producao: statusAnterior }
+              : item
+          )
+        );
+      }
+      setMensagem(
+        colunaStatusAusente(error)
+          ? "Status não salvo: o banco precisa ser atualizado."
+          : "Nao foi possivel atualizar o status agora."
+      );
+      setStatusSalvando((atual) => ({ ...atual, [produtoIdAtualizar]: false }));
       return;
     }
 
-    if (colunaStatusAusente(error)) {
-      salvarStatusProdutoLocal(demandaId, produtoIdAtualizar, status);
-    }
-
-    setMensagem("Status do produto atualizado.");
+    setMensagem("Status salvo automaticamente.");
     notificarAtualizacaoProdutos(demandaId);
     await carregarDados();
+    setStatusSalvando((atual) => ({ ...atual, [produtoIdAtualizar]: false }));
   }
 
   async function removerProduto(produtoIdRemover: number) {
@@ -435,7 +452,6 @@ export default function EixosProdutosDemanda({
     }
 
     setMensagem("Produto removido.");
-    removerStatusProdutoLocal(demandaId, produtoIdRemover);
     notificarAtualizacaoProdutos(demandaId);
     await carregarDados();
   }
@@ -479,33 +495,12 @@ export default function EixosProdutosDemanda({
         }
       );
 
-      if (colunaStatusAusente(error)) {
-        const { error: erroSemStatus } = await supabase
-          .from("demanda_produtos_quantidade")
-          .upsert(
-            {
-              demanda_id: demandaId,
-              produto_id: produto.id,
-              quantidade: 1,
-            },
-            {
-              onConflict: "demanda_id,produto_id",
-            }
-          );
-
-        if (erroSemStatus) {
-          setMensagem(
-            "Erro ao sincronizar produto automatico: " + erroSemStatus.message
-          );
-          return;
-        }
-
-        salvarStatusProdutoLocal(demandaId, produto.id, "ANDAMENTO");
-        continue;
-      }
-
       if (error) {
-        setMensagem("Nao foi possivel sincronizar o produto automatico agora.");
+        setMensagem(
+          colunaStatusAusente(error)
+            ? "Não foi possível sincronizar o produto: o banco precisa ser atualizado."
+            : "Nao foi possivel sincronizar o produto automatico agora."
+        );
         return;
       }
     }
@@ -644,11 +639,15 @@ export default function EixosProdutosDemanda({
                         onChange={() =>
                           atualizarStatusProduto(item.produto_id, opcao.valor)
                         }
+                        disabled={statusSalvando[item.produto_id]}
                         style={radioStatus}
                       />
                       {opcao.label}
                     </label>
                   ))}
+                  {statusSalvando[item.produto_id] && (
+                    <span style={statusSalvandoTexto}>Salvando...</span>
+                  )}
                 </div>
               </div>
 
@@ -658,7 +657,7 @@ export default function EixosProdutosDemanda({
                   onClick={() => atualizarQuantidade(item.produto_id)}
                   style={botaoSalvar}
                 >
-                  Salvar
+                  Salvar quantidade
                 </button>
 
                 <button
@@ -684,60 +683,6 @@ const statusOpcoes: { valor: StatusProducao; label: string }[] = [
   { valor: "CONCLUIDO", label: "Concluído" },
   { valor: "CANCELADO", label: "Cancelado" },
 ];
-
-function lerStatusProdutoLocal(
-  demandaId: number,
-  produtoId: number
-): StatusProducao {
-  const storage = obterStorageSeguro();
-  if (!storage) return "ANDAMENTO";
-
-  const status = storage.getItem(
-    chaveStatusProduto(demandaId, produtoId)
-  ) as StatusProducao | null;
-
-  return statusValido(status) ? status : "ANDAMENTO";
-}
-
-function salvarStatusProdutoLocal(
-  demandaId: number,
-  produtoId: number,
-  status: StatusProducao
-) {
-  const storage = obterStorageSeguro();
-  if (!storage) return;
-
-  storage.setItem(chaveStatusProduto(demandaId, produtoId), status);
-}
-
-function removerStatusProdutoLocal(demandaId: number, produtoId: number) {
-  const storage = obterStorageSeguro();
-  if (!storage) return;
-
-  storage.removeItem(chaveStatusProduto(demandaId, produtoId));
-}
-
-function chaveStatusProduto(demandaId: number, produtoId: number) {
-  return `sgdc_produto_status:${demandaId}:${produtoId}`;
-}
-
-function statusValido(status: string | null): status is StatusProducao {
-  return (
-    status === "ANDAMENTO" ||
-    status === "CONCLUIDO" ||
-    status === "CANCELADO"
-  );
-}
-
-function obterStorageSeguro() {
-  if (typeof window === "undefined") return null;
-
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function colunaStatusAusente(error?: { code?: string } | null) {
   return error?.code === "42703" || error?.code === "PGRST204";
@@ -828,6 +773,12 @@ const statusGrupo = {
   flexWrap: "wrap" as const,
   gap: "8px",
   marginTop: "12px",
+};
+
+const statusSalvandoTexto = {
+  alignSelf: "center",
+  color: "#94a3b8",
+  fontSize: "12px",
 };
 
 const statusOpcao = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { nomeDoUsuario, podeAtribuirResponsavel } from "@/lib/auth";
@@ -41,7 +41,24 @@ export default function ResponsavelDemanda({
         .order("nome");
 
       if (!ativo) return;
-      setUsuarios((data as UsuarioResponsavel[] | null) || []);
+      const usuariosCarregados = (data as UsuarioResponsavel[] | null) || [];
+      const nomesAtuaisNormalizados = responsaveisAtuais.map((item) =>
+        corrigirTextoExibicao(item).trim().toLowerCase()
+      );
+      const selecionados = usuariosCarregados
+        .filter((item) =>
+          nomesAtuaisNormalizados.includes(
+            corrigirTextoExibicao(nomeDoUsuario(item.nome)).trim().toLowerCase()
+          )
+        )
+        .map((item) => String(item.id));
+
+      setUsuarios(usuariosCarregados);
+      if (selecionados.length > 0) {
+        setResponsaveisSelecionados((atual) =>
+          atual.length > 0 ? atual : selecionados
+        );
+      }
     }
 
     queueMicrotask(() => {
@@ -51,33 +68,7 @@ export default function ResponsavelDemanda({
     return () => {
       ativo = false;
     };
-  }, []);
-
-  const nomesAtuaisNormalizados = useMemo(
-    () =>
-      (responsaveisAtuais || []).map((item) =>
-        corrigirTextoExibicao(item).trim().toLowerCase()
-      ),
-    [responsaveisAtuais]
-  );
-
-  useEffect(() => {
-    if (usuarios.length === 0 || nomesAtuaisNormalizados.length === 0) return;
-
-    const selecionados = usuarios
-      .filter((item) =>
-        nomesAtuaisNormalizados.includes(
-          corrigirTextoExibicao(nomeDoUsuario(item.nome)).trim().toLowerCase()
-        )
-      )
-      .map((item) => String(item.id));
-
-    if (selecionados.length > 0) {
-      setResponsaveisSelecionados((atual) =>
-        atual.length > 0 ? atual : selecionados
-      );
-    }
-  }, [usuarios, nomesAtuaisNormalizados]);
+  }, [responsaveisAtuais]);
 
   async function atualizarResponsavel() {
     setMensagem("");
