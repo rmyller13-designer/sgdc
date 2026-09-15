@@ -4,6 +4,7 @@ import { criarSupabaseAdmin } from "@/lib/supabase-admin";
 
 const CONFIG_ID = "principal";
 const GRAPH_VERSION = process.env.META_GRAPH_API_VERSION || "v23.0";
+const INSTAGRAM_GRAPH_URL = `https://graph.instagram.com/${GRAPH_VERSION}`;
 export const META_OAUTH_STATE_COOKIE = "sgdc_meta_oauth_state";
 
 type SupabaseAdmin = ReturnType<typeof criarSupabaseAdmin>;
@@ -35,7 +36,6 @@ type StatusInstagramMeta = {
   };
   conexao: {
     conectado: boolean;
-    paginaFacebook: string | null;
     contaInstagram: string | null;
     usuarioInstagram: string | null;
     expiraEm: string | null;
@@ -51,17 +51,6 @@ type ResultadoSincronizacaoInstagram = {
   detalhesErros: Array<{ registroId: number; url: string | null; erro: string }>;
 };
 
-type GraphPageAccount = {
-  id?: string;
-  name?: string;
-  access_token?: string;
-  instagram_business_account?: {
-    id?: string;
-    username?: string;
-    name?: string;
-  } | null;
-};
-
 type GraphMedia = {
   id?: string;
   permalink?: string;
@@ -75,22 +64,6 @@ type GraphListResponse<T> = {
   paging?: {
     next?: string;
   };
-};
-
-type GraphInsightValue =
-  | number
-  | string
-  | Record<string, unknown>
-  | null
-  | undefined;
-
-type GraphInsightResponse = {
-  data?: Array<{
-    name?: string;
-    values?: Array<{
-      value?: GraphInsightValue;
-    }>;
-  }>;
 };
 
 type InstagramMetricas = {
@@ -174,21 +147,14 @@ export function criarUrlConexaoInstagram(request: Request, state: string) {
   }
 
   const redirectUri = obterRedirectUri(request);
-  const url = new URL(`https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`);
+  const url = new URL("https://www.instagram.com/oauth/authorize");
   url.searchParams.set("client_id", appId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set(
-    "scope",
-    [
-      "instagram_basic",
-      "instagram_manage_insights",
-      "pages_show_list",
-      "pages_read_engagement",
-    ].join(",")
-  );
-  url.searchParams.set("auth_type", "rerequest");
+  url.searchParams.set("scope", "instagram_business_basic");
+  url.searchParams.set("enable_fb_login", "0");
+  url.searchParams.set("force_authentication", "1");
 
   return url.toString();
 }
@@ -197,19 +163,12 @@ export async function concluirConexaoInstagram(request: Request, code: string) {
   const redirectUri = obterRedirectUri(request);
   const tokenCurto = await trocarCodePorToken(code, redirectUri);
   const tokenLongo = await trocarPorTokenLongo(tokenCurto.access_token);
-  const contas = await listarPaginasComInstagram(tokenLongo.access_token);
-  const conta = selecionarContaInstagram(contas);
+  const perfil = await obterPerfilInstagram(tokenLongo.access_token);
+  const instagramId = String(perfil.user_id || perfil.id || tokenCurto.user_id || "");
 
-  if (!conta?.id || !conta.instagram_business_account?.id) {
-    throw new Error(
-      "Nenhuma pagina do Facebook vinculada a uma conta profissional do Instagram foi encontrada."
-    );
+  if (!instagramId) {
+    throw new Error("O Instagram nao informou o identificador da conta conectada.");
   }
-
-  const perfil = await obterPerfilInstagram(
-    conta.instagram_business_account.id,
-    tokenLongo.access_token
-  );
 
   const admin = criarSupabaseAdmin();
 
@@ -219,13 +178,11 @@ export async function concluirConexaoInstagram(request: Request, code: string) {
       {
         id: CONFIG_ID,
         ativo: true,
-        facebook_page_id: conta.id,
-        facebook_page_name: conta.name || null,
-        instagram_business_account_id: conta.instagram_business_account.id,
-        instagram_username:
-          perfil.username || conta.instagram_business_account.username || null,
-        instagram_nome_exibicao:
-          perfil.name || conta.instagram_business_account.name || null,
+        facebook_page_id: null,
+        facebook_page_name: null,
+        instagram_business_account_id: instagramId,
+        instagram_username: perfil.username || null,
+        instagram_nome_exibicao: perfil.name || perfil.username || null,
         token_acesso: tokenLongo.access_token,
         token_tipo: tokenLongo.token_type || tokenCurto.token_type || null,
         token_expira_em: calcularExpiracao(tokenLongo.expires_in),
@@ -258,9 +215,10 @@ export async function sincronizarMetricasInstagramMeta() {
     );
   }
 
+  const tokenAtual = await renovarTokenSeNecessario(admin, configuracao);
   const midias = await listarMidiasInstagram(
     configuracao.instagram_business_account_id,
-    configuracao.token_acesso
+    tokenAtual
   );
   const mapaMidias = new Map<string, GraphMedia>();
 
@@ -337,7 +295,7 @@ export async function sincronizarMetricasInstagramMeta() {
       let metricas = cacheMetricas.get(media.id);
 
       if (!metricas) {
-        metricas = await obterMetricasInstagram(media, configuracao.token_acesso);
+        metricas = obterMetricasInstagram(media);
         cacheMetricas.set(media.id, metricas);
       }
 
@@ -462,7 +420,6 @@ function montarStatusInstagramMeta(configuracao: ConfiguracaoInstagramMeta): Sta
       conectado: Boolean(
         configuracao.token_acesso && configuracao.instagram_business_account_id
       ),
-      paginaFacebook: configuracao.facebook_page_name,
       contaInstagram: configuracao.instagram_nome_exibicao,
       usuarioInstagram: configuracao.instagram_username,
       expiraEm: configuracao.token_expira_em,
@@ -517,64 +474,93 @@ function obterRedirectUri(request: Request) {
 }
 
 async function trocarCodePorToken(code: string, redirectUri: string) {
-  return requisitarGraph<{
+  const body = new FormData();
+  body.set("client_id", process.env.META_APP_ID || "");
+  body.set("client_secret", process.env.META_APP_SECRET || "");
+  body.set("grant_type", "authorization_code");
+  body.set("redirect_uri", redirectUri);
+  body.set("code", code);
+
+  const response = await fetch("https://api.instagram.com/oauth/access_token", {
+    method: "POST",
+    body,
+    cache: "no-store",
+  });
+  const json = (await response.json()) as {
     access_token: string;
+    user_id?: string | number;
     token_type?: string;
     expires_in?: number;
-  }>("/oauth/access_token", {
-    client_id: process.env.META_APP_ID,
-    client_secret: process.env.META_APP_SECRET,
-    redirect_uri: redirectUri,
-    code,
-  });
+    error_message?: string;
+  };
+
+  if (!response.ok || !json.access_token) {
+    throw new Error(json.error_message || "Falha ao autorizar a conta do Instagram.");
+  }
+
+  return json;
 }
 
 async function trocarPorTokenLongo(tokenCurto: string) {
-  return requisitarGraph<{
+  return requisitarInstagramSemVersao<{
     access_token: string;
     token_type?: string;
     expires_in?: number;
-  }>("/oauth/access_token", {
-    grant_type: "fb_exchange_token",
-    client_id: process.env.META_APP_ID,
+  }>("/access_token", {
+    grant_type: "ig_exchange_token",
     client_secret: process.env.META_APP_SECRET,
-    fb_exchange_token: tokenCurto,
+    access_token: tokenCurto,
   });
 }
 
-async function listarPaginasComInstagram(accessToken: string) {
-  const resultado = await requisitarGraph<GraphListResponse<GraphPageAccount>>(
-    "/me/accounts",
-    {
-      fields: "id,name,access_token,instagram_business_account{id,username,name}",
-      access_token: accessToken,
-    }
-  );
+async function renovarTokenSeNecessario(
+  admin: SupabaseAdmin,
+  configuracao: ConfiguracaoInstagramMeta
+) {
+  const token = configuracao.token_acesso;
+  if (!token) throw new Error("Token do Instagram nao encontrado.");
 
-  return (resultado.data || []).filter(
-    (item) => item.instagram_business_account?.id
-  );
+  const expiraEm = configuracao.token_expira_em
+    ? new Date(configuracao.token_expira_em).getTime()
+    : Number.POSITIVE_INFINITY;
+  const dezDias = 10 * 24 * 60 * 60 * 1000;
+
+  if (expiraEm - Date.now() > dezDias) return token;
+
+  const renovado = await requisitarInstagramSemVersao<{
+    access_token: string;
+    token_type?: string;
+    expires_in?: number;
+  }>("/refresh_access_token", {
+    grant_type: "ig_refresh_token",
+    access_token: token,
+  });
+
+  const { error } = await admin
+    .from("configuracoes_instagram_meta")
+    .update({
+      token_acesso: renovado.access_token,
+      token_tipo: renovado.token_type || configuracao.token_tipo,
+      token_expira_em: calcularExpiracao(renovado.expires_in),
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq("id", CONFIG_ID);
+
+  if (error) {
+    throw new Error(`Token renovado, mas nao foi possivel salva-lo: ${error.message}`);
+  }
+
+  return renovado.access_token;
 }
 
-function selecionarContaInstagram(contas: GraphPageAccount[]) {
-  if (contas.length === 0) return null;
-
-  const preferida = contas.find((item) =>
-    /santa|stacasa|ascom/i.test(
-      `${item.name || ""} ${item.instagram_business_account?.name || ""}`
-    )
-  );
-
-  return preferida || contas[0];
-}
-
-async function obterPerfilInstagram(igUserId: string, accessToken: string) {
-  return requisitarGraph<{
+async function obterPerfilInstagram(accessToken: string) {
+  return requisitarInstagram<{
     id?: string;
+    user_id?: string | number;
     username?: string;
     name?: string;
-  }>(`/${igUserId}`, {
-    fields: "id,username,name",
+  }>("/me", {
+    fields: "id,user_id,username,name",
     access_token: accessToken,
   });
 }
@@ -582,9 +568,9 @@ async function obterPerfilInstagram(igUserId: string, accessToken: string) {
 async function listarMidiasInstagram(igUserId: string, accessToken: string) {
   const lista: GraphMedia[] = [];
   let nextUrl =
-    `https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media?` +
+    `${INSTAGRAM_GRAPH_URL}/${igUserId}/media?` +
     new URLSearchParams({
-      fields: "id,permalink,shortcode,like_count,comments_count",
+      fields: "id,permalink,like_count,comments_count",
       limit: "100",
       access_token: accessToken,
     }).toString();
@@ -606,7 +592,7 @@ async function listarMidiasInstagram(igUserId: string, accessToken: string) {
   return lista;
 }
 
-async function obterMetricasInstagram(media: GraphMedia, accessToken: string) {
+function obterMetricasInstagram(media: GraphMedia) {
   const base: InstagramMetricas = {
     views: null,
     likes: numeroSeguro(media.like_count),
@@ -616,72 +602,17 @@ async function obterMetricasInstagram(media: GraphMedia, accessToken: string) {
     engajamento: null,
   };
 
-  const tentativas = [
-    ["views", "saved", "shares", "total_interactions"],
-    ["plays", "saved", "shares", "total_interactions"],
-    ["video_views", "saved", "shares", "total_interactions"],
-    ["impressions", "saved", "shares", "total_interactions"],
-  ];
-
-  for (const metricas of tentativas) {
-    try {
-      const insights = await requisitarGraph<GraphInsightResponse>(
-        `/${media.id}/insights`,
-        {
-          metric: metricas.join(","),
-          access_token: accessToken,
-        }
-      );
-
-      const mapa = new Map<string, number>();
-
-      for (const item of insights.data || []) {
-        const valor = item.values?.[0]?.value;
-        const numero = converterInsightEmNumero(valor);
-        if (item.name && numero !== null) {
-          mapa.set(item.name, numero);
-        }
-      }
-
-      const views =
-        mapa.get("views") ??
-        mapa.get("plays") ??
-        mapa.get("video_views") ??
-        mapa.get("impressions") ??
-        null;
-
-      const compartilhamentos = mapa.get("shares") ?? null;
-      const salvos = mapa.get("saved") ?? null;
-      const engajamento =
-        mapa.get("total_interactions") ??
-        (base.likes || 0) +
-          (base.comentarios || 0) +
-          (compartilhamentos || 0) +
-          (salvos || 0);
-
-      return {
-        ...base,
-        views,
-        compartilhamentos,
-        salvos,
-        engajamento,
-      };
-    } catch {
-      continue;
-    }
-  }
-
   return {
     ...base,
     engajamento: (base.likes || 0) + (base.comentarios || 0),
   };
 }
 
-async function requisitarGraph<T>(
+async function requisitarInstagram<T>(
   path: string,
   params: Record<string, string | undefined>
 ) {
-  const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}${path}`);
+  const url = new URL(`${INSTAGRAM_GRAPH_URL}${path}`);
 
   for (const [chave, valor] of Object.entries(params)) {
     if (valor) {
@@ -695,7 +626,29 @@ async function requisitarGraph<T>(
   };
 
   if (!response.ok || json.error) {
-    throw new Error(json.error?.message || "Falha ao consultar a Meta.");
+    throw new Error(json.error?.message || "Falha ao consultar o Instagram.");
+  }
+
+  return json;
+}
+
+async function requisitarInstagramSemVersao<T>(
+  path: string,
+  params: Record<string, string | undefined>
+) {
+  const url = new URL(`https://graph.instagram.com${path}`);
+
+  for (const [chave, valor] of Object.entries(params)) {
+    if (valor) url.searchParams.set(chave, valor);
+  }
+
+  const response = await fetch(url.toString(), { cache: "no-store" });
+  const json = (await response.json()) as T & {
+    error?: { message?: string };
+  };
+
+  if (!response.ok || json.error) {
+    throw new Error(json.error?.message || "Falha ao renovar o acesso ao Instagram.");
   }
 
   return json;
@@ -748,27 +701,6 @@ function extrairReferenciaInstagram(url: string) {
   } catch {
     return null;
   }
-}
-
-function converterInsightEmNumero(valor: GraphInsightValue) {
-  if (typeof valor === "number" && Number.isFinite(valor)) {
-    return Math.round(valor);
-  }
-
-  if (typeof valor === "string") {
-    const numero = Number(valor);
-    return Number.isFinite(numero) ? Math.round(numero) : null;
-  }
-
-  if (valor && typeof valor === "object") {
-    for (const item of Object.values(valor)) {
-      if (typeof item === "number" && Number.isFinite(item)) {
-        return Math.round(item);
-      }
-    }
-  }
-
-  return null;
 }
 
 function numeroSeguro(valor: unknown) {

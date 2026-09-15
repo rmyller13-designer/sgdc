@@ -32,7 +32,6 @@ type StatusInstagram = {
   };
   conexao: {
     conectado: boolean;
-    paginaFacebook: string | null;
     contaInstagram: string | null;
     usuarioInstagram: string | null;
     expiraEm: string | null;
@@ -486,8 +485,8 @@ export default function ConfiguracoesPage() {
                   : "Nao identificado"}
               </p>
               <p style={resumoItem}>
-                <strong>Pagina usada no vinculo tecnico:</strong>{" "}
-                {statusInstagram?.conexao.paginaFacebook || "Nao identificada"}
+                <strong>Vinculo tecnico:</strong>{" "}
+                Login direto do Instagram (sem pagina do Facebook)
               </p>
               <p style={resumoItem}>
                 <strong>Token expira em:</strong>{" "}
