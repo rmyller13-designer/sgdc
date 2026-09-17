@@ -70,7 +70,7 @@ export default function ClippingAnexosManager({
 
         const { error: erroUpload } = await supabase.storage
           .from("demandas")
-          .upload(caminhoArquivo, arquivo);
+          .upload(caminhoArquivo, arquivo, { cacheControl: "31536000" });
 
         if (erroUpload) {
           setMensagem("Erro ao enviar arquivo: " + erroUpload.message);
@@ -262,7 +262,8 @@ function AnexoCard({
           alt={anexo.nome_arquivo}
           width={440}
           height={280}
-          unoptimized
+          sizes="(max-width: 640px) 90vw, 440px"
+          quality={60}
           style={previewImagem}
         />
       ) : (

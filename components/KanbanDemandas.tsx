@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   DragDropContext,
@@ -486,12 +487,16 @@ export default function KanbanDemandas({
                                     >
                                       {demanda.preview_image_url ? (
                                         <div style={previewWrap}>
-                                          <img
+                                          <Image
                                             src={demanda.preview_image_url}
                                             alt={
                                               demanda.titulo ||
                                               `Demanda ${demanda.id}`
                                             }
+                                            width={320}
+                                            height={120}
+                                            sizes="(max-width: 640px) 90vw, 320px"
+                                            quality={60}
                                             style={previewImage}
                                           />
                                         </div>

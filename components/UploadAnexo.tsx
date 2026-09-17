@@ -57,7 +57,7 @@ export default function UploadAnexo({
 
         const { error: erroUpload } = await supabase.storage
           .from("demandas")
-          .upload(caminhoArquivo, arquivo);
+          .upload(caminhoArquivo, arquivo, { cacheControl: "31536000" });
 
         if (erroUpload) {
           setMensagem("Erro ao enviar arquivo: " + erroUpload.message);

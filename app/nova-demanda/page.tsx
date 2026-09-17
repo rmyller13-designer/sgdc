@@ -314,7 +314,7 @@ export default function NovaDemanda() {
 
         const { error: erroUpload } = await supabase.storage
           .from("demandas")
-          .upload(caminhoArquivo, arquivo);
+          .upload(caminhoArquivo, arquivo, { cacheControl: "31536000" });
 
         if (erroUpload) {
           setMensagem(

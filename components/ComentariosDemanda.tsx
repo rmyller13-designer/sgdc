@@ -115,7 +115,7 @@ export default function ComentariosDemanda({
 
       const { error: erroUpload } = await supabase.storage
         .from("demandas")
-        .upload(caminhoArquivo, arquivo);
+        .upload(caminhoArquivo, arquivo, { cacheControl: "31536000" });
 
       if (erroUpload) {
         setMensagem("ComentÃ¡rio salvo, mas houve erro no anexo: " + erroUpload.message);

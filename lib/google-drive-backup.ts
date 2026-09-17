@@ -261,6 +261,12 @@ export async function executarBackupGoogleDrive() {
       anexosComFalha += resultadoArquivos.falhas;
     }
 
+    if (anexosComFalha > 0) {
+      throw new Error(
+        `Acervo incompleto: ${anexosComFalha} anexo(s) nao foram copiados para o Google Drive.`
+      );
+    }
+
     await atualizarStatusBackup(admin, {
       ultimo_backup_em: agora.toISOString(),
       ultimo_backup_status: "sucesso",

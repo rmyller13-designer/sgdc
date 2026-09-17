@@ -11,6 +11,7 @@ type ConfiguracaoBackup = {
   ultimo_backup_em: string | null;
   ultimo_backup_status: string | null;
   ultimo_backup_arquivo: string | null;
+  ultimo_backup_erro: string | null;
 };
 
 type ConfiguracaoInstagram = {
@@ -448,6 +449,12 @@ export default function ConfiguracoesPage() {
                 <strong>Situacao:</strong>{" "}
                 {formatarStatus(configuracao?.ultimo_backup_status)}
               </p>
+              {configuracao?.ultimo_backup_status === "erro" &&
+                configuracao.ultimo_backup_erro ? (
+                  <p style={resumoItem}>
+                    <strong>Erro:</strong> {configuracao.ultimo_backup_erro}
+                  </p>
+                ) : null}
               <p style={resumoItem}>
                 <strong>Arquivo principal:</strong>{" "}
                 {configuracao?.ultimo_backup_arquivo || "Nenhum indice gerado ainda"}

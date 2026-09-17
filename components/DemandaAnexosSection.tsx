@@ -250,7 +250,8 @@ function AnexoCard({
           alt={anexo.nome_arquivo}
           width={480}
           height={320}
-          unoptimized
+          sizes="(max-width: 640px) 90vw, 480px"
+          quality={60}
           style={previewImagem}
         />
       ) : (
