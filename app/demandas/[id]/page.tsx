@@ -270,7 +270,6 @@ function formatarStatus(status?: string | null) {
     EM_APROVACAO: "Em Aprovacao",
     AP_PARA_PUBLICAR: "AP. para Publicar",
     CONCLUIDO: "Concluido",
-    CANCELADO: "Cancelado",
   };
 
   return nomes[status || ""] || corrigirTextoExibicao(status);

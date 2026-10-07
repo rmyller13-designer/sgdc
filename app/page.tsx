@@ -53,7 +53,6 @@ export default async function Dashboard() {
     total: listaDemandas.length,
     abertas: demandasAbertas.length,
     concluidas: listaDemandas.filter((demanda) => demanda.status === "CONCLUIDO").length,
-    canceladas: listaDemandas.filter((demanda) => demanda.status === "CANCELADO").length,
   };
 
   const alertas = calcularAlertas(demandasAbertas);
@@ -197,5 +196,5 @@ function calcularPrazoMeta(dataEntrega?: string | null) {
 }
 
 function ehStatusEncerrado(status?: string | null) {
-  return status === "CONCLUIDO" || status === "CANCELADO";
+  return status === "CONCLUIDO";
 }

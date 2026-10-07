@@ -11,7 +11,7 @@ type Item = {
   concluido: boolean;
 };
 
-type StatusProducao = "ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
+type StatusProducao = "ANDAMENTO" | "CONCLUIDO";
 
 type ProdutoChecklist = {
   id: number;
@@ -336,7 +336,6 @@ export default ChecklistDemanda;
 const statusLabel: Record<StatusProducao, string> = {
   ANDAMENTO: "Andamento",
   CONCLUIDO: "Concluído",
-  CANCELADO: "Cancelado",
 };
 
 function colunaStatusAusente(error?: { code?: string } | null) {
@@ -388,9 +387,6 @@ const statusTexto: Record<StatusProducao, object> = {
   },
   CONCLUIDO: {
     color: "#86efac",
-  },
-  CANCELADO: {
-    color: "#fca5a5",
   },
 };
 

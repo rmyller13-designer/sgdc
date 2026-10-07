@@ -129,7 +129,6 @@ export function formatarStatusExibicao(status?: string | null) {
     EM_APROVACAO: "Em Aprova\u00e7\u00e3o",
     AP_PARA_PUBLICAR: "Ap. para Publicar",
     CONCLUIDO: "Conclu\u00eddo",
-    CANCELADO: "Cancelado",
   };
 
   if (!status) return "N\u00e3o informado";

@@ -13,7 +13,6 @@ type Resumo = {
   total: number;
   abertas: number;
   concluidas: number;
-  canceladas: number;
 };
 
 type Alertas = {
@@ -161,11 +160,6 @@ export default function DashboardClient({
           titulo="Concluídas"
           valor={resumo.concluidas}
           detalhe="Entregas já finalizadas e fechadas pela equipe."
-        />
-        <SnapshotCard
-          titulo="Canceladas"
-          valor={resumo.canceladas}
-          detalhe="Solicitações encerradas sem execução."
         />
       </section>
 

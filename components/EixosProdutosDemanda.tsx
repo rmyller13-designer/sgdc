@@ -24,7 +24,7 @@ type Produto = {
   nome: string;
 };
 
-type StatusProducao = "ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
+type StatusProducao = "ANDAMENTO" | "CONCLUIDO";
 
 type ProdutoSelecionado = {
   id: number;
@@ -681,7 +681,6 @@ export default function EixosProdutosDemanda({
 const statusOpcoes: { valor: StatusProducao; label: string }[] = [
   { valor: "ANDAMENTO", label: "Andamento" },
   { valor: "CONCLUIDO", label: "Concluído" },
-  { valor: "CANCELADO", label: "Cancelado" },
 ];
 
 function colunaStatusAusente(error?: { code?: string } | null) {
@@ -805,11 +804,6 @@ const statusOpcaoAtiva: Record<StatusProducao, object> = {
     color: "#dcfce7",
     borderColor: "#16a34a",
     background: "rgba(22, 163, 74, 0.22)",
-  },
-  CANCELADO: {
-    color: "#fee2e2",
-    borderColor: "#dc2626",
-    background: "rgba(220, 38, 38, 0.22)",
   },
 };
 

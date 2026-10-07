@@ -47,7 +47,6 @@ const statusCores: Record<string, string> = {
   EM_APROVACAO: "#eab308",
   AP_PARA_PUBLICAR: "#a855f7",
   CONCLUIDO: "#22c55e",
-  CANCELADO: "#94a3b8",
 };
 
 const RESPONSAVEIS_FILTRO_FIXOS = [

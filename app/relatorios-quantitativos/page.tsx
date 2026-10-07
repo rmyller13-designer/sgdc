@@ -125,7 +125,10 @@ export default async function RelatoriosQuantitativos({
     (item) => pegarNome(item.eixos_comunicacao)
   );
 
-  const status = agruparContagem(demandas, (item) => item.status);
+  const status = agruparContagem(
+    demandas.filter((item) => item.status !== "CANCELADO"),
+    (item) => item.status
+  );
   const setores = agruparContagem(demandas, (item) => item.setor);
   const responsaveis = agruparContagem(demandas, (item) =>
     dividirResponsaveis(item.responsavel)
@@ -247,7 +250,6 @@ function formatarTituloRelatorio(valor: string) {
       EM_APROVACAO: true,
       AP_PARA_PUBLICAR: true,
       CONCLUIDO: true,
-      CANCELADO: true,
     }
   ) {
     return formatarStatusExibicao(texto);

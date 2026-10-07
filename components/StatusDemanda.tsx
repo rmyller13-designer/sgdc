@@ -75,7 +75,6 @@ export default function StatusDemanda({
           <option value="EM_PRODUCAO">EM_PRODUÇÃO</option>
           <option value="EM_APROVACAO">EM_APROVAÇÃO</option>
           <option value="CONCLUIDO">CONCLUÍDO</option>
-          <option value="CANCELADO">CANCELADO</option>
         </select>
 
         <button

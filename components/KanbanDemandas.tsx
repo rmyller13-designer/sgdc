@@ -25,7 +25,7 @@ const STATUS = [
   { id: 3, nome: "EM_APROVACAO", titulo: "Em Aprovação" },
   { id: 4, nome: "AP_PARA_PUBLICAR", titulo: "AP. para Publicar" },
   { id: 5, nome: "CONCLUIDO", titulo: "Concluído" },
-  { id: 6, nome: "CANCELADO", titulo: "Cancelado" },
+  { id: 6, nome: "CANCELADO", titulo: "Placas" },
 ];
 
 const RESPONSAVEIS_FILTRO_FIXOS = [
@@ -710,10 +710,6 @@ function formatarData(data: string) {
 function calcularPrazo(dataEntrega?: string | null, status?: string | null) {
   if (status === "CONCLUIDO") {
     return { texto: "Concluída", cor: "#22c55e", tipo: "concluido" };
-  }
-
-  if (status === "CANCELADO") {
-    return { texto: "Cancelada", cor: "#94a3b8", tipo: "cancelado" };
   }
 
   if (!dataEntrega) {
