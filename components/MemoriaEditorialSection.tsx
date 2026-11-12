@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { SugestaoMemoriaEditorial } from "@/lib/memoria-editorial";
+import { formatarDataLocal } from "@/lib/date-time";
 
 export default function MemoriaEditorialSection({
   itens,
@@ -60,7 +61,7 @@ export default function MemoriaEditorialSection({
                 </span>
                 <span style={metaSmall}>
                   {item.criadoEm
-                    ? new Date(item.criadoEm).toLocaleDateString("pt-BR")
+                    ? formatarDataLocal(item.criadoEm)
                     : "Sem data"}
                 </span>
               </div>

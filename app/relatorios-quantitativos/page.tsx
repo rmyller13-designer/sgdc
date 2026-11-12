@@ -2,7 +2,6 @@ import { connection } from "next/server";
 import { supabase } from "../../lib/supabase";
 import RelatoriosQuantitativosClient from "../../components/RelatoriosQuantitativosClient";
 import { buscarDemandasCompletas } from "@/lib/demandas-completas";
-import { criarSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   corrigirTextoExibicao,
   formatarCanalExibicao,
@@ -46,21 +45,9 @@ type EixoDemanda = {
     | null;
 };
 
-type ClippingResumo = {
-  origem: string | null;
-  data_publicacao: string | null;
-  observacoes?: string | null;
-};
-
 type Item = {
   titulo: string;
   valor: number;
-};
-
-type EvolucaoOrigemItem = {
-  mes: string;
-  ascom: number;
-  externo: number;
 };
 
 export default async function RelatoriosQuantitativos({
@@ -73,15 +60,12 @@ export default async function RelatoriosQuantitativos({
   const params = await searchParams;
   const periodo = resolverPeriodo(params);
 
-  const [{ data: demandasData }, clipping] = await Promise.all([
-    buscarDemandasCompletas(supabase, {
+  const { data: demandasData } = await buscarDemandasCompletas(supabase, {
       orderBy: "data_solicitacao",
       ascending: true,
       gteDataSolicitacao: periodo.inicio || undefined,
       lteDataSolicitacao: periodo.fim || undefined,
-    }),
-    buscarClippingCompleto(periodo),
-  ]);
+    });
 
   const demandas = (demandasData || []) as DemandaResumo[];
   const ids = demandas.map((demanda) => demanda.id);
@@ -134,9 +118,6 @@ export default async function RelatoriosQuantitativos({
     dividirResponsaveis(item.responsavel)
   );
   const evolucaoMensal = agruparEvolucaoMensal(demandas, periodo);
-  const totalPostagensAscom = clipping.filter((item) => item.origem === "ASCOM").length;
-  const totalClippingExterno = clipping.filter((item) => item.origem !== "ASCOM").length;
-  const evolucaoPostagensAscom = agruparEvolucaoOrigemClipping(clipping, periodo);
 
   return (
     <RelatoriosQuantitativosClient
@@ -151,9 +132,6 @@ export default async function RelatoriosQuantitativos({
       setores={setores}
       responsaveis={responsaveis}
       evolucaoMensal={evolucaoMensal}
-      totalPostagensAscom={totalPostagensAscom}
-      totalClippingExterno={totalClippingExterno}
-      evolucaoPostagensAscom={evolucaoPostagensAscom}
     />
   );
 }
@@ -292,40 +270,6 @@ function agruparEvolucaoMensal(
   }));
 }
 
-function agruparEvolucaoOrigemClipping(
-  registros: ClippingResumo[],
-  periodo: { inicio: string; fim: string; mes: string }
-): EvolucaoOrigemItem[] {
-  const mapa = new Map<string, { ascom: number; externo: number }>();
-
-  for (const registro of registros) {
-    const data = registro.data_publicacao;
-    if (!data) continue;
-
-    const chave = data.slice(0, 7);
-    const atual = mapa.get(chave) || { ascom: 0, externo: 0 };
-
-    if (registro.origem === "ASCOM") {
-      atual.ascom += 1;
-    } else {
-      atual.externo += 1;
-    }
-
-    mapa.set(chave, atual);
-  }
-
-  const meses = montarJanelaMensal([...mapa.keys()], periodo);
-
-  return meses.map((mes) => {
-    const atual = mapa.get(mes) || { ascom: 0, externo: 0 };
-    return {
-      mes: formatarMes(mes),
-      ascom: atual.ascom,
-      externo: atual.externo,
-    };
-  });
-}
-
 function formatarMes(mes: string) {
   const [ano, numeroMes] = mes.split("-");
   return `${numeroMes}/${ano}`;
@@ -379,49 +323,4 @@ function listarMeses(inicio: string, fim: string) {
   }
 
   return meses;
-}
-
-async function buscarClippingCompleto(periodo: {
-  inicio: string;
-  fim: string;
-  mes: string;
-}): Promise<ClippingResumo[]> {
-  const admin = criarSupabaseAdmin();
-  const tamanhoPagina = 1000;
-  const registros: ClippingResumo[] = [];
-
-  for (let inicio = 0; ; inicio += tamanhoPagina) {
-    let query = admin
-      .from("clipping_registros")
-      .select("*")
-      .order("data_publicacao", { ascending: true })
-      .range(inicio, inicio + tamanhoPagina - 1);
-
-    if (periodo.inicio) query = query.gte("data_publicacao", periodo.inicio);
-    if (periodo.fim) query = query.lte("data_publicacao", periodo.fim);
-
-    const { data, error } = await query;
-    if (error) return [];
-
-    const pagina = (data || []) as unknown as Array<{
-      origem?: string | null;
-      observacoes?: string | null;
-      data_publicacao: string | null;
-    }>;
-
-    registros.push(
-      ...pagina.map((registro) => ({
-        data_publicacao: registro.data_publicacao,
-        origem:
-          registro.origem === "ASCOM" ||
-          registro.observacoes?.includes("[SGDC_ORIGEM:ASCOM]")
-            ? "ASCOM"
-            : "EXTERNO",
-      }))
-    );
-
-    if (pagina.length < tamanhoPagina) break;
-  }
-
-  return registros;
 }

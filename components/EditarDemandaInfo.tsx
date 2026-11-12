@@ -10,6 +10,7 @@ import RichTextContent from "@/components/RichTextContent";
 import RichTextEditor, {
   type RichTextEditorHandle,
 } from "@/components/RichTextEditor";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 
 type CampoEditando =
   | "titulo"
@@ -347,7 +348,7 @@ export default function EditarDemandaInfo({ demandaId }: { demandaId: number }) 
           <span style={labelStyle}>Criado em</span>
           <strong style={valorStyle}>
             {form.criado_em
-              ? new Date(form.criado_em).toLocaleString("pt-BR")
+              ? formatarDataHoraLocal(form.criado_em)
               : "Não informado"}
           </strong>
         </div>

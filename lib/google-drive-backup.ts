@@ -1,4 +1,5 @@
 import "server-only";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 import { Readable } from "node:stream";
 import { google } from "googleapis";
 import {
@@ -1512,12 +1513,7 @@ function formatarData(valor?: string | null) {
 }
 
 function formatarDataHora(valor?: string | null) {
-  if (!valor) return "Nao informado";
-  try {
-    return new Date(valor).toLocaleString("pt-BR");
-  } catch {
-    return valor;
-  }
+  return formatarDataHoraLocal(valor) || "Nao informado";
 }
 
 function escaparTextoDrive(valor: string) {

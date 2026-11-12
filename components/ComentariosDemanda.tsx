@@ -7,6 +7,7 @@ import {
   validarArquivoUpload,
 } from "@/lib/storage-policy";
 import { supabase } from "../lib/supabase";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 
 type ComentarioAnexo = {
   id: number;
@@ -228,7 +229,7 @@ export default function ComentariosDemanda({
             <div style={comentarioHeader}>
               <strong style={comentarioLabel}>AtualizaÃ§Ã£o</strong>
               <small style={dataTexto}>
-                {new Date(comentario.criado_em).toLocaleString("pt-BR")}
+                {formatarDataHoraLocal(comentario.criado_em)}
               </small>
             </div>
 

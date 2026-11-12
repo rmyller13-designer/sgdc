@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 
 type Historico = {
   id: number;
@@ -59,7 +60,7 @@ export default function HistoricoDemanda({
                   <div style={cabecalho}>
                     <strong style={tipoTitulo}>{tipo.titulo}</strong>
                     <time style={dataTexto}>
-                      {new Date(item.criado_em).toLocaleString("pt-BR")}
+                      {formatarDataHoraLocal(item.criado_em)}
                     </time>
                   </div>
                   <p style={acaoTexto}>{item.acao}</p>

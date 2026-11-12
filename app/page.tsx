@@ -6,6 +6,7 @@ import {
   corrigirTextoExibicao,
   formatarSetorExibicao,
 } from "@/lib/display-text";
+import { hojeLocal } from "@/lib/date-time";
 
 type DemandaDashboard = {
   id: number;
@@ -181,13 +182,13 @@ function calcularPrazoMeta(dataEntrega?: string | null) {
   }
 
   const [ano, mes, dia] = dataEntrega.split("-").map(Number);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const entrega = new Date(ano, mes - 1, dia);
-  entrega.setHours(0, 0, 0, 0);
-
-  const diff = Math.floor((entrega.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+  const hoje = hojeLocal();
+  const chaveEntrega = `${String(ano).padStart(4, "0")}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  const [hojeAno, hojeMes, hojeDia] = hoje.split("-").map(Number);
+  const [entregaAno, entregaMes, entregaDia] = chaveEntrega.split("-").map(Number);
+  const hojeUtc = Date.UTC(hojeAno, hojeMes - 1, hojeDia);
+  const entregaUtc = Date.UTC(entregaAno, entregaMes - 1, entregaDia);
+  const diff = Math.floor((entregaUtc - hojeUtc) / (1000 * 60 * 60 * 24));
 
   if (diff < 0) return { tipo: "atrasada", ordem: diff };
   if (diff === 0) return { tipo: "hoje", ordem: diff };

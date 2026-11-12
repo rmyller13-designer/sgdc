@@ -7,6 +7,7 @@ import ExcluirAnexo from "@/components/ExcluirAnexo";
 import MoverCategoriaAnexo from "@/components/MoverCategoriaAnexo";
 import UploadAnexo from "@/components/UploadAnexo";
 import { corrigirTextoExibicao } from "@/lib/display-text";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 
 export type DemandaAnexoItem = {
   id: number;
@@ -465,16 +466,8 @@ function obterMetaTipoArquivo(tipo: TipoArquivo) {
 }
 
 function formatarDataHora(data: string) {
-  const valor = new Date(data);
-  if (Number.isNaN(valor.getTime())) return null;
-
-  return valor.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const formatada = formatarDataHoraLocal(data);
+  return formatada || null;
 }
 
 const wrap: CSSProperties = {

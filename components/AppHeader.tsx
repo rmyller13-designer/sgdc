@@ -6,7 +6,6 @@ import UserMenu from "@/components/UserMenu";
 
 const NAV_ITEMS = [
   { href: "/relatorios-quantitativos", label: "Indicadores" },
-  { href: "/clipping", label: "Clipping" },
   { href: "/", label: "Home" },
   { href: "/nova-demanda", label: "Nova demanda" },
   { href: "/demandas", label: "Demandas" },

@@ -13,6 +13,7 @@ import { useAuth } from "@/components/AuthProvider";
 import GoogleTaskButton from "@/components/GoogleTaskButton";
 import { podeEditarFluxo } from "@/lib/auth";
 import { corrigirTextoExibicao } from "@/lib/display-text";
+import { hojeLocal } from "@/lib/date-time";
 import { supabase } from "@/lib/supabase";
 
 type DemandaCalendario = {
@@ -73,7 +74,7 @@ export default function CalendarioEditorialClient({
   const [setor, setSetor] = useState("");
 
   const dias = useMemo(() => criarDiasDoMes(mesAtual), [mesAtual]);
-  const hoje = toDateKey(new Date());
+  const hoje = hojeLocal();
   const semanaAtual = dias.filter((dia) => mesmaSemana(dia.chave, hoje));
 
   const demandasFiltradas = useMemo(() => {
@@ -540,7 +541,7 @@ function criarDiasDoMes(mes: string): DiaCalendario[] {
   const ultimoDia = new Date(ano, mesNumero, 0);
   const cursor = new Date(primeiroDia);
   const fim = new Date(ultimoDia);
-  const hoje = toDateKey(new Date());
+  const hoje = hojeLocal();
 
   cursor.setDate(cursor.getDate() - cursor.getDay());
   fim.setDate(fim.getDate() + (6 - fim.getDay()));

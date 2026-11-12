@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { temPermissao } from "@/lib/auth";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 
 type ConfiguracaoBackup = {
   id: string;
@@ -14,36 +15,6 @@ type ConfiguracaoBackup = {
   ultimo_backup_erro: string | null;
 };
 
-type ConfiguracaoInstagram = {
-  id: string;
-  ativo: boolean;
-  facebook_page_name: string | null;
-  instagram_username: string | null;
-  instagram_nome_exibicao: string | null;
-  token_expira_em: string | null;
-  ultimo_sync_em: string | null;
-  ultimo_sync_status: string | null;
-  ultimo_sync_resumo: string | null;
-};
-
-type StatusInstagram = {
-  configuracao: ConfiguracaoInstagram;
-  ambiente: {
-    appConfigurado: boolean;
-  };
-  conexao: {
-    conectado: boolean;
-    contaInstagram: string | null;
-    usuarioInstagram: string | null;
-    expiraEm: string | null;
-  };
-};
-
-type StatusGoogleAlerts = {
-  configurado: boolean;
-  quantidadeFeeds: number;
-};
-
 export default function ConfiguracoesPage() {
   const { usuario } = useAuth();
   const [carregando, setCarregando] = useState(true);
@@ -53,18 +24,6 @@ export default function ConfiguracoesPage() {
   const [configuracao, setConfiguracao] = useState<ConfiguracaoBackup | null>(null);
   const [ativo, setAtivo] = useState(false);
   const [pastaPaiId, setPastaPaiId] = useState("");
-
-  const [carregandoInstagram, setCarregandoInstagram] = useState(true);
-  const [salvandoInstagram, setSalvandoInstagram] = useState(false);
-  const [sincronizandoInstagram, setSincronizandoInstagram] = useState(false);
-  const [desconectandoInstagram, setDesconectandoInstagram] = useState(false);
-  const [mensagemInstagram, setMensagemInstagram] = useState(
-    obterMensagemInstagramDaUrl
-  );
-  const [statusInstagram, setStatusInstagram] = useState<StatusInstagram | null>(null);
-  const [instagramAtivo, setInstagramAtivo] = useState(false);
-  const [statusGoogleAlerts, setStatusGoogleAlerts] =
-    useState<StatusGoogleAlerts | null>(null);
 
   const podeGerenciar = useMemo(
     () => temPermissao(usuario, ["admin", "coordenacao"]),
@@ -99,69 +58,9 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function carregarInstagram(preservarMensagem = false) {
-    setCarregandoInstagram(true);
-
-    if (!preservarMensagem) {
-      setMensagemInstagram("");
-    }
-
-    try {
-      const response = await fetch("/api/configuracoes/instagram", {
-        cache: "no-store",
-      });
-      const json = (await response.json()) as StatusInstagram & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(
-          json.error || "Nao foi possivel carregar a integracao da Meta."
-        );
-      }
-
-      setStatusInstagram(json);
-      setInstagramAtivo(Boolean(json.configuracao?.ativo));
-    } catch (error) {
-      setMensagemInstagram(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel carregar a integracao da Meta agora."
-      );
-    } finally {
-      setCarregandoInstagram(false);
-    }
-  }
-
-  async function carregarGoogleAlerts() {
-    try {
-      const response = await fetch("/api/configuracoes/google-alerts", {
-        cache: "no-store",
-      });
-      if (!response.ok) return;
-      const json = (await response.json()) as StatusGoogleAlerts;
-      setStatusGoogleAlerts(json);
-    } catch {
-      setStatusGoogleAlerts(null);
-    }
-  }
-
   useEffect(() => {
     queueMicrotask(() => {
       void carregarConfiguracao();
-      void carregarInstagram();
-      void carregarGoogleAlerts();
-    });
-  }, []);
-
-  useEffect(() => {
-    const status = obterStatusInstagramDaUrl();
-    if (!status) return;
-
-    window.history.replaceState({}, "", "/configuracoes");
-
-    queueMicrotask(() => {
-      void carregarInstagram(true);
     });
   }, []);
 
@@ -226,128 +125,6 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function salvarInstagram() {
-    setSalvandoInstagram(true);
-    setMensagemInstagram("");
-
-    try {
-      const response = await fetch("/api/configuracoes/instagram", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ativo: instagramAtivo,
-        }),
-      });
-      const json = (await response.json()) as StatusInstagram & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(
-          json.error || "Nao foi possivel salvar a integracao da Meta."
-        );
-      }
-
-      setStatusInstagram(json);
-      setMensagemInstagram("Configuracoes da Meta salvas com sucesso.");
-    } catch (error) {
-      setMensagemInstagram(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel salvar a integracao da Meta agora."
-      );
-    } finally {
-      setSalvandoInstagram(false);
-    }
-  }
-
-  function conectarInstagram() {
-    setMensagemInstagram("");
-    window.location.assign("/api/configuracoes/instagram/conectar");
-  }
-
-  async function sincronizarInstagramAgora() {
-    setSincronizandoInstagram(true);
-    setMensagemInstagram("");
-
-    try {
-      const response = await fetch("/api/configuracoes/instagram/sincronizar", {
-        method: "POST",
-      });
-      const json = (await response.json()) as
-        | (StatusInstagram & {
-            error?: string;
-            resultado?: {
-              registrosAnalisados: number;
-              registrosAtualizados: number;
-              registrosSemCorrespondencia: number;
-              linksInvalidos: number;
-              erros: number;
-              detalhesErros: Array<{
-                registroId: number;
-                url: string | null;
-                erro: string;
-              }>;
-            };
-          })
-        | { error?: string };
-
-      if (!response.ok || !("resultado" in json)) {
-        throw new Error(
-          "error" in json && json.error
-            ? json.error
-            : "Nao foi possivel sincronizar o Instagram."
-        );
-      }
-
-      setStatusInstagram(json);
-      setMensagemInstagram(
-        `Sincronizacao concluida. ${json.resultado?.registrosAtualizados || 0} registro(s) do Instagram foram atualizados` +
-          `${json.resultado?.erros ? `; ${json.resultado.erros} erro(s) encontrado(s)` : ""}.`
-      );
-    } catch (error) {
-      setMensagemInstagram(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel sincronizar o Instagram agora."
-      );
-    } finally {
-      setSincronizandoInstagram(false);
-    }
-  }
-
-  async function desconectarInstagram() {
-    setDesconectandoInstagram(true);
-    setMensagemInstagram("");
-
-    try {
-      const response = await fetch("/api/configuracoes/instagram", {
-        method: "DELETE",
-      });
-      const json = (await response.json()) as StatusInstagram & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(json.error || "Nao foi possivel desconectar a Meta.");
-      }
-
-      setStatusInstagram(json);
-      setInstagramAtivo(false);
-      setMensagemInstagram("Conexao Meta desconectada com sucesso.");
-    } catch (error) {
-      setMensagemInstagram(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel desconectar a Meta agora."
-      );
-    } finally {
-      setDesconectandoInstagram(false);
-    }
-  }
-
   function abrirPastaDoMes() {
     window.open(
       "/api/configuracoes/backup-google-drive/pasta-mes",
@@ -376,8 +153,7 @@ export default function ConfiguracoesPage() {
           <div>
             <h1 style={titulo}>Configuracoes</h1>
             <p style={textoSuporte}>
-              Gerencie o acervo mensal do SGDC no Google Drive e a sincronizacao
-              de metricas do Instagram com o modulo de clipping.
+              Gerencie o acervo mensal do SGDC no Google Drive.
             </p>
           </div>
         </div>
@@ -442,7 +218,7 @@ export default function ConfiguracoesPage() {
               <p style={resumoItem}>
                 <strong>Ultima execucao:</strong>{" "}
                 {configuracao?.ultimo_backup_em
-                  ? new Date(configuracao.ultimo_backup_em).toLocaleString("pt-BR")
+                  ? formatarDataHoraLocal(configuracao.ultimo_backup_em)
                   : "Ainda nao executado"}
               </p>
               <p style={resumoItem}>
@@ -463,149 +239,6 @@ export default function ConfiguracoesPage() {
           </div>
         </div>
 
-        <div style={grid}>
-          <div style={bloco}>
-            <h2 style={subtitulo}>Instagram da ASCOM</h2>
-
-            <label style={toggleLinha}>
-              <input
-                type="checkbox"
-                checked={instagramAtivo}
-                onChange={(e) => setInstagramAtivo(e.target.checked)}
-              />
-              <span>Sincronizar automaticamente as metricas do Instagram no clipping</span>
-            </label>
-
-            <div style={resumoBox}>
-              <p style={resumoItem}>
-                <strong>Conta conectada:</strong>{" "}
-                {statusInstagram?.conexao.conectado
-                  ? statusInstagram.conexao.contaInstagram ||
-                    statusInstagram.conexao.usuarioInstagram ||
-                    "Conta do Instagram conectada"
-                  : "Nenhuma conta conectada"}
-              </p>
-              <p style={resumoItem}>
-                <strong>Usuario:</strong>{" "}
-                {statusInstagram?.conexao.usuarioInstagram
-                  ? `@${statusInstagram.conexao.usuarioInstagram}`
-                  : "Nao identificado"}
-              </p>
-              <p style={resumoItem}>
-                <strong>Vinculo tecnico:</strong>{" "}
-                Login direto do Instagram (sem pagina do Facebook)
-              </p>
-              <p style={resumoItem}>
-                <strong>Token expira em:</strong>{" "}
-                {statusInstagram?.conexao.expiraEm
-                  ? new Date(statusInstagram.conexao.expiraEm).toLocaleString("pt-BR")
-                  : "Nao informado"}
-              </p>
-            </div>
-
-            <div style={acoes}>
-              <button
-                type="button"
-                onClick={salvarInstagram}
-                disabled={salvandoInstagram || carregandoInstagram}
-                style={botaoPrimario}
-              >
-                {salvandoInstagram ? "Salvando..." : "Salvar integracao"}
-              </button>
-
-              <button
-                type="button"
-                onClick={conectarInstagram}
-                disabled={carregandoInstagram || !statusInstagram?.ambiente.appConfigurado}
-                style={botaoSecundario}
-              >
-                {statusInstagram?.conexao.conectado
-                  ? "Reconectar Instagram"
-                  : "Conectar Instagram"}
-              </button>
-
-              <button
-                type="button"
-                onClick={sincronizarInstagramAgora}
-                disabled={
-                  sincronizandoInstagram ||
-                  carregandoInstagram ||
-                  !instagramAtivo ||
-                  !statusInstagram?.conexao.conectado
-                }
-                style={botaoTerciario}
-              >
-                {sincronizandoInstagram ? "Sincronizando..." : "Sincronizar Instagram agora"}
-              </button>
-
-              <button
-                type="button"
-                onClick={desconectarInstagram}
-                disabled={
-                  desconectandoInstagram ||
-                  carregandoInstagram ||
-                  !statusInstagram?.conexao.conectado
-                }
-                style={botaoSecundario}
-              >
-                {desconectandoInstagram ? "Desconectando..." : "Desconectar"}
-              </button>
-            </div>
-
-            {!statusInstagram?.ambiente.appConfigurado && (
-              <p style={mensagemStyle}>
-                Faltam as variaveis META_APP_ID e META_APP_SECRET na Vercel para ativar esta integracao.
-              </p>
-            )}
-
-            {mensagemInstagram && <p style={mensagemStyle}>{mensagemInstagram}</p>}
-          </div>
-
-          <div style={bloco}>
-            <h2 style={subtitulo}>Resumo da sincronizacao</h2>
-
-            <div style={resumoBox}>
-              <p style={resumoItem}>
-                <strong>Ultima sincronizacao:</strong>{" "}
-                {statusInstagram?.configuracao.ultimo_sync_em
-                  ? new Date(statusInstagram.configuracao.ultimo_sync_em).toLocaleString("pt-BR")
-                  : "Ainda nao executada"}
-              </p>
-              <p style={resumoItem}>
-                <strong>Situacao:</strong>{" "}
-                {formatarStatus(statusInstagram?.configuracao.ultimo_sync_status)}
-              </p>
-              <p style={resumoItem}>
-                <strong>Resumo:</strong>{" "}
-                {statusInstagram?.configuracao.ultimo_sync_resumo ||
-                  "Nenhuma sincronizacao realizada ainda"}
-              </p>
-            </div>
-          </div>
-
-          <div style={bloco}>
-            <h2 style={subtitulo}>Google Alerts</h2>
-            <div style={resumoBox}>
-              <p style={resumoItem}>
-                <strong>Importacao automatica:</strong>{" "}
-                {statusGoogleAlerts?.configurado ? "Ativa" : "Aguardando configuracao"}
-              </p>
-              <p style={resumoItem}>
-                <strong>Feeds monitorados:</strong>{" "}
-                {statusGoogleAlerts?.quantidadeFeeds || 0}
-              </p>
-              <p style={resumoItem}>
-                Novas mencoes entram como Site, Externo, Nao classificado e Em
-                monitoramento para revisao da equipe.
-              </p>
-            </div>
-            {!statusGoogleAlerts?.configurado && (
-              <p style={mensagemStyle}>
-                Configure GOOGLE_ALERTS_RSS_URL na Vercel com o endereco RSS do alerta.
-              </p>
-            )}
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -618,31 +251,6 @@ function formatarStatus(status?: string | null) {
   if (status === "erro") return "Falha";
   if (status === "desconectado") return "Desconectado";
   return status;
-}
-
-function obterStatusInstagramDaUrl() {
-  if (typeof window === "undefined") return "";
-
-  return new URL(window.location.href).searchParams.get("instagram") || "";
-}
-
-function obterMensagemInstagramDaUrl() {
-  const status = obterStatusInstagramDaUrl();
-
-  const mensagens: Record<string, string> = {
-    conectado:
-      "Instagram conectado com sucesso. Ja podemos sincronizar suas metricas no clipping.",
-    acesso_negado: "A conexao com a Meta foi cancelada.",
-    estado_invalido:
-      "A validacao da conexao com a Meta falhou. Tente novamente.",
-    falha_callback: "Nao foi possivel concluir a conexao com a Meta.",
-    erro_config: "Faltam variaveis da Meta na Vercel para concluir a conexao.",
-    erro_desconhecido: "Nao foi possivel iniciar a conexao com a Meta.",
-  };
-
-  return status
-    ? mensagens[status] || "Ocorreu uma atualizacao na conexao com a Meta."
-    : "";
 }
 
 const pagina = {
@@ -677,7 +285,7 @@ const textoSuporte = {
 
 const grid = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: "18px",
 };
 

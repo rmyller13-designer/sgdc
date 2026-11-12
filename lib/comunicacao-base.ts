@@ -22,7 +22,7 @@ export const EIXOS_COMUNICACAO_PADRAO = [
   },
   {
     nome: "PROC. INTERNOS ADM",
-    descricao: "Reuni\u00f5es, relat\u00f3rios, clipping e mailing",
+    descricao: "Reuni\u00f5es, relat\u00f3rios e mailing",
   },
 ] as const;
 
@@ -54,7 +54,6 @@ export const PRODUTOS_COMUNICACAO_PADRAO = [
   "Apresenta\u00e7\u00e3o",
   "Campanha",
   "Comunicado",
-  "Clipping",
   "Mailing",
   "Briefing",
   "V\u00eddeo",

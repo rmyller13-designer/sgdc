@@ -8,6 +8,7 @@ import {
   formatarStatusExibicao,
   formatarTituloHumano,
 } from "@/lib/display-text";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 
 type Resumo = {
   total: number;
@@ -203,12 +204,6 @@ export default function DashboardClient({
               eyebrow="Agenda"
               titulo="Visualizar o calendário editorial"
               descricao="Enxergar distribuição por datas e antecipar entregas da semana."
-            />
-            <Shortcut
-              href="/clipping"
-              eyebrow="Imagem"
-              titulo="Monitorar clipping e repercussão"
-              descricao="Acompanhar produção ASCOM, clipping externo e leitura executiva."
             />
           </div>
         </Panel>
@@ -614,7 +609,7 @@ function formatarPrazoExibicao(valor?: string | null) {
 }
 
 function formatarDataHora(valor: string) {
-  return new Date(valor).toLocaleString("pt-BR");
+  return formatarDataHoraLocal(valor);
 }
 
 function priorityBadge(prioridade?: string | null) {

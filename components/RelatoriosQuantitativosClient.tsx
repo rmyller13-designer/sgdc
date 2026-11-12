@@ -8,7 +8,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   Line,
   Pie,
   PieChart,
@@ -17,6 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatarDataHoraLocal } from "@/lib/date-time";
 import {
   formatarCanalExibicao,
   formatarEixoExibicao,
@@ -35,12 +35,6 @@ type EvolucaoItem = {
   demandas: number;
 };
 
-type EvolucaoOrigemItem = {
-  mes: string;
-  ascom: number;
-  externo: number;
-};
-
 type TipoGrafico = "produto" | "eixo" | "canal" | "setor" | "livre";
 
 const cores = ["#ef4444", "#f97316", "#22c55e", "#3b82f6", "#a855f7", "#eab308"];
@@ -57,9 +51,6 @@ export default function RelatoriosQuantitativosClient({
   setores,
   responsaveis,
   evolucaoMensal,
-  totalPostagensAscom,
-  totalClippingExterno,
-  evolucaoPostagensAscom,
 }: {
   inicio: string;
   fim: string;
@@ -72,9 +63,6 @@ export default function RelatoriosQuantitativosClient({
   setores: Item[];
   responsaveis: Item[];
   evolucaoMensal: EvolucaoItem[];
-  totalPostagensAscom: number;
-  totalClippingExterno: number;
-  evolucaoPostagensAscom: EvolucaoOrigemItem[];
 }) {
   const totalProdutos = produtos.reduce((soma, item) => soma + item.valor, 0);
   const totalCanais = canais.reduce((soma, item) => soma + item.valor, 0);
@@ -83,9 +71,6 @@ export default function RelatoriosQuantitativosClient({
   const mediaCanaisPorDemanda = totalDemandas > 0 ? totalCanais / totalDemandas : 0;
   const mediaEixosPorDemanda = totalDemandas > 0 ? totalEixos / totalDemandas : 0;
   const periodo = formatarPeriodo(inicio, fim);
-  const temDadosClipping = evolucaoPostagensAscom.some(
-    (item) => item.ascom > 0 || item.externo > 0
-  );
 
   function exportarExcel() {
     const html = criarHtmlExcel({
@@ -211,8 +196,6 @@ export default function RelatoriosQuantitativosClient({
           valor={formatarMedia(mediaEixosPorDemanda)}
           derivado
         />
-        <Card titulo="Produção ASCOM" valor={totalPostagensAscom} />
-        <Card titulo="Repercussão externa" valor={totalClippingExterno} />
       </div>
 
       <div style={layoutDois}>
@@ -280,64 +263,6 @@ export default function RelatoriosQuantitativosClient({
           </div>
 
           <Legenda dados={status} />
-        </Painel>
-      </div>
-
-      <div style={layoutDois}>
-        <Painel titulo="Evolução mensal do clipping">
-          {temDadosClipping ? (
-            <div style={graficoAltura}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={evolucaoPostagensAscom}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="ascomFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.08} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.12)" />
-                <XAxis dataKey="mes" stroke="#ddd6fe" />
-                <YAxis stroke="#ddd6fe" allowDecimals={false} width={34} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="ascom"
-                  name="Produção ASCOM"
-                  stroke="#8b5cf6"
-                  strokeWidth={3}
-                  fill="url(#ascomFill)"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="externo"
-                  name="Repercussão externa"
-                  stroke="#94a3b8"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#94a3b8" }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-            </div>
-          ) : (
-            <div style={estadoVazioGrafico}>
-              <strong>Nenhum clipping no período</strong>
-              <span>Cadastre registros na aba Clipping ou ajuste o filtro de datas.</span>
-            </div>
-          )}
-        </Painel>
-
-        <Painel titulo="Leitura rápida do clipping">
-          <Ranking
-            titulo="Distribuição editorial"
-            dados={[
-              { titulo: "Produção ASCOM", valor: totalPostagensAscom },
-              { titulo: "Repercussão externa", valor: totalClippingExterno },
-            ]}
-          />
         </Painel>
       </div>
 
@@ -864,7 +789,7 @@ function criarHtmlPdf(args: {
   responsaveis: Item[];
   evolucaoMensal: EvolucaoItem[];
 }) {
-  const emitidoEm = new Date().toLocaleString("pt-BR");
+  const emitidoEm = formatarDataHoraLocal(new Date().toISOString());
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -1115,19 +1040,6 @@ const sectionTitle = {
 const graficoAltura = {
   width: "100%",
   height: "320px",
-};
-
-const estadoVazioGrafico = {
-  ...graficoAltura,
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "8px",
-  textAlign: "center" as const,
-  color: "var(--sg-text-secondary)",
-  border: "1px dashed var(--sg-border-soft)",
-  borderRadius: "8px",
 };
 
 const rankingBloco = {

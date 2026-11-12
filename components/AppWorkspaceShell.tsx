@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/relatorios-quantitativos", label: "Indicadores", icon: "◔" },
-  { href: "/clipping", label: "Clipping", icon: "◫" },
   { href: "/", label: "Home", icon: "⌂" },
   { href: "/demandas", label: "Demandas", icon: "▤" },
   { href: "/nova-demanda", label: "Nova demanda", icon: "+" },
