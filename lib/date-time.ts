@@ -12,10 +12,28 @@ const opcoesDataHora: Intl.DateTimeFormatOptions = {
 export function formatarDataHoraLocal(valor?: string | null) {
   if (!valor) return "";
 
-  const data = new Date(valor);
+  const data = new Date(normalizarInstanteUtc(valor));
   if (Number.isNaN(data.getTime())) return valor;
 
   return data.toLocaleString("pt-BR", opcoesDataHora);
+}
+
+/**
+ * O PostgREST pode devolver campos `timestamp without time zone` sem `Z`.
+ * O banco os grava no relógio UTC, mas o JavaScript entende uma data sem fuso
+ * como horário local do navegador. Acrescentamos UTC apenas quando há data e
+ * hora, mas não há deslocamento informado.
+ */
+function normalizarInstanteUtc(valor: string) {
+  const texto = valor.trim();
+  const temDataHora = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/.test(texto);
+  const temFuso = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(texto);
+
+  if (temDataHora && !temFuso) {
+    return `${texto.replace(" ", "T")}Z`;
+  }
+
+  return texto;
 }
 
 export function formatarDataLocal(valor?: string | null) {
